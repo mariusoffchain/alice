@@ -4,11 +4,16 @@ compatibility_date = "2026-07-29"
 compatibility_flags = ["nodejs_compat"]
 
 # The Worker answers on Alice's own domain so shipped clients never depend on
-# the workers.dev hostname. The workers.dev URL keeps working in parallel for
-# builds that still carry it.
+# the workers.dev hostname.
 routes = [
   { pattern = "proxy.alicebtc.com", custom_domain = true }
 ]
+
+# Every beta APK already in testers' hands calls the workers.dev hostname, so
+# it has to stay reachable. Declaring a route silently disables it otherwise,
+# which takes those builds offline. Remove this only once no shipped client
+# points at workers.dev any more.
+workers_dev = true
 
 # VENICE_API_KEY is a secret, never a plain var and never an EXPO_PUBLIC_* value:
 #   npx wrangler secret put VENICE_API_KEY

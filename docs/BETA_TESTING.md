@@ -7,9 +7,16 @@ testers using a fresh wallet and small amounts only.
 
 - Version: `0.0.1`
 - Android version code: `9`
-- Source commit: `9323fe2`
+- Source: tag `v0.0.1` in the public repository,
+  <https://github.com/mariusoffchain/alice>
 - APK SHA-256:
   `adab1d83ac355547d07cd37398ca6eb3c42cfb381b2e47aa1bf6bfcdac8ad207`
+
+One honest caveat about that checksum: the APK now in circulation was built
+before the source was published, so it cannot yet be reproduced from the tag,
+which carries the publication fixes made since. From the next beta build the
+APK is produced from the tagged tree, and this section states a checksum that
+matches it.
 
 Always verify the version and checksum supplied with the APK. Do not install an
 APK forwarded by an unknown person.
