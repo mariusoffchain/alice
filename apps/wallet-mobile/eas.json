@@ -1,0 +1,48 @@
+{
+  "cli": {
+    "version": ">= 16.18.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "credentialsSource": "remote",
+      "env": {
+        "EXPO_PUBLIC_NETWORK": "mutinynet",
+        "EXPO_PUBLIC_SWAP_PROVIDER": "satora",
+        "EXPO_PUBLIC_SATORA_URL": "https://mutinynetswap.lendasat.com",
+        "EXPO_PUBLIC_VENICE_PROXY_URL": "https://proxy.alicebtc.com",
+        "EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED": "true"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "credentialsSource": "remote",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_NETWORK": "bitcoin",
+        "EXPO_PUBLIC_ASP_URL": "https://arkade.computer",
+        "EXPO_PUBLIC_ESPLORA_URL": "https://mempool.space/api",
+        "EXPO_PUBLIC_SWAP_PROVIDER": "satora",
+        "EXPO_PUBLIC_SATORA_URL": "https://api.satora.io",
+        "EXPO_PUBLIC_ARKADE_EXPLORER": "https://arkade.space",
+        "EXPO_PUBLIC_VENICE_PROXY_URL": "https://proxy.alicebtc.com",
+        "EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED": "true",
+        "EXPO_PUBLIC_ALICE_APP_VERSION": "0.0.1"
+      }
+    },
+    "beta": {
+      "extends": "production",
+      "distribution": "internal",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

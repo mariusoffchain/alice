@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'TerminalGrotesque';
+  src: url('/fonts/terminal-grotesque.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PressStart2P';
+  src: url('/fonts/PressStart2P-Regular.ttf') format('truetype');
+  font-display: swap;
+}
+
+@utility font-pixel {
+  font-family: 'PressStart2P', monospace;
+}
+
+@utility font-numbers {
+  font-family: 'TerminalGrotesque', system-ui, sans-serif;
+}
+
+:root {
+  /* Wallet dark blue palette (default) - matches PALETTES.blue.dark */
+  --alice-bg: #0d1117;
+  --alice-bg-soft: #161b22;
+  --alice-primary: #8bb8ff;
+  --alice-primary-dark: #a8ccff;
+  --alice-text: #8bb8ff;
+  --alice-border: #2a3a52;
+  --alice-muted: #4a6a9a;
+  --alice-card-bg: rgba(22, 27, 34, 0.8);
+  --alice-on-primary: #16294a;
+
+  /* Chat panel colors (always primary bg + onPrimary ink) */
+  --alice-chat-bg: #8bb8ff;
+  --alice-chat-ink: #16294a;
+  --alice-chat-ink-muted: rgba(22, 41, 74, 0.7);
+  --alice-chat-field-bg: rgba(255, 255, 255, 0.55);
+  --alice-chat-field-border: rgba(22, 41, 74, 0.3);
+  --alice-chat-bubble-user: rgba(255, 255, 255, 0.35);
+}
+
+body {
+  background-color: var(--alice-bg);
+  color: var(--alice-text);
+  font-family: 'TerminalGrotesque', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.chat-composer-shell {
+  width: 100%;
+  max-width: 56rem;
+  margin-inline: auto;
+  padding: 0.5rem 1.25rem 1rem;
+}
+
+.chat-composer {
+  display: flex;
+  min-height: 92px;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--alice-bg-soft);
+  border: 2px solid var(--alice-border);
+  border-radius: 2px;
+}
+
+@media (max-width: 767px) {
+  .chat-composer-shell {
+    padding: 0;
+  }
+
+  .chat-composer {
+    position: relative;
+    min-height: 68px;
+    padding: 0.75rem 1.25rem max(1.25rem, calc(env(safe-area-inset-bottom) + 1rem));
+    border-width: 1px 0 0;
+    border-radius: 0;
+  }
+
+  .chat-composer-input {
+    min-height: 36px !important;
+    padding-right: 5.25rem;
+    font-size: 18px;
+    line-height: 26px;
+  }
+
+  .chat-composer-controls {
+    position: absolute;
+    top: 8px;
+    right: 1.25rem;
+  }
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent; }
+@layer components {
+  .account-input {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 2px solid var(--alice-border);
+    border-radius: 2px;
+    outline: none;
+    background: transparent;
+    color: var(--alice-text);
+    font-family: 'TerminalGrotesque', system-ui, sans-serif;
+    font-size: 17px;
+  }
+
+  .account-input:focus {
+    border-color: var(--alice-primary);
+  }
+
+  .account-primary-button,
+  .account-secondary-button,
+  .account-danger-button {
+    min-height: 40px;
+    padding: 9px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: 'PressStart2P', monospace;
+    font-size: 7px;
+    letter-spacing: 0;
+  }
+
+  .account-primary-button {
+    border: 2px solid var(--alice-primary);
+    background: var(--alice-primary);
+    color: var(--alice-on-primary);
+  }
+
+  .account-secondary-button {
+    border: 2px solid var(--alice-border);
+    background: transparent;
+    color: var(--alice-text);
+  }
+
+  .account-danger-button {
+    border: 2px solid #e06060;
+    background: #e06060;
+    color: #ffffff;
+  }
+
+  .account-primary-button:disabled,
+  .account-secondary-button:disabled,
+  .account-danger-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}

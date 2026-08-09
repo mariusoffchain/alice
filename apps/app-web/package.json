@@ -1,0 +1,32 @@
+{
+  "name": "@alice-wallet/app-web",
+  "version": "0.0.1",
+  "license": "AGPL-3.0-or-later",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack --port 3000",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@alice-wallet/alice-ai": "*",
+    "@alice-wallet/alice-content": "*",
+    "@alice-wallet/alice-ui": "*",
+    "@noble/ciphers": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
+    "@noble/secp256k1": "^3.0.0",
+    "@phala/dcap-qvl": "^0.6.1",
+    "next": "^15.5.21",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.17.6",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "postcss": "^8",
+    "tailwindcss": "^4",
+    "typescript": "^5.8.0"
+  }
+}

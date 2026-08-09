@@ -1,0 +1,10 @@
+{
+  "name": "@alice-wallet/wallet-core",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-or-later",
+  "private": true,
+  "main": "src/index.ts",
+  "dependencies": {
+    "@alice-wallet/shared-types": "*"
+  }
+}

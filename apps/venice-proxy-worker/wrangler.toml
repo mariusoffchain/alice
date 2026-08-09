@@ -1,0 +1,73 @@
+name = "alice-venice-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-07-29"
+compatibility_flags = ["nodejs_compat"]
+
+# The Worker answers on Alice's own domain so shipped clients never depend on
+# the workers.dev hostname. The workers.dev URL keeps working in parallel for
+# builds that still carry it.
+routes = [
+  { pattern = "proxy.alicebtc.com", custom_domain = true }
+]
+
+# VENICE_API_KEY is a secret, never a plain var and never an EXPO_PUBLIC_* value:
+#   npx wrangler secret put VENICE_API_KEY
+#
+# AUTH_HMAC_KEY is also a secret. Generate at least 32 random bytes:
+#   openssl rand -base64 48 | npx wrangler secret put AUTH_HMAC_KEY
+#
+# RESEND_API_KEY is required only when AUTH_EMAIL_PROVIDER is set to "resend":
+#   npx wrangler secret put RESEND_API_KEY
+#
+# ADMIN_BOOTSTRAP_SECRET is a secret used exactly once to create the first
+# Alice admin. See docs/security/admin-dashboard.md for the full procedure:
+#   openssl rand -base64 48 | npx wrangler secret put ADMIN_BOOTSTRAP_SECRET
+
+[[d1_databases]]
+binding = "ACCOUNT_DB"
+database_name = "alice-accounts"
+database_id = "" # create your own D1 database and paste its id (npx wrangler d1 create)
+migrations_dir = "migrations"
+# `wrangler dev` runs the Worker on this machine but binds it to the REAL
+# production database, so the local admin console shows real numbers instead
+# of an empty local copy. This only affects local development; a deployed
+# Worker always talks to the same D1 either way.
+#
+# It also means local writes are real writes: suspending or deleting an
+# account from localhost affects production, exactly as it would from a
+# hosted console.
+
+[vars]
+# Comma-separated origin allowlist for CORS. Keep it as tight as the
+# deployment allows; an empty list means no cross-origin browser access.
+ALLOWED_ORIGINS = "https://app.alicebtc.com,https://wallet.alicebtc.com,https://mutinynet.alicebtc.com,https://mainnet-alice-wallet.vercel.app,tauri://localhost,http://localhost:3000,http://127.0.0.1:3000"
+AUTH_EMAIL_FROM = "login@auth.alicebtc.com"
+AUTH_EMAIL_PROVIDER = "resend"
+FREE_CLOUD_MODELS = "e2ee-gpt-oss-120b-p"
+FREE_CLOUD_MAX_TOKENS = "2048"
+FREE_CLOUD_MAX_REQUEST_BYTES = "262144"
+
+# Second gate on the admin dashboard, independent of the database. A session
+# must match one of these usernames AND have an admin_users row. A rogue or
+# accidental promotion, or a direct write to D1, therefore grants nothing.
+#
+# The value below is a FORMAT EXAMPLE, not a real account. The real list is
+# set only where the console can actually run: in the operator's local
+# .dev.vars (git-ignored). Production never defines ADMIN_CONSOLE_ENABLED,
+# so this variable grants nothing there either way.
+ADMIN_ALLOWED_USERNAMES = "admin.whiterabbit#4269"
+
+[triggers]
+crons = ["17 * * * *"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+# Cloudflare invocation logs include request metadata and headers. Disable them
+# so only Alice's explicit, body-free technical events below are retained.
+invocation_logs = false
+
+# Alice only emits route, status, duration, model and an approximate byte count.
+# Request and response bodies are never read into logs.

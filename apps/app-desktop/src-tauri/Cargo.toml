@@ -1,0 +1,46 @@
+[package]
+name = "alice-desktop"
+version = "0.0.1"
+license = "AGPL-3.0-or-later"
+edition = "2021"
+
+[lib]
+name = "alice_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+# `custom-protocol` decides at compile time whether the app embeds frontendDist
+# or loads devUrl. It must be a package feature so that `tauri dev`'s
+# `cargo run --no-default-features` can turn it off; enabling it directly on the
+# tauri dependency pinned it on and made dev serve a stale app-web/out snapshot.
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-window-state = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+aes-gcm = "0.10"
+base64 = "0.22"
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
+rand = "0.8"
+zeroize = "1"
+# cookie 0.18.1 (transitively pulled by tauri/wry) calls time::parse() with 1
+# argument; time 0.3.52 changed that signature to require 2. Pin to last
+# compatible version to unblock the build on Rust 1.96.
+time = "=0.3.36"
+
+[profile.dev]
+incremental = true
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

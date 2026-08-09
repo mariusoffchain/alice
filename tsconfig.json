@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true
+  },
+  "exclude": [
+    "node_modules",
+    "apps/app-desktop/src-tauri/target",
+    "dist",
+    ".expo-export-*"
+  ],
+  "extends": "expo/tsconfig.base"
+}

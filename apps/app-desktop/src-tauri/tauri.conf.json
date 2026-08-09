@@ -1,0 +1,40 @@
+{
+  "productName": "Alice",
+  "version": "0.0.1",
+  "identifier": "com.alicebitcoin.desktop",
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "sh build-web.sh",
+    "devUrl": "http://localhost:3000",
+    "frontendDist": "../../app-web/out"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Alice",
+        "width": 1100,
+        "height": 720,
+        "minWidth": 480,
+        "minHeight": 600,
+        "center": true,
+        "useHttpsScheme": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' tauri: asset: ipc: blob: 'unsafe-inline' 'unsafe-eval'; connect-src ipc: 'self' https://api.venice.ai https://*.alicebtc.com https://huggingface.co https://*.hf.co http://localhost:* http://127.0.0.1:*; img-src 'self' data: asset: blob:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

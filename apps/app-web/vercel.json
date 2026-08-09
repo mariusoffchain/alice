@@ -1,0 +1,4 @@
+{
+  "installCommand": "cd ../.. && npm ci --include=optional",
+  "buildCommand": "NAPI_RS_FORCE_WASI=true npm run build"
+}

@@ -1,0 +1,21 @@
+Alice Bitcoin
+Copyright (C) 2026 Alice Bitcoin
+
+Alice is licensed under the GNU Affero General Public License, version 3 or
+later. See LICENSE for the complete license text.
+
+The Alice name, logo and visual identity are not licensed by the AGPL. See
+TRADEMARKS.md for the permitted use of those marks.
+
+Third-party components remain subject to their own license terms. Their
+copyright and license notices are retained in their respective source and
+package metadata.
+
+The educational Bitcoin content generated into
+packages/alice-ai/src/generated/ and the precomputed embeddings under
+core-embeddings/ are original Alice Bitcoin works covered by the same
+AGPL-3.0-or-later license as the rest of this repository.
+
+Bundled fonts: "Press Start 2P" by CodeMan38 and "Terminal Grotesque" by
+Raphaël Bastide are used under the SIL Open Font License 1.1 — see
+licenses/ for the full texts.

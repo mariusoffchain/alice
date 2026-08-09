@@ -1,0 +1,21 @@
+{
+  "name": "@alice-wallet/alice-ai",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-or-later",
+  "private": true,
+  "main": "src/index.ts",
+  "dependencies": {
+    "@alice-wallet/alice-content": "*",
+    "@huggingface/transformers": "^4.2.0",
+    "@noble/ciphers": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
+    "@noble/secp256k1": "^3.0.0",
+    "@phala/dcap-qvl": "^0.6.1",
+    "@scure/bip39": "^2.0.0",
+    "@types/react": "19.1.17",
+    "expo-secure-store": "~15.0.8"
+  },
+  "peerDependencies": {
+    "react": "^19.1.0"
+  }
+}

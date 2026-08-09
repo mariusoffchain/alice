@@ -1,0 +1,27 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@alice-wallet/wallet-core": ["../../packages/wallet-core/src/index"],
+      "@alice-wallet/wallet-core/*": ["../../packages/wallet-core/src/*"],
+      "@alice-wallet/alice-ai": ["../../packages/alice-ai/src/index"],
+      "@alice-wallet/alice-ai/*": ["../../packages/alice-ai/src/*"],
+      "@alice-wallet/alice-content": ["../../packages/alice-content/src/index"],
+      "@alice-wallet/alice-content/*": ["../../packages/alice-content/src/*"],
+      "@alice-wallet/alice-ui": ["../../packages/alice-ui/src/index"],
+      "@alice-wallet/alice-ui/*": ["../../packages/alice-ui/src/*"],
+      "@alice-wallet/shared-types": ["../../packages/shared-types/src/index"],
+      "@alice-wallet/shared-types/*": ["../../packages/shared-types/src/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "../../packages/*/src/**/*.ts",
+    "../../packages/*/src/**/*.tsx"
+  ]
+}

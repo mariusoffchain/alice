@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@alice-wallet/alice-ai": ["../../packages/alice-ai/src/index"],
+      "@alice-wallet/alice-ai/*": ["../../packages/alice-ai/src/*"],
+      "@alice-wallet/alice-content": ["../../packages/alice-content/src/index"],
+      "@alice-wallet/alice-content/*": ["../../packages/alice-content/src/*"],
+      "@alice-wallet/alice-ui": ["../../packages/alice-ui/src/index"],
+      "@alice-wallet/alice-ui/*": ["../../packages/alice-ui/src/*"],
+      "expo/fetch": ["./src/lib/expo-fetch-shim.ts"],
+      "expo-file-system/legacy": ["./src/lib/expo-file-system-shim.ts"],
+      "expo-file-system": ["./src/lib/expo-file-system-shim.ts"],
+      "expo-asset": ["./src/lib/expo-noop-shim.ts"],
+      "react-native": ["./src/lib/react-native-web-shim.ts"],
+      "@react-native-async-storage/async-storage": ["./src/lib/async-storage-web.ts"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}
