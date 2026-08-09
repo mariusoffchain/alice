@@ -15,16 +15,16 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/vs/chatgpt/`,
     type: 'article',
     // Declaring openGraph here replaces the root one wholesale, so the shared
-    // card from app/opengraph-image.tsx has to be named again or this page
+    // card from app/opengraph-image.png has to be named again or this page
     // ships with no preview image at all.
-    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: OG_ALT }],
+    images: [{ url: '/opengraph-image.png', width: 1200, height: 630, alt: OG_ALT }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Alice vs ChatGPT for Bitcoin',
     description:
       'How a private, Bitcoin-specialized AI companion compares to a general assistant, honestly, including where ChatGPT wins.',
-    images: [{ url: '/opengraph-image', alt: OG_ALT }],
+    images: [{ url: '/opengraph-image.png', alt: OG_ALT }],
   },
 };
 
