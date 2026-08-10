@@ -1,6 +1,4 @@
-'use client';
-
-import { useEffect, useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
   ANDROID_APK_URL,
   ANDROID_RELEASE_URL,
@@ -84,20 +82,14 @@ function PlatformMenu({ items }: { items: PlatformItem[] }) {
 function PlatformTrigger({
   children,
   className,
-  onClick,
-  onKeyDown,
 }: {
   children: ReactNode;
   className: string;
-  onClick: (event: React.MouseEvent<HTMLElement>) => void;
-  onKeyDown: () => void;
 }) {
   return (
     <summary
       aria-haspopup="menu"
       className={`${className} list-none [&::-webkit-details-marker]:hidden`}
-      onClick={onClick}
-      onKeyDown={onKeyDown}
     >
       {children}
       <ChevronDownIcon size={14} />
@@ -114,55 +106,9 @@ function PlatformSelector({
   className: string;
   items: PlatformItem[];
 }) {
-  const containerRef = useRef<HTMLDetailsElement>(null);
-  const pointerTypeRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    const closeOutside = (event: PointerEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        containerRef.current.open = false;
-      }
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && containerRef.current) containerRef.current.open = false;
-    };
-
-    document.addEventListener('pointerdown', closeOutside);
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.removeEventListener('pointerdown', closeOutside);
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, []);
-
   return (
-    <details
-      ref={containerRef}
-      className="relative inline-block"
-      onPointerDown={(event) => {
-        pointerTypeRef.current = event.pointerType;
-      }}
-      onPointerEnter={(event) => {
-        if (event.pointerType === 'mouse') event.currentTarget.open = true;
-      }}
-      onPointerLeave={(event) => {
-        if (event.pointerType === 'mouse') event.currentTarget.open = false;
-      }}
-    >
-      <PlatformTrigger
-        className={className}
-        onClick={(event) => {
-          if (pointerTypeRef.current === 'mouse' && containerRef.current?.open) {
-            event.preventDefault();
-          }
-          pointerTypeRef.current = null;
-        }}
-        onKeyDown={() => {
-          pointerTypeRef.current = null;
-        }}
-      >
-        {trigger}
-      </PlatformTrigger>
+    <details className="relative inline-block">
+      <PlatformTrigger className={className}>{trigger}</PlatformTrigger>
       <PlatformMenu items={items} />
     </details>
   );
