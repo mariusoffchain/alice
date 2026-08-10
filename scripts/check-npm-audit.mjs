@@ -52,6 +52,12 @@ try {
   process.exit(1);
 }
 
+if (report.error || !report.metadata?.vulnerabilities) {
+  const message = report.error?.summary ?? report.error?.message ?? audit.stderr.trim();
+  console.error(`npm audit failed: ${message || `exit code ${audit.status}`}`);
+  process.exit(1);
+}
+
 const unexpectedPackages = [];
 const unexpectedAdvisories = [];
 const critical = [];

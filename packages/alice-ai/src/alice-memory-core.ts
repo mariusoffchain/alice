@@ -1,3 +1,5 @@
+import { detectSensitiveInput } from './ai-sensitive-input.ts';
+
 export type AliceMemoryCategory =
   | 'preference'
   | 'goal'
@@ -53,6 +55,22 @@ const FORBIDDEN_MEMORY = [
   /\b(lives? at|habite au|habite à|home address|adresse personnelle|gps|coordinates?)\b/i,
 ];
 
+// Models may return a raw value without naming what it is. These patterns
+// reject common credentials and direct identifiers even when words such as
+// "address", "email", or "private key" are absent.
+const FORBIDDEN_RAW_VALUE = [
+  /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
+  /\b(?:bc1|tb1|bcrt1)[ac-hj-np-z02-9]{11,87}\b/i,
+  /\b[13mn2][1-9A-HJ-NP-Za-km-z]{25,61}\b/,
+  /\bln(?:bc|tb|bcrt)[0-9a-z]{20,}\b/i,
+  /\b(?:nsec|npub|note|nevent|nprofile)1[02-9ac-hj-np-z]{20,}\b/i,
+  /\b(?:xpub|ypub|zpub|tpub|upub|vpub|xprv|yprv|zprv|tprv|uprv|vprv)[1-9A-HJ-NP-Za-km-z]{20,}\b/i,
+  /\b(?:0x)?[a-f0-9]{64}\b/i,
+  /\b[a-z0-9._-]{2,32}#[0-9]{4}\b/i,
+  /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i,
+  /(?:^|\s)\+?\d[\d\s().-]{7,}\d(?:\s|$)/,
+];
+
 export const ALICE_MEMORY_CAPTURE_INSTRUCTION = `Memory capture protocol. After the visible answer, append exactly one optional block in this format:
 <alice_memory>{"items":[{"category":"preference|goal|project|interest|background|constraint","text":"short factual memory"}]}</alice_memory>
 Use 0 to 2 items. Save only facts the user explicitly stated about themselves that would materially improve future answers. Do not infer identity, personality, beliefs, expertise, or circumstances. Never save message text, wallet data, financial activity, direct identifiers, location, health, politics, religion, sexuality, secrets, addresses, balances, transactions, or credentials. A statement about what the user knows is handled separately and must not be added here. If nothing qualifies, append <alice_memory>{"items":[]}</alice_memory>. The block is private protocol output and must appear only once, at the very end.`;
@@ -102,7 +120,9 @@ function isSafeCandidate(value: unknown): value is AliceMemoryCandidate {
   const text = normalizeMemoryText(candidate.text);
   return text.length >= 3
     && text.length <= MAX_TEXT_LENGTH
-    && !FORBIDDEN_MEMORY.some(pattern => pattern.test(text));
+    && !detectSensitiveInput(text)
+    && !FORBIDDEN_MEMORY.some(pattern => pattern.test(text))
+    && !FORBIDDEN_RAW_VALUE.some(pattern => pattern.test(text));
 }
 
 function parseMemory(raw: string | null): AliceMemory | null {

@@ -451,11 +451,17 @@ this". With it set, being in the `admin_users` table is no longer
 sufficient — the session's username must also appear in the list. That means
 a rogue promotion, a mistake, or a direct write to D1 by anything other than
 this Worker still grants nothing. Set it to your own username and the
-dashboard is yours alone:
+dashboard is yours alone. Store the value in `.dev.vars`, not in
+`wrangler.toml`, and quote it because dotenv treats an unquoted `#` as the
+start of a comment:
 
+```dotenv
+ADMIN_ALLOWED_USERNAMES="admin.whiterabbit#4269"
 ```
-ADMIN_ALLOWED_USERNAMES = "admin.whiterabbit#4269"
-```
+
+Without the quotes, Wrangler loads only `admin.whiterabbit`, and the valid
+admin account is refused even though the file appears to contain the complete
+username.
 
 Leave it unset to let the database decide alone (useful before you know your
 final username). Combined with Cloudflare Access in front of `/admin`, an

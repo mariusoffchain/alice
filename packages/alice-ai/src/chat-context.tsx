@@ -650,11 +650,17 @@ export function ChatProvider({
           )));
         },
       });
+      const completionTokens = result.usage?.completionTokens ?? null;
+      const tokensPerSecond = completionTokens != null && result.durationMs
+        ? Math.round((completionTokens * 1000 / result.durationMs) * 10) / 10
+        : null;
       console.info('[alice-turn]', JSON.stringify({
         backend: backend.type,
         ...generationPreparation.diagnostics,
         generationMs: result.durationMs ?? null,
         firstDisplayMs: result.firstDisplayMs ?? null,
+        completionTokens,
+        tokensPerSecond,
         attempts: result.attempts,
         backendTimings: result.backendTimings ?? null,
       }));

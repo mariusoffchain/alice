@@ -107,7 +107,7 @@ export async function prepareAliceTurn(input: {
   const history = composeGenerationHistory(
     input.history,
     retrieval.value,
-    plan.kind === 'personal-statement'
+    plan.kind === 'personal-statement' || plan.asksAboutUserMemory
       ? ''
       : services.pedagogicalContext(pedagogy.value, input.userMessage, input.targetLanguage),
     input.assistantHistoryDropped,

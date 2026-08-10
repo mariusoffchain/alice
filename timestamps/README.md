@@ -53,6 +53,6 @@ Only the hash ever leaves the machine, never the file or the source.
 
 ## Status
 
-- `v0.0.1` submitted 2026-08-10 to four calendars
-  (opentimestamps.org a/b, eternitywall, catallaxy), awaiting its block.
-  Run the upgrade command above, then commit the completed proof.
+- `v0.0.1` submitted 2026-08-10 to four calendars and confirmed in Bitcoin
+  block `961792`. The upgraded proof verifies successfully with the command
+  above.

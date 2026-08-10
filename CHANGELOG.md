@@ -3,14 +3,35 @@
 Alice ships as four surfaces from one repository, and they are versioned
 together: a single number means a tester and a log line refer to the same code.
 
-- `0.0.1` — current baseline, internal
-- `0.1.0` — closed beta, planned
+- `0.1.0` — current closed beta
+- `0.0.1` — first public baseline
 - `1.0.0` — public launch, planned
+
+## 0.1.0
+
+First closed-beta release built from a validated public source tree.
+
+- All official Web deployments now build from the public `alice` repository.
+- Android release builds use `https://proxy.alicebtc.com` and contain no
+  provider API key or bundled local language model.
+- Alice Memory questions use local memories without triggering unrelated
+  Bitcoin retrieval or pedagogical context.
+- Labeled raw hexadecimal private keys are blocked before any model call,
+  while explicitly labeled transaction IDs remain accepted.
+- The Desktop production build uses the official Private Cloud proxy by
+  default and still allows an explicit development override.
+- Local benchmark diagnostics expose only numeric timing and throughput
+  metrics, with no conversation or wallet content.
+- The local admin allowlist is loaded from a quoted `.dev.vars` value so the
+  username separator cannot be interpreted as a dotenv comment.
+- The `v0.0.1` public snapshot has a completed OpenTimestamps proof anchored
+  in Bitcoin block `961792`.
 
 ## 0.0.1
 
-First frozen baseline. Everything below is on `feat/admin-dashboard`; nothing
-is deployed.
+First frozen and publicly tagged baseline. The distributable Android build was
+still produced before the public snapshot; `0.1.0` is the first release that
+closes that provenance gap.
 
 ### All surfaces
 
@@ -78,9 +99,8 @@ Deploying the Worker for this baseline needs no migration step.
 - Private Cloud remembers what was asked, not what Alice answered. A follow-up
   like "expand on that" stays approximate. Carrying an encrypted summary of the
   conversation is the real fix and is post-beta.
-- Semantic RAG runs on Android, Alice Web and Desktop. The installable PWA
-  falls back to lexical retrieval over the same knowledge base (Metro cannot
-  bundle the embedding runtime yet).
+- Semantic RAG is validated on Android. Alice Web, the installable PWA and
+  Desktop use lexical retrieval over the same knowledge base in this beta.
 - `npm audit` reports transitive vulnerabilities in the frozen build stack,
   none critical. The reviewed baseline, per-chain exposure analysis and
   expiry date are maintained in `docs/security/dependency-audit.md`.

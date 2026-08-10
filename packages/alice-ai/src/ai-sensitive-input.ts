@@ -8,6 +8,7 @@ const PRIVATE_KEY_PATTERNS = [
   /\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\b/,
   /\b(?:xprv|yprv|zprv|tprv|uprv|vprv)[1-9A-HJ-NP-Za-km-z]{80,}\b/i,
 ];
+const LABELED_RAW_PRIVATE_KEY = /\b(?:private\s*key|secret\s*key|cle\s*privee|clé\s*privée)\b[\s\S]{0,80}\b(?:0x)?[a-f0-9]{64}\b/i;
 
 export type SensitiveInputBlock = {
   kind: 'recovery_phrase' | 'private_key';
@@ -33,7 +34,8 @@ export function detectSensitiveInput(text: string): SensitiveInputBlock | null {
 }
 
 function containsPrivateKey(text: string): boolean {
-  return PRIVATE_KEY_PATTERNS.some(pattern => pattern.test(text));
+  return LABELED_RAW_PRIVATE_KEY.test(text)
+    || PRIVATE_KEY_PATTERNS.some(pattern => pattern.test(text));
 }
 
 function containsRecoveryPhrase(text: string): boolean {

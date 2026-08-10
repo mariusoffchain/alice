@@ -56,11 +56,12 @@ FREE_CLOUD_MAX_REQUEST_BYTES = "262144"
 # must match one of these usernames AND have an admin_users row. A rogue or
 # accidental promotion, or a direct write to D1, therefore grants nothing.
 #
-# The value below is a FORMAT EXAMPLE, not a real account. The real list is
-# set only where the console can actually run: in the operator's local
-# .dev.vars (git-ignored). Production never defines ADMIN_CONSOLE_ENABLED,
-# so this variable grants nothing there either way.
-ADMIN_ALLOWED_USERNAMES = "admin.whiterabbit#4269"
+# Format example: admin.whiterabbit#4269
+# The real list is set only where the console can actually run, in the
+# operator's local .dev.vars (git-ignored). Do not declare a value here:
+# Wrangler config vars take precedence over .dev.vars values with the same
+# name. Production never defines ADMIN_CONSOLE_ENABLED, so the local
+# allowlist grants nothing there either way.
 
 [triggers]
 crons = ["17 * * * *"]

@@ -63,6 +63,19 @@ test('greetings and unrelated conversation do not search the knowledge base', ()
   assert.equal(planAliceTurn('That makes sense.').retrievalQuery, null);
 });
 
+test('questions about Alice Memory never search the Bitcoin knowledge base', () => {
+  for (const message of [
+    'What do you know about me?',
+    'What am I working on and how should you answer me?',
+    'Que sais-tu de moi ?',
+    'Sur quoi est-ce que je travaille ?',
+  ]) {
+    const plan = planAliceTurn(message);
+    assert.equal(plan.asksAboutUserMemory, true, message);
+    assert.equal(plan.retrievalQuery, null, message);
+  }
+});
+
 test('future visual requests are classified without adding a second model call', () => {
   const diagram = planAliceTurn('Create a diagram explaining a UTXO transaction');
   assert.equal(diagram.requestedCapability, 'diagram-generation');
