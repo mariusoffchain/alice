@@ -15,6 +15,8 @@ import {
   WindowsGlyph,
   LinuxGlyph,
   AndroidGlyph,
+  ChevronDownIcon,
+  ShieldCheckIcon,
 } from '@/components/icons';
 
 type Size = 'sm' | 'md';
@@ -41,13 +43,22 @@ function PlatformRow({ icon, label, href }: PlatformItem) {
     return (
       <a
         href={href}
+        role="menuitem"
         className="flex items-center gap-3 rounded-[3px] px-3 py-2.5 transition-colors hover:bg-[var(--alice-bg)]"
       >
         {inner}
       </a>
     );
   }
-  return <div className="flex items-center gap-3 rounded-[3px] px-3 py-2.5 opacity-50">{inner}</div>;
+  return (
+    <div
+      role="menuitem"
+      aria-disabled="true"
+      className="flex items-center gap-3 rounded-[3px] px-3 py-2.5 opacity-50"
+    >
+      {inner}
+    </div>
+  );
 }
 
 // Hover/focus panel of platform-specific options, layered under a trigger CTA.
@@ -58,7 +69,10 @@ function PlatformMenu({ items }: { items: PlatformItem[] }) {
     <div
       className="pointer-events-none absolute right-0 top-full z-[70] w-56 pt-2 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
     >
-      <div className="rounded-[6px] border-2 border-[var(--alice-border)] bg-[var(--alice-bg-soft)] p-1.5 shadow-xl">
+      <div
+        role="menu"
+        className="rounded-[6px] border-2 border-[var(--alice-border)] bg-[var(--alice-bg-soft)] p-1.5 shadow-xl"
+      >
         {items.map((item) => (
           <PlatformRow key={item.label} {...item} />
         ))}
@@ -67,16 +81,30 @@ function PlatformMenu({ items }: { items: PlatformItem[] }) {
   );
 }
 
-// Desktop entry. `.cta-desktop` makes it the filled/primary button on wide
-// screens and an outline on narrow ones (see globals.css). Hovering (or
-// focusing) reveals the platform choices for Alice on desktop.
+function PlatformTrigger({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className: string;
+}) {
+  return (
+    <button type="button" aria-haspopup="menu" className={className}>
+      {children}
+      <ChevronDownIcon size={14} />
+    </button>
+  );
+}
+
+// Desktop entry. The trigger only reveals the platform choices. Opening the
+// web app remains an explicit action inside the menu.
 export function DesktopAppButton({ size = 'md' }: { size?: Size }) {
   return (
     <div className="group relative inline-block">
-      <a href={APP_URL} className={`cta cta-desktop ${sizes[size]}`}>
+      <PlatformTrigger className={`cta cta-desktop ${sizes[size]}`}>
         <DesktopIcon size={size === 'sm' ? 16 : 18} />
         Desktop app
-      </a>
+      </PlatformTrigger>
       <PlatformMenu
         items={[
           { icon: <GlobeIcon size={18} />, label: 'Web app', href: APP_URL },
@@ -89,22 +117,22 @@ export function DesktopAppButton({ size = 'md' }: { size?: Size }) {
   );
 }
 
-// Mobile entry. `.cta-mobile` makes it the filled/primary button on narrow
-// screens and an outline on wide ones. Hovering (or focusing) reveals the
-// platform choices for Alice on mobile.
+// Mobile entry. Android store distribution and the directly installable beta
+// APK are distinct so the menu never implies that a store release exists.
 export function MobileWalletButton({ size = 'md' }: { size?: Size }) {
   return (
     <div className="group relative inline-block">
-      <a href={WALLET_URL} className={`cta cta-mobile ${sizes[size]}`}>
+      <PlatformTrigger className={`cta cta-mobile ${sizes[size]}`}>
         <PhoneIcon size={size === 'sm' ? 16 : 18} />
         Mobile wallet
-      </a>
+      </PlatformTrigger>
       <PlatformMenu
         items={[
           { icon: <AppleGlyph size={18} />, label: 'iOS' },
+          { icon: <AndroidGlyph size={18} />, label: 'Android' },
           {
-            icon: <AndroidGlyph size={18} />,
-            label: `Android ${ANDROID_VERSION}`,
+            icon: <DownloadIcon size={18} />,
+            label: `Beta APK ${ANDROID_VERSION}`,
             href: ANDROID_APK_URL,
           },
           { icon: <GlobeIcon size={18} />, label: 'Web app', href: WALLET_URL },
@@ -115,23 +143,16 @@ export function MobileWalletButton({ size = 'md' }: { size?: Size }) {
   );
 }
 
-export function AndroidDownloadLinks() {
+export function ReleaseLinks() {
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-      <a
-        href={ANDROID_APK_URL}
-        rel="noreferrer"
-        className="inline-flex items-center gap-2 font-semibold text-[var(--alice-primary)] hover:underline"
-      >
-        <AndroidGlyph size={16} />
-        Download Android APK {ANDROID_VERSION}
-      </a>
+    <div className="mt-3 flex items-center text-sm">
       <a
         href={ANDROID_RELEASE_URL}
         target="_blank"
         rel="noreferrer"
-        className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)] hover:underline"
+        className="inline-flex items-center gap-2 text-[var(--alice-muted)] hover:text-[var(--alice-primary)] hover:underline"
       >
+        <ShieldCheckIcon size={16} />
         Release notes & checksum →
       </a>
     </div>

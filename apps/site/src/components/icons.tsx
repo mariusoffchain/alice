@@ -126,6 +126,24 @@ export function DownloadIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+export function ChevronDownIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
 // Simplified own line-art platform marks (not a reproduction of any trademarked
 // logo file), sized to read clearly at ~18-20px next to the other icons.
 export function AppleGlyph({ size = 20 }: { size?: number }) {
