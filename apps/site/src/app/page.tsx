@@ -1,7 +1,14 @@
-import { BETA_NOTICE, HERO_TITLE, SITE_URL } from '@/lib/site';
+import {
+  ANDROID_APK_URL,
+  ANDROID_RELEASE_URL,
+  ANDROID_VERSION,
+  BETA_NOTICE,
+  HERO_TITLE,
+  SITE_URL,
+} from '@/lib/site';
 import { SiteNav } from '@/components/SiteNav';
 import { SiteFooter } from '@/components/SiteFooter';
-import { AppCtas } from '@/components/AppCtas';
+import { AndroidDownloadLinks, AppCtas } from '@/components/AppCtas';
 import { SovereigntyScroll } from '@/components/SovereigntyScroll';
 import { Missions } from '@/components/Missions';
 import { VerifyBlock } from '@/components/VerifyBlock';
@@ -13,11 +20,14 @@ const appSchema = {
   '@type': 'SoftwareApplication',
   name: 'Alice',
   applicationCategory: 'FinanceApplication',
-  operatingSystem: 'Web, iOS, Android, macOS, Windows',
+  operatingSystem: 'Web, Android',
   url: SITE_URL,
   description:
     'A private AI companion that helps you understand, hold, and use Bitcoin. Self-custody is built in; the AI explains and guides but never holds your keys.',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  softwareVersion: ANDROID_VERSION,
+  downloadUrl: ANDROID_APK_URL,
+  releaseNotes: ANDROID_RELEASE_URL,
 };
 
 export default function HomePage() {
@@ -46,6 +56,7 @@ export default function HomePage() {
               stays right underneath, small but honest. */}
           <div className="mt-8">
             <AppCtas size="md" />
+            <AndroidDownloadLinks />
             <p className="mt-3 text-sm text-[var(--alice-muted)]">{BETA_NOTICE}</p>
           </div>
         </section>

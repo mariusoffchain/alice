@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react';
-import { APP_URL, WALLET_URL } from '@/lib/site';
+import {
+  ANDROID_APK_URL,
+  ANDROID_RELEASE_URL,
+  ANDROID_VERSION,
+  APP_URL,
+  WALLET_URL,
+} from '@/lib/site';
 import {
   DesktopIcon,
   PhoneIcon,
@@ -96,11 +102,38 @@ export function MobileWalletButton({ size = 'md' }: { size?: Size }) {
       <PlatformMenu
         items={[
           { icon: <AppleGlyph size={18} />, label: 'iOS' },
-          { icon: <AndroidGlyph size={18} />, label: 'Android' },
+          {
+            icon: <AndroidGlyph size={18} />,
+            label: `Android ${ANDROID_VERSION}`,
+            href: ANDROID_APK_URL,
+          },
           { icon: <GlobeIcon size={18} />, label: 'Web app', href: WALLET_URL },
-          { icon: <DownloadIcon size={18} />, label: 'APK' },
+          { icon: <DownloadIcon size={18} />, label: 'Release & checksum', href: ANDROID_RELEASE_URL },
         ]}
       />
+    </div>
+  );
+}
+
+export function AndroidDownloadLinks() {
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+      <a
+        href={ANDROID_APK_URL}
+        rel="noreferrer"
+        className="inline-flex items-center gap-2 font-semibold text-[var(--alice-primary)] hover:underline"
+      >
+        <AndroidGlyph size={16} />
+        Download Android APK {ANDROID_VERSION}
+      </a>
+      <a
+        href={ANDROID_RELEASE_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)] hover:underline"
+      >
+        Release notes & checksum →
+      </a>
     </div>
   );
 }
