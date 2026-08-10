@@ -5,6 +5,9 @@ export const SITE_URL = 'https://alicebtc.com';
 export const APP_URL = 'https://app.alicebtc.com';
 export const WALLET_URL = 'https://wallet.alicebtc.com';
 export const SOURCE_URL = 'https://github.com/mariusoffchain/alice';
+export const ANDROID_VERSION = '0.1.0';
+export const ANDROID_RELEASE_URL = `${SOURCE_URL}/releases/tag/v${ANDROID_VERSION}`;
+export const ANDROID_APK_URL = `${SOURCE_URL}/releases/download/v${ANDROID_VERSION}/Alice-Wallet-beta-${ANDROID_VERSION}-v11.apk`;
 
 export const SITE_NAME = 'Alice';
 

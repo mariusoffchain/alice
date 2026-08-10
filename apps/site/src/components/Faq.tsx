@@ -28,7 +28,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Is Alice open source?',
-    a: 'The source and the full security model will be published with the public release, so anyone can verify the claims independently.',
+    a: 'Yes. The source, release tags, Android APK checksums, and security model are public, so anyone can inspect the code and verify the distributed beta.',
   },
 ];
 
