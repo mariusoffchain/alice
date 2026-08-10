@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+'use client';
+
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ANDROID_APK_URL,
   ANDROID_RELEASE_URL,
@@ -64,10 +66,12 @@ function PlatformRow({ icon, label, href }: PlatformItem) {
 // Hover/focus panel of platform-specific options, layered under a trigger CTA.
 // Its top padding keeps a visual gap while remaining part of the hit area, so
 // moving the pointer from the CTA to an item cannot close the panel mid-way.
-function PlatformMenu({ items }: { items: PlatformItem[] }) {
+function PlatformMenu({ items, open }: { items: PlatformItem[]; open: boolean }) {
   return (
     <div
-      className="pointer-events-none absolute right-0 top-full z-[70] w-56 pt-2 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+      className={`absolute right-0 top-full z-[70] w-56 pt-2 transition-opacity duration-150 ${
+        open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+      }`}
     >
       <div
         role="menu"
@@ -84,15 +88,86 @@ function PlatformMenu({ items }: { items: PlatformItem[] }) {
 function PlatformTrigger({
   children,
   className,
+  open,
+  onToggle,
 }: {
   children: ReactNode;
   className: string;
+  open: boolean;
+  onToggle: () => void;
 }) {
   return (
-    <button type="button" aria-haspopup="menu" className={className}>
+    <button
+      type="button"
+      aria-haspopup="menu"
+      aria-expanded={open}
+      className={className}
+      onClick={onToggle}
+    >
       {children}
       <ChevronDownIcon size={14} />
     </button>
+  );
+}
+
+function PlatformSelector({
+  trigger,
+  className,
+  items,
+}: {
+  trigger: ReactNode;
+  className: string;
+  items: PlatformItem[];
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [pinnedOpen, setPinnedOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const open = hovered || pinnedOpen;
+
+  useEffect(() => {
+    if (!open) return;
+
+    const closeOutside = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setPinnedOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setHovered(false);
+        setPinnedOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative inline-block"
+      onPointerEnter={(event) => {
+        if (event.pointerType === 'mouse') setHovered(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === 'mouse') setHovered(false);
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setPinnedOpen(false);
+      }}
+    >
+      <PlatformTrigger
+        className={className}
+        open={open}
+        onToggle={() => setPinnedOpen((value) => !value)}
+      >
+        {trigger}
+      </PlatformTrigger>
+      <PlatformMenu items={items} open={open} />
+    </div>
   );
 }
 
@@ -100,20 +175,21 @@ function PlatformTrigger({
 // web app remains an explicit action inside the menu.
 export function DesktopAppButton({ size = 'md' }: { size?: Size }) {
   return (
-    <div className="group relative inline-block">
-      <PlatformTrigger className={`cta cta-desktop ${sizes[size]}`}>
-        <DesktopIcon size={size === 'sm' ? 16 : 18} />
-        Desktop app
-      </PlatformTrigger>
-      <PlatformMenu
-        items={[
-          { icon: <GlobeIcon size={18} />, label: 'Web app', href: APP_URL },
-          { icon: <AppleGlyph size={18} />, label: 'Mac' },
-          { icon: <WindowsGlyph size={16} />, label: 'Windows' },
-          { icon: <LinuxGlyph size={18} />, label: 'Linux' },
-        ]}
-      />
-    </div>
+    <PlatformSelector
+      className={`cta cta-desktop ${sizes[size]}`}
+      trigger={
+        <>
+          <DesktopIcon size={size === 'sm' ? 16 : 18} />
+          Desktop app
+        </>
+      }
+      items={[
+        { icon: <GlobeIcon size={18} />, label: 'Web app', href: APP_URL },
+        { icon: <AppleGlyph size={18} />, label: 'Mac' },
+        { icon: <WindowsGlyph size={16} />, label: 'Windows' },
+        { icon: <LinuxGlyph size={18} />, label: 'Linux' },
+      ]}
+    />
   );
 }
 
@@ -121,25 +197,26 @@ export function DesktopAppButton({ size = 'md' }: { size?: Size }) {
 // APK are distinct so the menu never implies that a store release exists.
 export function MobileWalletButton({ size = 'md' }: { size?: Size }) {
   return (
-    <div className="group relative inline-block">
-      <PlatformTrigger className={`cta cta-mobile ${sizes[size]}`}>
-        <PhoneIcon size={size === 'sm' ? 16 : 18} />
-        Mobile wallet
-      </PlatformTrigger>
-      <PlatformMenu
-        items={[
-          { icon: <AppleGlyph size={18} />, label: 'iOS' },
-          { icon: <AndroidGlyph size={18} />, label: 'Android' },
-          {
-            icon: <DownloadIcon size={18} />,
-            label: `Beta APK ${ANDROID_VERSION}`,
-            href: ANDROID_APK_URL,
-          },
-          { icon: <GlobeIcon size={18} />, label: 'Web app', href: WALLET_URL },
-          { icon: <DownloadIcon size={18} />, label: 'Release & checksum', href: ANDROID_RELEASE_URL },
-        ]}
-      />
-    </div>
+    <PlatformSelector
+      className={`cta cta-mobile ${sizes[size]}`}
+      trigger={
+        <>
+          <PhoneIcon size={size === 'sm' ? 16 : 18} />
+          Mobile wallet
+        </>
+      }
+      items={[
+        { icon: <AppleGlyph size={18} />, label: 'iOS' },
+        { icon: <AndroidGlyph size={18} />, label: 'Android' },
+        {
+          icon: <DownloadIcon size={18} />,
+          label: `Beta APK ${ANDROID_VERSION}`,
+          href: ANDROID_APK_URL,
+        },
+        { icon: <GlobeIcon size={18} />, label: 'Web app', href: WALLET_URL },
+        { icon: <DownloadIcon size={18} />, label: 'Release & checksum', href: ANDROID_RELEASE_URL },
+      ]}
+    />
   );
 }
 
