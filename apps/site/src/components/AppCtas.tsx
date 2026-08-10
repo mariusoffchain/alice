@@ -155,9 +155,6 @@ function PlatformSelector({
       onPointerLeave={(event) => {
         if (event.pointerType === 'mouse') setHovered(false);
       }}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setPinnedOpen(false);
-      }}
     >
       <PlatformTrigger
         className={className}
