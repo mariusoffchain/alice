@@ -6,6 +6,7 @@ export type AliceTurnKind = 'question' | 'personal-statement' | 'mixed' | 'conve
 export type AliceTurnPlan = {
   kind: AliceTurnKind;
   retrievalQuery: string | null;
+  asksAboutUserMemory: boolean;
   explicitMemoryCandidates: AliceMemoryCandidate[];
   hasExplicitLearningDeclaration: boolean;
   needsConversationContext: boolean;
@@ -28,6 +29,7 @@ const DIAGRAM_REQUEST = /\b(create|generate|make|draw|show|explain|cree|crée|ge
 const CONTINUATION_REQUEST = /\b(tell me more|go deeper|expand on (?:that|this)|explain (?:that|this) further|continue|dis[- ]m'en plus|approfondis|développe|continue)\b/i;
 const CONTEXT_REFERENCE = /\b(that|this|it|those|these|them|its|the previous (?:answer|point)|ça|cela|ceci|ce point|cette réponse|la réponse précédente|le précédent)\b/i;
 const FOLLOW_UP_START = /^(and|but|what about|and what about|et|mais|et pour|qu['’]en est[- ]il)\b/i;
+const USER_MEMORY_QUESTION = /\b(?:what (?:do you (?:know|remember) about me|am i working on|are my (?:preferences|goals?|projects?|interests?))|how should you (?:answer|respond) (?:to )?me|que (?:sais|retiens)[- ]tu de moi|qu['’]est[- ]ce que tu (?:sais|retiens) de moi|sur quoi (?:est[- ]ce que )?je travaille|quels? sont mes (?:préférences|preferences|objectifs?|projets?|centres d['’]intérêt)|comment devrais[- ]tu me répondre)\b/i;
 
 function cleanClause(value: string): string {
   return value.replace(/^[\s,;:.-]+/, '').replace(/[\s]+/g, ' ').trim();
@@ -91,12 +93,13 @@ export function explicitMemoryCandidates(message: string): AliceMemoryCandidate[
 
 export function planAliceTurn(message: string): AliceTurnPlan {
   const trimmed = cleanClause(message);
+  const asksAboutUserMemory = USER_MEMORY_QUESTION.test(trimmed);
   const requestedCapability: AliceCapabilityId = DIAGRAM_REQUEST.test(trimmed)
     ? 'diagram-generation'
     : IMAGE_REQUEST.test(trimmed)
       ? 'image-generation'
       : 'text-generation';
-  const retrievalQuery = GREETING_ONLY.test(trimmed)
+  const retrievalQuery = GREETING_ONLY.test(trimmed) || asksAboutUserMemory
     ? null
     : questionClause(trimmed) ?? (requestedCapability === 'text-generation' ? null : trimmed);
   const personal = PERSONAL_STATEMENT.test(trimmed);
@@ -111,6 +114,7 @@ export function planAliceTurn(message: string): AliceTurnPlan {
           ? 'personal-statement'
           : 'conversation',
     retrievalQuery,
+    asksAboutUserMemory,
     explicitMemoryCandidates: explicitMemoryCandidates(trimmed),
     hasExplicitLearningDeclaration,
     needsConversationContext: isContextualFollowUp(trimmed),
@@ -119,6 +123,11 @@ export function planAliceTurn(message: string): AliceTurnPlan {
 }
 
 export function turnResponseDirective(plan: AliceTurnPlan, language: 'en' | 'fr'): string {
+  if (plan.asksAboutUserMemory) {
+    return language === 'fr'
+      ? "Réponds uniquement à partir de la mémoire locale fournie. N'ajoute aucun sujet Bitcoin, aucune supposition et aucune information absente. Si la mémoire est vide, dis simplement que tu ne sais encore rien de pertinent sur l'utilisateur."
+      : "Answer only from the provided local memory. Do not add a Bitcoin topic, make assumptions, or invent missing details. If memory is empty, simply say that you do not know anything relevant about the user yet.";
+  }
   if (plan.kind === 'personal-statement') {
     return language === 'fr'
       ? "Réponds uniquement par un bref accusé de réception. Ne définis aucun terme, ne donne aucun cours et ne présente pas le projet de l'utilisateur sans question explicite."

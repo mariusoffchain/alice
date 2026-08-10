@@ -64,9 +64,10 @@ can be stored or sent to any AI backend.
   encryption. Details: [docs/security/private-cloud-e2ee.md](docs/security/private-cloud-e2ee.md).
 - **E2EE turns are single-shot.** Venice does not encrypt assistant replies,
   so Alice drops them from the context instead of leaking them back.
-- **Semantic search runs on Android, Alice Web and Desktop.** The installable
-  PWA currently uses keyword (lexical) retrieval over the same knowledge base
-  — a bundler limitation, not a product choice.
+- **Semantic search is currently validated only on Android.** Alice Web, the
+  installable PWA and Desktop use keyword (lexical) retrieval over the same
+  knowledge base. Their semantic indexes are prepared, but the Web runtime is
+  not enabled in this beta because of a bundler limitation.
 - **External services fail visibly.** If Arkade, Boltz, Satora or Esplora is
   down, Alice reports it rather than silently switching payment rails.
 

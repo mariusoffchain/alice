@@ -91,6 +91,77 @@ test('personal acknowledgements are localized without a model call', async () =>
   assert.equal(prepared.directResponse, "Compris. J'en tiendrai compte.");
 });
 
+test('stored personal memory is injected only into Local AI', async () => {
+  const memory = {
+    ...createAliceMemory(),
+    items: [{
+      id: 'memory-test',
+      category: 'preference' as const,
+      text: 'Prefers concise answers',
+      createdDay: '2026-08-10',
+      updatedDay: '2026-08-10',
+    }],
+  };
+  const prepare = async (backendType: 'local' | 'cloud') => {
+    const fixture = services();
+    fixture.getMemory = async () => memory;
+    fixture.memoryContext = value => `LOCAL MEMORY: ${value.items.map(item => item.text).join(', ')}`;
+    return prepareAliceTurn({
+      history: [{ role: 'user', content: 'What is proof of work?' }],
+      userMessage: 'What is proof of work?',
+      backendType,
+      targetLanguage: 'en',
+    }, fixture);
+  };
+
+  const local = await prepare('local');
+  const cloud = await prepare('cloud');
+  const localContext = local.history.map(message => message.content).join('\n');
+  const cloudContext = cloud.history.map(message => message.content).join('\n');
+
+  assert.match(localContext, /LOCAL MEMORY: Prefers concise answers/);
+  assert.doesNotMatch(cloudContext, /LOCAL MEMORY|Prefers concise answers/);
+});
+
+test('a question about the user uses local memory without RAG or pedagogical context', async () => {
+  const fixture = services();
+  fixture.getMemory = async () => ({
+    ...createAliceMemory(),
+    items: [
+      {
+        id: 'memory-project',
+        category: 'project',
+        text: 'Working on Alice Wallet',
+        createdDay: '2026-08-10',
+        updatedDay: '2026-08-10',
+      },
+      {
+        id: 'memory-preference',
+        category: 'preference',
+        text: 'Prefers concise answers',
+        createdDay: '2026-08-10',
+        updatedDay: '2026-08-10',
+      },
+    ],
+  });
+  fixture.memoryContext = memory => `LOCAL MEMORY: ${memory.items.map(item => item.text).join(', ')}`;
+  fixture.pedagogicalContext = () => 'Proof of work profile context';
+
+  const prepared = await prepareAliceTurn({
+    history: [{ role: 'user', content: 'What am I working on and how should you answer me?' }],
+    userMessage: 'What am I working on and how should you answer me?',
+    backendType: 'local',
+    targetLanguage: 'en',
+  }, fixture);
+  const context = prepared.history.map(message => message.content).join('\n');
+
+  assert.deepEqual(fixture.queries, []);
+  assert.equal(prepared.diagnostics.retrieval, 'none');
+  assert.match(context, /LOCAL MEMORY: Working on Alice Wallet, Prefers concise answers/);
+  assert.doesNotMatch(context, /Proof of work profile context/);
+  assert.match(context, /Do not add a Bitcoin topic/);
+});
+
 test('Private Cloud sends an autonomous question without completed earlier turns', async () => {
   const prepared = await prepareAliceTurn({
     history: [

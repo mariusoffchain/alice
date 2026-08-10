@@ -7,19 +7,15 @@ testers using a fresh wallet and small amounts only.
 
 Alice's source lives at <https://github.com/mariusoffchain/alice>.
 
-- Version: `0.0.1`
-- Tag `v0.0.1`, at commit `2b9f3e8`: the first public application snapshot.
-- Web surfaces (`app`, `wallet`, `mutinynet` and the site) currently serve
-  commit `ec55b1e`, which is `v0.0.1` plus one website-only fix.
-- Android version code `9`, APK SHA-256:
-  `adab1d83ac355547d07cd37398ca6eb3c42cfb381b2e47aa1bf6bfcdac8ad207`
+- Version: `0.1.0`
+- Source: public tag `v0.1.0` in <https://github.com/mariusoffchain/alice>.
+- Android: the official APK, its version code and its SHA-256 are published
+  together in the GitHub Release attached to that tag.
 
-**The APK in circulation does not correspond to `v0.0.1`.** It was built before
-the source was published, so its checksum cannot be reproduced from the tag,
-and the tagged tree carries fixes made during publication. Treat the checksum
-above as an integrity check on the file you were given, nothing more. From the
-next beta build the APK is produced from a tagged tree and this section states
-a checksum that matches it.
+The earlier `0.0.1` APK predated the public source snapshot and was not
+reproducible from its tag. Do not distribute it as the closed-beta release.
+Starting with `0.1.0`, the APK is built from the validated public tree and its
+checksum is published with the binary.
 
 Always verify the version and checksum supplied with the APK. Do not install an
 APK forwarded by an unknown person.
@@ -78,9 +74,9 @@ result. Never include wallet secrets.
   the reference measurements required to pin the exact enclave identity.
 - The stored Alice Memory remains on the device. Existing memories are not sent
   to Private Cloud or Custom AI during this beta.
-- Semantic RAG is available on Android, Alice Web and Desktop. The
-  installable PWA currently uses lexical retrieval over the same knowledge
-  base.
+- Semantic RAG is currently validated on Android. Alice Web, the installable
+  PWA and Desktop use lexical retrieval over the same knowledge base during
+  this beta.
 - Satora is an external swap service. If it is unavailable, direct Arkade and
   Bitcoin functions may still work, but swaps can fail.
 - The Android Lite model is intended for constrained phones and provides lower

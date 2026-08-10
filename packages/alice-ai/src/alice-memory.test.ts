@@ -47,6 +47,41 @@ test('rejects wallet, financial, identifier, and sensitive personal memories', (
   assert.deepEqual(result.candidates, [{ category: 'interest', text: 'Interested in Ark and Lightning' }]);
 });
 
+test('rejects raw secrets and identifiers even when the model omits their label', () => {
+  const sensitiveValues = [
+    'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+    `K${'1'.repeat(51)}`,
+    `xprv${'1'.repeat(90)}`,
+    `bc1q${'q'.repeat(38)}`,
+    `lnbc${'q'.repeat(40)}`,
+    `nsec1${'q'.repeat(58)}`,
+    'person@example.com',
+    'alice.rabbit#1234',
+    '550e8400-e29b-41d4-a716-446655440000',
+    '+33 6 12 34 56 78',
+    'a'.repeat(64),
+  ];
+  const result = parseAliceMemoryResponse(`Answer.
+<alice_memory>${JSON.stringify({
+    items: sensitiveValues.map(text => ({ category: 'background', text })),
+  })}</alice_memory>`);
+
+  assert.equal(result.visibleText, 'Answer.');
+  assert.deepEqual(result.candidates, []);
+});
+
+test('parses and stores a valid memory candidate end to end', async () => {
+  const parsed = parseAliceMemoryResponse('Noted.\n<alice_memory>{"items":[{"category":"project","text":"Building Alice Wallet"}]}</alice_memory>');
+  const fixture = createStorage();
+  const memory = await rememberAliceCandidatesInStorage(parsed.candidates, fixture.storage, new Date(2026, 7, 10));
+
+  assert.equal(parsed.visibleText, 'Noted.');
+  assert.deepEqual(memory.items.map(item => ({ category: item.category, text: item.text })), [
+    { category: 'project', text: 'Building Alice Wallet' },
+  ]);
+  assert.equal(memory.items[0].createdDay, '2026-08-10');
+});
+
 test('stores a bounded deduplicated list and supports item deletion', async () => {
   const fixture = createStorage();
   let memory = await rememberAliceCandidatesInStorage([
