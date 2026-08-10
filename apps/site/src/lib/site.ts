@@ -4,12 +4,14 @@
 export const SITE_URL = 'https://alicebtc.com';
 export const APP_URL = 'https://app.alicebtc.com';
 export const WALLET_URL = 'https://wallet.alicebtc.com';
+export const SOURCE_URL = 'https://github.com/mariusoffchain/alice';
 
 export const SITE_NAME = 'Alice';
 
-// The site isn't announced yet, it's shared as an unlisted preview link while
-// testers try it out. Flip this to true (and it's the only change needed) once
-// it's ready to go live on the public domain: it drives noindex/robots.txt.
+// Drives noindex/robots.txt. Deliberately false: the beta is closed and has
+// not been shared beyond a handful of people, so the site stays unlisted even
+// though the source is now public. Being open source and being announced are
+// two different decisions. Flip this the day the beta opens, not before.
 export const SITE_IS_PUBLIC = false;
 
 // Deep-link a question into the Alice app. `autosend=1` asks the app to submit

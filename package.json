@@ -27,6 +27,8 @@
     "tar": "^7.5.22"
   },
   "optionalDependencies": {
+    "@cloudflare/workerd-linux-64": "1.20260722.1",
+    "@esbuild/linux-x64": "0.28.1",
     "@tailwindcss/oxide-linux-x64-gnu": "4.3.2",
     "@tailwindcss/oxide-wasm32-wasi": "4.3.2",
     "lightningcss-linux-x64-gnu": "1.32.0"

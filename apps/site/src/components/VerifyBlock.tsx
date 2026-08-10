@@ -1,16 +1,17 @@
 // "Don't trust, verify", a terminal-styled checklist where every claim links
-// to its proof. On-brand with the pixel/terminal aesthetic. "Open source" has no
-// link yet: the repo goes public with the release, so it reads "soon" rather
-// than making a claim we can't back.
+// to its proof. On-brand with the pixel/terminal aesthetic. Every entry must
+// point at something a reader can open: a claim whose proof is only promised
+// is the one thing this block cannot contain.
+import { SOURCE_URL } from '@/lib/site';
 
-type Claim = { claim: string; href: string | null; proof: string };
+type Claim = { claim: string; href: string; proof: string };
 
 const CLAIMS: Claim[] = [
   { claim: 'Private Cloud is encrypted end-to-end to attested hardware', href: '/trust/', proof: 'what’s verified' },
   { claim: 'Self-custody, your keys never leave your device', href: '/#sovereignty', proof: 'how it works' },
   { claim: 'No tracking. No cookies.', href: '/privacy/', proof: 'privacy' },
   { claim: 'Honest about what’s verified, and what isn’t', href: '/trust/#status', proof: 'status' },
-  { claim: 'Open source', href: null, proof: 'with the public release' },
+  { claim: 'Open source, AGPL', href: SOURCE_URL, proof: 'read the code' },
 ];
 
 export function VerifyBlock() {
@@ -35,16 +36,18 @@ export function VerifyBlock() {
             <li key={c.claim} className="flex items-center gap-3 px-4 py-3.5">
               <span aria-hidden className="text-[var(--alice-primary)]">✓</span>
               <span className="flex-1 text-[14px] text-[var(--alice-heading)]">{c.claim}</span>
-              {c.href ? (
-                <a
-                  href={c.href}
-                  className="shrink-0 text-[13px] text-[var(--alice-primary)] hover:underline"
-                >
-                  {c.proof} →
-                </a>
-              ) : (
-                <span className="shrink-0 text-[13px] text-[var(--alice-muted)]">{c.proof}</span>
-              )}
+              <a
+                href={c.href}
+                // Off-site proofs open in a new tab, and no referrer follows
+                // the reader there: a privacy page that leaks where you came
+                // from would undercut the claim right above it.
+                {...(c.href.startsWith('http')
+                  ? { target: '_blank', rel: 'noreferrer' }
+                  : {})}
+                className="shrink-0 text-[13px] text-[var(--alice-primary)] hover:underline"
+              >
+                {c.proof} →
+              </a>
             </li>
           ))}
         </ul>

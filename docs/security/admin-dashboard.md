@@ -462,6 +462,31 @@ final username). Combined with Cloudflare Access in front of `/admin`, an
 attacker needs your IdP **and** your Alice password **and** a listed
 username.
 
+### Rotating the admin username without locking yourself out
+
+The value is a **comma-separated list**, which is what makes a safe rotation
+possible: the old and the new name can both be listed while the change is in
+flight, so there is never a moment when no name matches.
+
+Two server rules make the order matter. A username can only be changed **once
+every 30 days**, and the previous one stays **reserved for 180 days**. A
+rotation done in the wrong order therefore cannot simply be undone.
+
+1. **Before touching anything**, confirm the dashboard works as it stands:
+   sign in and load one read screen. That is the baseline you compare against.
+2. **Add the future username to the list first**, next to the current one, and
+   restart the console. Both are accepted from now on.
+3. **Change the username in the app.** The session keeps working, because its
+   new name is already listed.
+4. **Sign in again and confirm** the dashboard loads and returns data. Until
+   this passes, do not go further.
+5. **Remove the old username from the list**, restart, and confirm once more.
+   The old access is invalid only at this point.
+
+The list lives wherever the console actually runs. For a local console that is
+`.dev.vars`, which is git-ignored: the real value never belongs in the
+repository, and `wrangler.toml` carries a format example only.
+
 No other new environment variable is required. The dashboard reuses
 `ALLOWED_ORIGINS`/CORS handling only for its `/admin/api/*` JSON responses;
 the `GET /admin` HTML page is same-origin (served by the Worker itself) so it

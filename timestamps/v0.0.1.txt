@@ -1,0 +1,4 @@
+Alice v0.0.1
+repository: https://github.com/mariusoffchain/alice
+tag: v0.0.1
+commit: 2b9f3e85f51da85a120669443819ccd58f36e5c2
