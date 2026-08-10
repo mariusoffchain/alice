@@ -8,7 +8,7 @@ import {
 } from '@/lib/site';
 import { SiteNav } from '@/components/SiteNav';
 import { SiteFooter } from '@/components/SiteFooter';
-import { AndroidDownloadLinks, AppCtas } from '@/components/AppCtas';
+import { AppCtas, ReleaseLinks } from '@/components/AppCtas';
 import { SovereigntyScroll } from '@/components/SovereigntyScroll';
 import { Missions } from '@/components/Missions';
 import { VerifyBlock } from '@/components/VerifyBlock';
@@ -56,7 +56,7 @@ export default function HomePage() {
               stays right underneath, small but honest. */}
           <div className="mt-8">
             <AppCtas size="md" />
-            <AndroidDownloadLinks />
+            <ReleaseLinks />
             <p className="mt-3 text-sm text-[var(--alice-muted)]">{BETA_NOTICE}</p>
           </div>
         </section>
