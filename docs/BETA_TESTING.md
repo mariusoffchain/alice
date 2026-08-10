@@ -5,18 +5,21 @@ testers using a fresh wallet and small amounts only.
 
 ## Tested Release
 
+Alice's source lives at <https://github.com/mariusoffchain/alice>.
+
 - Version: `0.0.1`
-- Android version code: `9`
-- Source: tag `v0.0.1` in the public repository,
-  <https://github.com/mariusoffchain/alice>
-- APK SHA-256:
+- Tag `v0.0.1`, at commit `2b9f3e8`: the first public application snapshot.
+- Web surfaces (`app`, `wallet`, `mutinynet` and the site) currently serve
+  commit `ec55b1e`, which is `v0.0.1` plus one website-only fix.
+- Android version code `9`, APK SHA-256:
   `adab1d83ac355547d07cd37398ca6eb3c42cfb381b2e47aa1bf6bfcdac8ad207`
 
-One honest caveat about that checksum: the APK now in circulation was built
-before the source was published, so it cannot yet be reproduced from the tag,
-which carries the publication fixes made since. From the next beta build the
-APK is produced from the tagged tree, and this section states a checksum that
-matches it.
+**The APK in circulation does not correspond to `v0.0.1`.** It was built before
+the source was published, so its checksum cannot be reproduced from the tag,
+and the tagged tree carries fixes made during publication. Treat the checksum
+above as an integrity check on the file you were given, nothing more. From the
+next beta build the APK is produced from a tagged tree and this section states
+a checksum that matches it.
 
 Always verify the version and checksum supplied with the APK. Do not install an
 APK forwarded by an unknown person.
