@@ -56,4 +56,4 @@ export const NAV_LINKS = [
 ] as const;
 
 // Pages that exist today, for the sitemap. Add entries here as pages ship.
-export const SITE_ROUTES = ['/', '/trust/', '/privacy/', '/vs/chatgpt/'] as const;
+export const SITE_ROUTES = ['/', '/trust/', '/privacy/', '/credits/', '/vs/chatgpt/'] as const;

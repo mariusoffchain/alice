@@ -22,6 +22,9 @@ export function SiteFooter() {
           <a href="/privacy/" className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
             Privacy
           </a>
+          <a href="/credits/" className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
+            Credits
+          </a>
           <a href={APP_URL} className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
             Open Alice
           </a>

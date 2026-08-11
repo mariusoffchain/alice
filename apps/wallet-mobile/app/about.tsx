@@ -108,9 +108,33 @@ export default function AboutScreen() {
           ))}
         </View>
       )}
+
+      {/* The SIL Open Font License asks that the notice travel with the font.
+          This build embeds both typefaces, so the credit belongs in the app
+          itself, not only in the repository. */}
+      <View style={[s.section, pixel, { backgroundColor: colors.cardBg }]}>
+        <Text style={[s.sectionTitle, { color: colors.primaryDark }]}>CREDITS</Text>
+        {CREDITS.map((credit, index) => (
+          <View
+            key={credit.label}
+            style={[s.row, index === CREDITS.length - 1 && s.rowLast, { borderBottomColor: colors.dotted }]}
+          >
+            <Text style={[s.rowLabel, { color: colors.primaryDark }]}>{credit.label}</Text>
+            <Text style={[s.rowValue, { color: colors.muted }]} numberOfLines={2}>
+              {credit.value}
+            </Text>
+          </View>
+        ))}
+      </View>
     </SafeAreaView>
   );
 }
+
+const CREDITS = [
+  { label: 'ALICE', value: 'AGPL-3.0-or-later' },
+  { label: 'TERMINAL GROTESQUE', value: 'Raphaël Bastide, SIL OFL 1.1' },
+  { label: 'PRESS START 2P', value: 'CodeMan38, SIL OFL 1.1' },
+];
 
 const s = StyleSheet.create({
   safe: { flex: 1 },
