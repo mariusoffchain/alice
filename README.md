@@ -1,9 +1,10 @@
 # Alice
 
-Alice is a self-custodial Bitcoin wallet with a built-in AI companion. The
-wallet holds your keys on your device and moves money over Bitcoin, Arkade and
-Lightning; Alice, the AI, explains what is happening and answers your Bitcoin
-questions — without ever touching your keys.
+Alice is a private AI companion for Bitcoin. She lives in two places: Alice
+Wallet, a self-custodial wallet that holds your keys on your device and moves
+money over Bitcoin, Arkade and Lightning with Alice built in; and Alice App, the
+standalone companion for desktop and web. Across both, Alice explains what is
+happening and answers your Bitcoin questions, without ever touching your keys.
 
 Current status: **mainnet beta**. Use small amounts only while the product is
 being validated.
@@ -150,7 +151,7 @@ node apps/wallet-mobile/scripts/check-ai-system-prompt.js
 For the reproducible release checklist across web, Android and Desktop, see
 [BUILDING.md](BUILDING.md). Never place production secrets in a client build.
 
-### Desktop app (Tauri)
+### Alice App, desktop build (Tauri)
 
 Start the Next dev server first, then the desktop shell — `beforeDevCommand`
 is empty on purpose, so `tauri dev` never builds the web app itself:

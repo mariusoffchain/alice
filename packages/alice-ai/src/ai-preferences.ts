@@ -320,8 +320,15 @@ export async function hasAnyInstalledModel(): Promise<boolean> {
 // AI enabled/disabled toggle
 
 const AI_ENABLED_KEY = 'alice_ai_enabled';
-const LOCAL_AI_ENABLED_KEY = 'alice_ai_local_enabled';
-const CLOUD_AI_ENABLED_KEY = 'alice_ai_cloud_enabled';
+const BACKEND_ENABLED_KEY_PREFIX = 'alice_ai_backend_enabled_';
+const LEGACY_LOCAL_AI_ENABLED_KEY = 'alice_ai_local_enabled';
+const LEGACY_CLOUD_AI_ENABLED_KEY = 'alice_ai_cloud_enabled';
+
+export type AIBackendEnabledState = {
+  local: boolean;
+  cloud: boolean;
+  custom: boolean;
+};
 
 export async function isAIEnabled(): Promise<boolean> {
   const stored = await AsyncStorage.getItem(AI_ENABLED_KEY);
@@ -332,23 +339,41 @@ export async function setAIEnabled(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(AI_ENABLED_KEY, String(enabled));
 }
 
-export async function isLocalAIEnabled(): Promise<boolean> {
-  const stored = await AsyncStorage.getItem(LOCAL_AI_ENABLED_KEY);
-  return stored !== 'false';
+export async function isAIBackendEnabled(backend: keyof AIBackendEnabledState): Promise<boolean> {
+  const stored = await AsyncStorage.getItem(`${BACKEND_ENABLED_KEY_PREFIX}${backend}`);
+  if (stored !== null) return stored !== 'false';
+
+  // Keep existing local and cloud preferences when moving to the shared
+  // per-backend setting. Custom has always defaulted to enabled.
+  const legacyKey = backend === 'local'
+    ? LEGACY_LOCAL_AI_ENABLED_KEY
+    : backend === 'cloud'
+      ? LEGACY_CLOUD_AI_ENABLED_KEY
+      : null;
+  if (!legacyKey) return true;
+  return (await AsyncStorage.getItem(legacyKey)) !== 'false';
 }
 
-export async function setLocalAIEnabled(enabled: boolean): Promise<void> {
-  await AsyncStorage.setItem(LOCAL_AI_ENABLED_KEY, String(enabled));
+export async function setAIBackendEnabled(
+  backend: keyof AIBackendEnabledState,
+  enabled: boolean,
+): Promise<void> {
+  await AsyncStorage.setItem(`${BACKEND_ENABLED_KEY_PREFIX}${backend}`, String(enabled));
 }
 
-export async function isCloudAIEnabled(): Promise<boolean> {
-  const stored = await AsyncStorage.getItem(CLOUD_AI_ENABLED_KEY);
-  return stored !== 'false';
+export async function getAIBackendEnabledState(): Promise<AIBackendEnabledState> {
+  const [local, cloud, custom] = await Promise.all([
+    isAIBackendEnabled('local'),
+    isAIBackendEnabled('cloud'),
+    isAIBackendEnabled('custom'),
+  ]);
+  return { local, cloud, custom };
 }
 
-export async function setCloudAIEnabled(enabled: boolean): Promise<void> {
-  await AsyncStorage.setItem(CLOUD_AI_ENABLED_KEY, String(enabled));
-}
+export const isLocalAIEnabled = () => isAIBackendEnabled('local');
+export const setLocalAIEnabled = (enabled: boolean) => setAIBackendEnabled('local', enabled);
+export const isCloudAIEnabled = () => isAIBackendEnabled('cloud');
+export const setCloudAIEnabled = (enabled: boolean) => setAIBackendEnabled('cloud', enabled);
 
 // Custom server (compatible local or remote endpoint)
 

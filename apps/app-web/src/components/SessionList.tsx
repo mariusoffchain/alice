@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { type ChatSession, useChat } from '@alice-wallet/alice-ai';
+import { hasSessionTabs, removeSessionTabs } from '@/lib/explorer/session-links';
 
 const SESSION_PAGE_SIZE = 20;
 
@@ -13,6 +15,8 @@ export function SessionList({ onClose }: SessionListProps) {
   const { sessions, openSession, removeSession, refreshSessions } = useChat();
   const [pendingDelete, setPendingDelete] = useState<ChatSession | null>(null);
   const [visibleCount, setVisibleCount] = useState(SESSION_PAGE_SIZE);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     refreshSessions();
@@ -23,6 +27,18 @@ export function SessionList({ onClose }: SessionListProps) {
     const sessionId = pendingDelete.id;
     setPendingDelete(null);
     await removeSession(sessionId);
+    removeSessionTabs(sessionId);
+  };
+
+  // A session written from the Explorer sidebar carries its tabs: opening
+  // it lands in Explorer with the exploration restored (the workspace does
+  // the restoring; from here it only needs the navigation).
+  const openFromHistory = async (session: ChatSession) => {
+    await openSession(session.id);
+    onClose();
+    if (hasSessionTabs(session.id) && !pathname.startsWith('/explorer')) {
+      router.push('/explorer');
+    }
   };
 
   if (sessions.length === 0) {
@@ -61,10 +77,7 @@ export function SessionList({ onClose }: SessionListProps) {
             style={{ borderBottom: '1px solid rgba(22, 41, 74, 0.2)' }}
           >
             <button
-              onClick={async () => {
-                await openSession(session.id);
-                onClose();
-              }}
+              onClick={() => void openFromHistory(session)}
               className="flex-1 text-left cursor-pointer bg-transparent border-none outline-none"
             >
               <p
@@ -72,6 +85,15 @@ export function SessionList({ onClose }: SessionListProps) {
                 style={{ fontSize: 16, color: 'var(--alice-text)' }}
               >
                 {session.title}
+                {hasSessionTabs(session.id) && (
+                  <span
+                    className="font-pixel tracking-widest"
+                    title="Opens in Explorer with its tabs"
+                    style={{ fontSize: 6, marginLeft: 8, padding: '2px 5px', border: '1px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)', verticalAlign: 'middle' }}
+                  >
+                    EXPLORER
+                  </span>
+                )}
               </p>
               <p
                 className="font-pixel tracking-widest m-0 mt-1"

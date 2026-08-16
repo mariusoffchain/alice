@@ -16,6 +16,11 @@
     "check:ai-boundary": "node scripts/check-ai-wallet-boundary.js"
   },
   "dependencies": {
+    "@alice-wallet/alice-ai": "*",
+    "@alice-wallet/alice-content": "*",
+    "@alice-wallet/alice-ui": "*",
+    "@alice-wallet/shared-types": "*",
+    "@alice-wallet/wallet-core": "*",
     "@arkade-os/boltz-swap": "0.3.44",
     "@arkade-os/sdk": "0.4.39",
     "@expo/metro-runtime": "~6.1.2",

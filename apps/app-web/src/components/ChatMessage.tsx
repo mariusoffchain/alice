@@ -2,10 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { AliceIcon } from '@/components/AliceIcon';
+import { splitAskAliceMessage, type MessageAttachment } from '@/lib/explorer/ask-alice';
 import { useChat } from '@alice-wallet/alice-ai';
 import type { TokenUsage, MessageVariant } from '@alice-wallet/alice-ai';
 
 interface ChatMessageProps {
+  /** Panel mode (the Explorer sidebar): no left avatar (narrow column), a
+      small Alice mark sits next to the timestamp instead. */
+  compact?: boolean;
   message: {
     id: string;
     role: 'user' | 'assistant' | 'system';
@@ -520,9 +524,11 @@ function EditableContent({ content, onSave, onCancel }: { content: string; onSav
 function MessageActions({
   message,
   onEdit,
+  compact = false,
 }: {
   message: ChatMessageProps['message'];
   onEdit: () => void;
+  compact?: boolean;
 }) {
   const { deleteMessage } = useChat();
   const [copied, setCopied] = useState(false);
@@ -543,7 +549,7 @@ function MessageActions({
         display: 'flex',
         alignItems: 'center',
         gap: 2,
-        paddingLeft: isUser ? 0 : 42,
+        paddingLeft: isUser || compact ? 0 : 42,
         paddingTop: 2,
         justifyContent: isUser ? 'flex-end' : 'flex-start',
       }}
@@ -599,7 +605,68 @@ function MessageActions({
 
 // --- Main component ---
 
-export function ChatMessage({ message }: ChatMessageProps) {
+// Chain-link glyph for sent attachments (same mark as the composer's chip).
+function MiniLinkIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7" />
+      <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7" />
+    </svg>
+  );
+}
+
+// One attachment block of a SENT message: the same compact chip as in the
+// composer, expandable to the exact text that crossed to the model. The
+// stored message keeps the full text; only the presentation folds it.
+function SentAttachment({ att }: { att: MessageAttachment }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        title="Show the exact text sent to the model"
+        className="flex items-center gap-1.5 cursor-pointer"
+        style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)', padding: '4px 8px' }}
+      >
+        <span className="shrink-0 flex items-center" style={{ color: 'var(--alice-muted)' }}>
+          <MiniLinkIcon />
+        </span>
+        <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-text)' }}>{att.label}</span>
+        {att.kind === 'identified' && (
+          <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 6, padding: '2px 4px', border: '1px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)' }}>
+            FULL
+          </span>
+        )}
+      </button>
+      {open && (
+        <p
+          className="font-numbers m-0 whitespace-pre-wrap text-left w-full"
+          style={{ fontSize: 11, lineHeight: '16px', color: 'var(--alice-muted)', border: '1px solid var(--alice-border)', borderRadius: 2, padding: '8px 10px', overflowWrap: 'anywhere' }}
+        >
+          {att.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// A sent user message: the typed question as the bubble text, the attachment
+// blocks folded into chips below it.
+function UserMessageBody({ content }: { content: string }) {
+  const { question, attachments } = splitAskAliceMessage(content);
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="font-numbers text-lg leading-[26px] m-0" style={{ color: 'var(--alice-text)' }}>
+        {question || content || '...'}
+      </p>
+      {attachments.map(att => <SentAttachment key={att.kind} att={att} />)}
+    </div>
+  );
+}
+
+export function ChatMessage({ message, compact = false }: ChatMessageProps) {
   const { editMessage } = useChat();
   const [editing, setEditing] = useState(false);
 
@@ -618,6 +685,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
   const isUser = message.role === 'user';
 
+  // Panel mode has its own typing indicator: an assistant bubble with nothing
+  // in it yet would only add a stray "..." placeholder above it.
+  if (compact && !isUser && !message.content) return null;
+
   const handleSave = (newContent: string) => {
     setEditing(false);
     if (newContent.trim() && newContent.trim() !== message.content) {
@@ -628,7 +699,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div>
       <div className={`flex items-end gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-        {!isUser && (
+        {!isUser && !compact && (
           <div className="w-[30px] h-[30px] shrink-0 flex items-end">
             <AliceIcon size={30} color="var(--alice-text)" />
           </div>
@@ -644,12 +715,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               onCancel={() => setEditing(false)}
             />
           ) : isUser ? (
-            <p
-              className="font-numbers text-lg leading-[26px] m-0"
-              style={{ color: 'var(--alice-text)' }}
-            >
-              {message.content || '...'}
-            </p>
+            <UserMessageBody content={message.content} />
           ) : (
             <div
               className="font-numbers text-lg leading-[26px]"
@@ -662,7 +728,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </div>
       </div>
       {!editing && message.content && message.id !== 'greeting' && (
-        <MessageActions message={message} onEdit={() => setEditing(true)} />
+        <MessageActions message={message} onEdit={() => setEditing(true)} compact={compact} />
       )}
     </div>
   );

@@ -59,6 +59,7 @@ import {
   redeemPromoCode,
 } from './admin.ts';
 import { ADMIN_DASHBOARD_HTML } from './admin-dashboard-html.ts';
+import { lookupEntities } from './entities.ts';
 import {
   DEFAULT_FREE_REQUEST_BYTES,
   MAX_FREE_MESSAGES,
@@ -676,6 +677,12 @@ export default {
     // even before the key check below.
     if (url.pathname.startsWith('/pccs/') && request.method === 'GET') {
       return relayPccs(request, env, cors);
+    }
+
+    // Explorer entity lookup: public, sourced attribution data for the giant
+    // packs the client cannot bundle. No Venice key, no auth, no logged body.
+    if (url.pathname === '/explorer/entities' && request.method === 'POST') {
+      return json(await lookupEntities(request, env), 200, cors);
     }
 
     if (url.pathname.startsWith('/auth/') || url.pathname.startsWith('/account')) {

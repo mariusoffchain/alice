@@ -58,6 +58,14 @@ body {
   padding: 0.5rem 1.25rem 1rem;
 }
 
+/* Panel mode (Explorer sidebar): the shell stops centring against the
+   viewport and fills its container, whatever the browser width. */
+.chat-composer-shell.chat-composer-shell--panel {
+  max-width: none;
+  margin-inline: 0;
+  padding: 0;
+}
+
 .chat-composer {
   display: flex;
   min-height: 92px;
@@ -155,3 +163,72 @@ body {
     opacity: 0.45;
   }
 }
+
+/* ==========================================================================
+   Explorer accessibility & shared UI primitives (theme-agnostic; relies on
+   the runtime --alice-* palette vars, which are always defined).
+   ========================================================================== */
+
+/* Item 6: a visible keyboard-focus ring on every interactive element. Mouse
+   users never see it (:focus-visible), keyboard users always do. */
+:where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--alice-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Item 14: honour the OS "reduce motion" setting. The live-block ribbon and any
+   transitions collapse to near-instant instead of animating. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Item 9: loading skeletons. A soft shimmer that also respects reduced motion
+   (the rule above neutralises the animation). */
+@keyframes rh-shimmer {
+  0% { opacity: 0.35; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.35; }
+}
+.rh-skeleton {
+  animation: rh-shimmer 1.4s ease-in-out infinite;
+  background-color: var(--alice-bg-soft);
+  border: 1px solid var(--alice-border);
+  border-radius: 2px;
+}
+
+/* Data replacing a skeleton in place fades in briefly, so sections never pop.
+   Reduced-motion users get the instant swap (the global rule neutralises it). */
+@keyframes rh-fade { from { opacity: 0; } to { opacity: 1; } }
+.rh-fade-in { animation: rh-fade 0.25s ease-out; }
+
+/* The "analysis in progress" pulse dots of a pending section. */
+@keyframes rh-blink {
+  0%, 60%, 100% { opacity: 0.25; }
+  30% { opacity: 1; }
+}
+.rh-dot {
+  display: inline-block; width: 5px; height: 5px; border-radius: 5px;
+  background-color: var(--alice-primary);
+  animation: rh-blink 1.2s infinite;
+}
+.rh-dot:nth-child(2) { animation-delay: 0.2s; }
+.rh-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Item 14: comfortable touch targets. Applied to compact icon buttons so they
+   stay >=44px on coarse (touch) pointers without bloating the mouse layout. */
+@media (pointer: coarse) {
+  .rh-touch { min-width: 44px; min-height: 44px; }
+}
+
+/* Item 7: reveal a card's secondary actions on hover/focus-within only, to keep
+   the resting state uncluttered. They stay visible on touch (no hover there). */
+.rh-hover-actions { opacity: 0; transition: opacity 0.12s ease; }
+.rh-card:hover .rh-hover-actions,
+.rh-card:focus-within .rh-hover-actions { opacity: 1; }
+@media (pointer: coarse) { .rh-hover-actions { opacity: 1; } }

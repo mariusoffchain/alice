@@ -49,6 +49,15 @@ const SEARCH_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16
   <rect x="12" y="13" width="2" height="2" fill="{{COLOR}}"/>
 </svg>`;
 
+// A block: dimmed header band on top, solid body below — what Explorer
+// browses. No vertical bar, so it does not echo mempool.space's trademark
+// composition; and not a magnifier, so it never reads as the Search command
+// next to it.
+const EXPLORER_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <rect x="2" y="2" width="12" height="5" rx="1.5" fill="{{COLOR}}" fill-opacity="0.45"/>
+  <rect x="2" y="6.5" width="12" height="7.5" rx="1.5" fill="{{COLOR}}"/>
+</svg>`;
+
 // Beetle seen from above: antennae, head, shell, three legs a side. The bug is
 // the established icon for "report a bug" (GitHub, Jira, Sentry); a wrench or
 // hammer would read as settings or maintenance instead.
@@ -150,6 +159,10 @@ function SidebarVersion({ collapsed, isDesktop }: { collapsed: boolean; isDeskto
   );
 }
 
+const SIDEBAR_WIDTH_KEY = 'alice.sidebar.width';
+const SIDEBAR_WIDTH_MIN = 200;
+const SIDEBAR_WIDTH_MAX = 420;
+
 export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
   const router = useRouter();
   const { sessions, openSession, removeSession, refreshSessions, clearMessages, activeSessionId } = useChat();
@@ -160,6 +173,34 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [visibleSessionCount, setVisibleSessionCount] = useState(SESSION_PAGE_SIZE);
+  const [panelWidth, setPanelWidth] = useState(260);
+
+  useEffect(() => {
+    try {
+      const w = parseInt(window.localStorage.getItem(SIDEBAR_WIDTH_KEY) ?? '', 10);
+      if (Number.isFinite(w)) setPanelWidth(Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, w)));
+    } catch { /* default width */ }
+  }, []);
+
+  useEffect(() => {
+    try { window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(panelWidth)); } catch { /* best effort */ }
+  }, [panelWidth]);
+
+  // Drag the panel's right edge to resize it (desktop only).
+  function startPanelResize(e: React.PointerEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = panelWidth;
+    const move = (ev: PointerEvent) => {
+      setPanelWidth(Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, startW + (ev.clientX - startX))));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
 
   useEffect(() => {
     setIsDesktop(isTauriDesktop());
@@ -174,6 +215,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
       if (e.metaKey && e.key === 'n') {
         e.preventDefault();
         clearMessages();
+        router.push('/');
       }
       if (e.metaKey && e.key === 'k') {
         e.preventDefault();
@@ -254,11 +296,18 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
           <SvgIcon svg={SIDEBAR_ICON_SVG} size={18} color="var(--alice-text)" />
         </button>
         <button
-          onClick={() => clearMessages()}
+          onClick={() => { clearMessages(); router.push('/'); }}
           className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
           aria-label="New chat"
         >
           <SvgIcon svg={CHAT_ICON_SVG} size={18} color="var(--alice-text)" />
+        </button>
+        <button
+          onClick={() => router.push('/explorer')}
+          className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
+          aria-label="Explorer"
+        >
+          <SvgIcon svg={EXPLORER_ICON_SVG} size={18} color="var(--alice-text)" />
         </button>
         <button
           onClick={() => { onToggle(); setSearchOpen(true); }}
@@ -300,12 +349,19 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
   return (
     <>
       <div
-        className={`${mobileOpen ? 'fixed inset-0 z-50 flex' : 'hidden md:flex'} md:static md:z-auto flex-col shrink-0 h-full w-full md:w-[260px]`}
+        className={`${mobileOpen ? 'fixed inset-0 z-50 flex' : 'hidden md:flex'} md:relative md:z-auto flex-col shrink-0 h-full w-full md:w-[var(--sidebar-w,260px)]`}
         style={{
+          ['--sidebar-w' as string]: `${panelWidth}px`,
           backgroundColor: 'var(--alice-sidebar-bg, var(--alice-bg-soft))',
           borderRight: '1px solid var(--alice-border)',
-        }}
+        } as React.CSSProperties}
       >
+        <div
+          onPointerDown={startPanelResize}
+          className="hidden md:block absolute right-0 inset-y-0 z-10"
+          style={{ width: 5, cursor: 'col-resize' }}
+          aria-hidden="true"
+        />
         {isDesktop && (
           <div
             data-tauri-drag-region
@@ -340,7 +396,12 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
             icon={<SvgIcon svg={CHAT_ICON_SVG} size={18} color="var(--alice-text)" />}
             label="New Chat"
             shortcut="⌘ N"
-            onClick={() => { clearMessages(); closeIfMobile(); }}
+            onClick={() => { clearMessages(); router.push('/'); closeIfMobile(); }}
+          />
+          <MenuItem
+            icon={<SvgIcon svg={EXPLORER_ICON_SVG} size={18} color="var(--alice-text)" />}
+            label="Explorer"
+            onClick={() => { router.push('/explorer'); closeIfMobile(); }}
           />
           <MenuItem
             icon={<SvgIcon svg={SEARCH_ICON_SVG} size={18} color="var(--alice-text)" />}

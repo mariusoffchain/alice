@@ -3,14 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  useChat,
   useAccount,
+  useChat,
   getCustomServer,
   isTauriDesktop,
   flushProductEvents,
   trackProductEvent,
 } from '@alice-wallet/alice-ai';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useQuestionParam } from '@/hooks/use-question-param';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
 import { ModelSelector } from '@/components/ModelSelector';
@@ -81,8 +82,16 @@ function LocalNotice() {
 export function ChatPanel() {
   const chat = useChat();
   const account = useAccount();
-  const { messages, input, setInput, send, busy, deepMode, setDeepMode, clearMessages, showGreeting, backendType, setBackendType, setAiEnabled } = chat;
+  const { messages, input, setInput, send, busy, deepMode, setDeepMode, clearMessages, showGreeting, backendType, backendStatus, setBackendType, setAiEnabled } = chat;
   const scrollRef = useAutoScroll([messages, busy]);
+
+  useQuestionParam({
+    send,
+    setInput,
+    backendStatus,
+    busy,
+    chatReady: messages.length > 0,
+  });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
   const [hasCustomServer, setHasCustomServer] = useState(false);
@@ -123,7 +132,7 @@ export function ChatPanel() {
   return (
     // h-dvh, not h-screen: on mobile Safari 100vh ignores the address bar and
     // pushes the composer off-screen.
-    <div className="flex h-dvh" style={{ backgroundColor: 'var(--alice-bg)' }}>
+    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--alice-bg)' }}>
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((v) => !v)}
@@ -131,7 +140,7 @@ export function ChatPanel() {
         onMobileClose={() => setSidebarMobileOpen(false)}
       />
 
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 min-h-0">
         {isTauriDesktop() && (
           <div data-tauri-drag-region className="shrink-0" style={{ height: 28 }} />
         )}

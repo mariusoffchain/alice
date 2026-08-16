@@ -40,6 +40,45 @@ type ModelState = {
   downloadProgress: number | null;
 };
 
+function PixelSwitch({
+  label,
+  value,
+  onChange,
+  styles,
+  colors,
+  disabled = false,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+  styles: ReturnType<typeof makeStyles>;
+  colors: Colors;
+  disabled?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+      accessibilityLabel={label}
+      disabled={disabled}
+      style={[styles.switchControl, disabled && styles.disabledBtn]}
+      onPress={() => onChange(!value)}
+    >
+      <View style={[
+        styles.switchTrack,
+        { borderColor: value && !disabled ? colors.primary : colors.border },
+        value && !disabled && { backgroundColor: colors.primary },
+      ]}>
+        <View style={[
+          styles.switchThumb,
+          { backgroundColor: value && !disabled ? colors.onPrimary : colors.muted },
+          value && !disabled && styles.switchThumbOn,
+        ]} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 export default function AISettingsScreen() {
   const router = useRouter();
   const { colors, pixel } = useTheme();
@@ -637,7 +676,21 @@ export default function AISettingsScreen() {
                 <Text style={[s.actionBtnText, { color: '#e06060' }]}>DISCONNECT</Text>
               </TouchableOpacity>
             )}
-	          </View>
+          </View>
+          <View style={s.divider} />
+          <View style={s.backendToggleRow}>
+            <View style={s.backendToggleCopy}>
+              <Text style={s.toggleLabel}>CUSTOM SERVER AI</Text>
+              <Text style={s.toggleHint}>Keeps this server configuration saved.</Text>
+            </View>
+            <PixelSwitch
+              label="Custom server AI"
+              value={chat.backendEnabled.custom}
+              onChange={value => chat.setBackendEnabled('custom', value)}
+              styles={s}
+              colors={colors}
+            />
+          </View>
 		        </View>
 
         <Text style={[s.sectionTitle, { marginTop: spacing.xxl }]}>CLEAN YOUR DISCUSSION HISTORY</Text>
@@ -792,7 +845,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     modalCancel: { paddingVertical: spacing.md, alignItems: 'center' },
     modalCancelText: { fontFamily: typography.pixel, fontSize: 7, letterSpacing: 1 },
 
-	    toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     toggleLabel: { fontFamily: typography.pixel, fontSize: 10, color: colors.primaryDark, letterSpacing: 1 },
     modeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
     modeRowBorder: { borderTopWidth: 1, borderTopColor: colors.dotted, marginTop: spacing.sm, paddingTop: spacing.lg },

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AIBackend, AIBackendType, AIBackendStatus, TokenUsage } from './ai-backend';
 import { VeniceAPIError, type Message } from './llm';
-import { createBackend, canUseLocal } from './ai-backend-factory';
+import { createBackend, canUseLocal, isTauriDesktop } from './ai-backend-factory';
 import { generateLanguageChecked, WrongResponseLanguageError } from './language-generation';
 import { buildRagTurnContext, isTechnicalRagQuery } from './rag';
 import { ragContextChunkLimit } from './rag-context-budget';
@@ -16,17 +16,17 @@ import {
 } from './alice-memory';
 import { prepareAliceTurn, type TurnPreparationDiagnostics } from './turn-engine';
 import {
+  getAIBackendEnabledState,
   getAliceInstructions,
   getResponseLanguagePreference,
   isAIEnabled,
-  isCloudAIEnabled,
-  isLocalAIEnabled,
+  setAIBackendEnabled,
   setAIEnabled,
-  setCloudAIEnabled,
-  setLocalAIEnabled,
+  type AIBackendEnabledState,
 } from './ai-preferences';
 import { resolveResponseLanguage, type SupportedLanguage } from './language-policy';
 import { detectSensitiveInput } from './ai-sensitive-input';
+import { getAIDisabledMessage } from './ai-availability';
 import { applyAliceResponseConstraints, requiresBufferedAliceResponse } from './ai-system-prompt';
 import { PRIVATE_CLOUD_ENABLED } from './private-cloud-config';
 import { createPrivateCloudRequestId } from './account-client';
@@ -225,10 +225,8 @@ type ChatContextValue = {
   localAvailable: boolean;
   aiEnabled: boolean;
   setAiEnabled: (enabled: boolean) => void;
-  localAIEnabled: boolean;
-  setLocalAiEnabled: (enabled: boolean) => void;
-  cloudAIEnabled: boolean;
-  setCloudAiEnabled: (enabled: boolean) => void;
+  backendEnabled: AIBackendEnabledState;
+  setBackendEnabled: (type: AIBackendType, enabled: boolean) => void;
   clearMessages: () => void;
   showGreeting: () => void;
   sessions: ChatSession[];
@@ -271,8 +269,11 @@ export function ChatProvider({
   const [backendReloadKey, setBackendReloadKey] = useState(0);
   const [backendStatus, setBackendStatus] = useState<AIBackendStatus>({ state: 'idle' });
   const [aiEnabled, setAiEnabledState] = useState(true);
-  const [localAIEnabled, setLocalAIEnabledState] = useState(true);
-  const [cloudAIEnabled, setCloudAIEnabledState] = useState(true);
+  const [backendEnabled, setBackendEnabledState] = useState<AIBackendEnabledState>({
+    local: true,
+    cloud: true,
+    custom: true,
+  });
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   // Bumped to ask for the greeting; 0 means nothing has asked yet.
@@ -286,6 +287,7 @@ export function ChatProvider({
   const sessionSaveQueueRef = useRef(Promise.resolve());
   const sessionDirtyRef = useRef(false);
   const localAvailable = useMemo(() => canUseLocal(), []);
+  const activeBackendEnabled = backendEnabled[backendType];
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   // Mirrored so the greeting animation can check it without re-running when a
@@ -295,25 +297,35 @@ export function ChatProvider({
   useEffect(() => {
     Promise.all([
       isAIEnabled(),
-      isLocalAIEnabled(),
-      isCloudAIEnabled(),
+      getAIBackendEnabledState(),
       AsyncStorage.getItem(BACKEND_KEY),
-    ]).then(([enabled, localEnabled, cloudEnabled, stored]) => {
+    ]).then(([enabled, enabledBackends, stored]) => {
       setAiEnabledState(enabled);
-      setLocalAIEnabledState(localEnabled);
-      setCloudAIEnabledState(cloudEnabled);
+      setBackendEnabledState(enabledBackends);
       if (backendSelectedRef.current) return;
 
-      if (stored === 'local' && localAvailable && localEnabled) setBackendTypeState('local');
-      else if (stored === 'custom') setBackendTypeState('custom');
-      else if (stored === 'cloud' && PRIVATE_CLOUD_ENABLED && cloudEnabled) setBackendTypeState('cloud');
-      else if (PRIVATE_CLOUD_ENABLED && cloudEnabled) setBackendTypeState('cloud');
-      else if (localAvailable && localEnabled) setBackendTypeState('local');
-      else setBackendTypeState('custom');
+      // A stored choice wins, but only while that backend is still enabled. With
+      // no stored choice, desktop prefers the local model (it has one bundled
+      // and no network dependency), everything else prefers Private Cloud. The
+      // final branch is guarded rather than unconditional so a user who
+      // disabled every backend keeps none selected instead of silently landing
+      // on a disabled one.
+      if (stored === 'local' && localAvailable && enabledBackends.local) setBackendTypeState('local');
+      else if (stored === 'custom' && enabledBackends.custom) setBackendTypeState('custom');
+      else if (stored === 'cloud' && PRIVATE_CLOUD_ENABLED && enabledBackends.cloud) setBackendTypeState('cloud');
+      else if (!stored && isTauriDesktop() && localAvailable && enabledBackends.local) setBackendTypeState('local');
+      else if (PRIVATE_CLOUD_ENABLED && enabledBackends.cloud) setBackendTypeState('cloud');
+      else if (localAvailable && enabledBackends.local) setBackendTypeState('local');
+      else if (enabledBackends.custom) setBackendTypeState('custom');
     }).catch(() => {});
   }, [localAvailable]);
 
   useEffect(() => {
+    if (!activeBackendEnabled) {
+      backendRef.current = null;
+      setBackendStatus({ state: 'error', message: `${backendType} AI is disabled. Re-enable it in Alice settings.` });
+      return;
+    }
     const backend = createBackend(backendType);
     let cancelled = false;
     backendRef.current = backend;
@@ -331,12 +343,13 @@ export function ChatProvider({
       if (backendRef.current === backend) backendRef.current = null;
       backend.dispose().catch(() => {});
     };
-  }, [backendType, backendReloadKey]);
+  }, [backendType, activeBackendEnabled, backendReloadKey]);
 
   const setBackendType = useCallback((type: AIBackendType) => {
     if (type === 'cloud' && !PRIVATE_CLOUD_ENABLED) return;
-    if (type === 'cloud' && !cloudAIEnabled) return;
-    if (type === 'local' && !localAIEnabled) return;
+    if (type === 'cloud' && !backendEnabled.cloud) return;
+    if (type === 'local' && (!localAvailable || !backendEnabled.local)) return;
+    if (type === 'custom' && !backendEnabled.custom) return;
     backendSelectedRef.current = true;
     // Deep only exists on Private Cloud. Leaving cloud drops it so that coming
     // back later doesn't silently resume Deep on the next message.
@@ -356,28 +369,17 @@ export function ChatProvider({
       content: `Switched to ${label} mode.`,
       time: new Date(),
     }]);
-  }, [cloudAIEnabled, localAIEnabled]);
+  }, [backendEnabled, localAvailable]);
 
   const setAiEnabled = useCallback((enabled: boolean) => {
     setAiEnabledState(enabled);
     setAIEnabled(enabled).catch(() => {});
   }, []);
 
-  const setLocalAiEnabled = useCallback((enabled: boolean) => {
-    setLocalAIEnabledState(enabled);
-    setLocalAIEnabled(enabled).catch(() => {});
-    if (!enabled && backendType === 'local') {
-      setBackendType(PRIVATE_CLOUD_ENABLED && cloudAIEnabled ? 'cloud' : 'custom');
-    }
-  }, [backendType, cloudAIEnabled, setBackendType]);
-
-  const setCloudAiEnabled = useCallback((enabled: boolean) => {
-    setCloudAIEnabledState(enabled);
-    setCloudAIEnabled(enabled).catch(() => {});
-    if (!enabled && backendType === 'cloud') {
-      setBackendType(localAvailable && localAIEnabled ? 'local' : 'custom');
-    }
-  }, [backendType, localAIEnabled, localAvailable, setBackendType]);
+  const setBackendEnabled = useCallback((type: AIBackendType, enabled: boolean) => {
+    setBackendEnabledState(current => ({ ...current, [type]: enabled }));
+    setAIBackendEnabled(type, enabled).catch(() => {});
+  }, []);
 
   const refreshSessions = useCallback(async () => {
     const list = await listSessions(storageCipher);
@@ -532,6 +534,17 @@ export function ChatProvider({
     const t = (text ?? input).trim();
     if (!t || busy || !aiEnabled) return;
     setInput('');
+
+    const disabledMessage = getAIDisabledMessage(aiEnabled, backendType, backendEnabled);
+    if (disabledMessage) {
+      setMessages(prev => [...prev, {
+        id: `disabled-${Date.now()}`,
+        role: 'system',
+        content: disabledMessage,
+        time: new Date(),
+      }]);
+      return;
+    }
 
     const blocked = detectSensitiveInput(t);
     if (blocked) {
@@ -957,8 +970,8 @@ export function ChatProvider({
   }, [persistSessionMessages, rebuildHistory]);
 
   const value = useMemo(
-    () => ({ messages, input, setInput, send, busy, deepMode, setDeepMode, backendType, backendStatus, setBackendType, localAvailable, aiEnabled, setAiEnabled, localAIEnabled, setLocalAiEnabled, cloudAIEnabled, setCloudAiEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant }),
-    [messages, input, send, busy, deepMode, backendType, backendStatus, setBackendType, localAvailable, aiEnabled, setAiEnabled, localAIEnabled, setLocalAiEnabled, cloudAIEnabled, setCloudAiEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant],
+    () => ({ messages, input, setInput, send, busy, deepMode, setDeepMode, backendType, backendStatus, setBackendType, localAvailable, aiEnabled, setAiEnabled, backendEnabled, setBackendEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant }),
+    [messages, input, send, busy, deepMode, backendType, backendStatus, setBackendType, localAvailable, aiEnabled, setAiEnabled, backendEnabled, setBackendEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant],
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

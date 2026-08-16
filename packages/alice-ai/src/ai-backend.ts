@@ -1,6 +1,7 @@
 export type { Message } from './llm';
 import type { AssuranceLevel } from './venice-attestation-chain.ts';
 import type { SupportedLanguage } from './language-policy';
+import type { PartKind, PartMessage } from './message-parts';
 
 export type AIBackendType = 'local' | 'cloud' | 'custom';
 
@@ -52,10 +53,23 @@ export interface AIBackend {
    * partial answer to extend. Undefined means "no objection".
    */
   readonly allowsAutoContinuation?: boolean;
+  /**
+   * The part kinds this backend can actually turn into something a model reads.
+   * Undefined means the historical baseline: text only. A backend flattens any
+   * accepted part to text via `normalizeMessages` before calling its model, so
+   * the UI can tell the user up front what will really be understood rather than
+   * letting an unread attachment look processed.
+   */
+  readonly acceptedParts?: readonly PartKind[];
   init(): Promise<void>;
   status(): AIBackendStatus;
+  /**
+   * Content may be a bare string (every existing caller, unchanged) or a list of
+   * typed parts. Accepting parts here is additive: a string flows through exactly
+   * as before.
+   */
   sendMessage(
-    messages: { role: 'user' | 'assistant' | 'system'; content: string }[],
+    messages: PartMessage[],
     onChunk?: (chunk: string) => void,
     options?: SendMessageOptions,
   ): Promise<AIResponse>;

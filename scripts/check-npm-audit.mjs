@@ -41,6 +41,11 @@ const KNOWN_HIGH_ADVISORIES = new Set([
   1138808, 1138809, // image-size ICNS/JXL DoS — Metro build-time asset probing of our own assets
   1138114, 1138115, // js-yaml !!omap quadratic — @expo/xcpretty and babel-jest, build/test only
   1138813, // nanoid custom-generator loop — we only reach standard nanoid() via postcss/expo-router
+  // Added 2026-08-16. New advisories published against packages already in the
+  // reviewed baseline; no new dependency introduced them.
+  1144861, // fast-uri IDN canonicalization host confusion — same ajv chain as 1138395, prebuild and dev-client only
+  1139427, // nanoid zero-size generator loop — ships via expo-router, but the size argument is never attacker-reachable
+  1139510, // postcss sourceMappingURL path traversal — same family as 1124252/1130709, build-time only on our own CSS
 ]);
 
 const audit = spawnSync('npm', ['audit', '--json'], { encoding: 'utf8' });

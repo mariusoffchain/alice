@@ -13,6 +13,9 @@ interface ChatInputProps {
   // Deep only runs on Private Cloud. When false the button is hidden entirely,
   // so the UI can never suggest Deep is active on Local or Custom.
   deepAvailable?: boolean;
+  // Panel mode (the Explorer sidebar): the shell drops its max-width and
+  // padding so the composer fills its container edge to edge.
+  panel?: boolean;
 }
 
 // Minimal brain glyph — the app has no icon library, so this matches the
@@ -35,6 +38,7 @@ export function ChatInput({
   deepMode,
   setDeepMode,
   deepAvailable = false,
+  panel = false,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -53,7 +57,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="chat-composer-shell">
+    <div className={panel ? 'chat-composer-shell chat-composer-shell--panel' : 'chat-composer-shell'}>
       <div className="chat-composer">
         <textarea
           ref={textareaRef}
@@ -86,7 +90,7 @@ export function ChatInput({
               aria-pressed={!!deepMode}
               aria-label="Deeper answer"
               title={deepMode
-                ? 'Deeper answer on — uses a stronger private cloud model'
+                ? 'Deeper answer on: uses a stronger private cloud model'
                 : 'Use a stronger private cloud model for complex questions.'}
               className="flex w-9 h-9 items-center justify-center shrink-0 cursor-pointer transition-colors"
               style={{

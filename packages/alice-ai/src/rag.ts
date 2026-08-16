@@ -1,4 +1,8 @@
-import { GENERATED_OBSIDIAN_KNOWLEDGE_BASE } from './generated/obsidian-rag';
+// NOTE: the generated Obsidian corpus (~2.6 MB of text) is deliberately NOT
+// imported statically: it is dynamic-imported below so bundlers put it in its
+// own lazy chunk instead of the first load of every page. Only its type is
+// referenced here.
+import type { GENERATED_OBSIDIAN_KNOWLEDGE_BASE as GeneratedCorpus } from './generated/obsidian-rag';
 import { getChatStorageSummary, type ChatStorageCipher } from './chat-storage';
 import { isDefinitionQuestion } from './pedagogical-profile';
 import { ALICE_LOCAL_DATA_KNOWLEDGE } from './product-knowledge';
@@ -1269,56 +1273,73 @@ const STATIC_KNOWLEDGE_BASE: KnowledgeChunk[] = [
   },
 ];
 
-const GENERATED_KNOWLEDGE_BASE: KnowledgeChunk[] = GENERATED_OBSIDIAN_KNOWLEDGE_BASE.map(chunk => ({
-  id: chunk.id,
-  title: chunk.title,
-  keywords: [...chunk.keywords],
-  level: chunk.level,
-  content: chunk.content,
-  retrievalWeight: chunk.retrievalWeight,
-  sourcePath: chunk.sourcePath,
-  theme: chunk.theme,
-  conceptId: chunk.conceptId,
-  locale: chunk.locale,
-  sourceLocale: chunk.sourceLocale,
-  translationStatus: chunk.translationStatus,
-  sourceHash: chunk.sourceHash,
-  phase: chunk.phase,
-  priority: chunk.priority,
-  status: chunk.status,
-  surface: chunk.surface,
+const STATIC_CORE_CHUNKS: KnowledgeChunk[] = STATIC_KNOWLEDGE_BASE.map(chunk => ({
+  ...chunk,
+  conceptId: chunk.conceptId ?? chunk.id,
+  locale: chunk.locale ?? 'en' as const,
+  sourceLocale: chunk.sourceLocale ?? 'en' as const,
+  translationStatus: chunk.translationStatus ?? 'source' as const,
 }));
 
-const VALIDATED_GENERATED_KNOWLEDGE = GENERATED_KNOWLEDGE_BASE.filter(chunk => chunk.status === 'valide');
-const SECONDARY_GENERATED_KNOWLEDGE = GENERATED_KNOWLEDGE_BASE.filter(chunk => chunk.status !== 'valide');
-
+// The static base is available immediately; the heavy generated corpus joins
+// it as soon as its lazy chunk lands (typically milliseconds from cache).
 registerPack({
   id: 'core',
   version: '1.0.0',
   language: 'multi',
   source: 'bundled',
-  chunks: [
-    ...STATIC_KNOWLEDGE_BASE.map(chunk => ({
-      ...chunk,
-      conceptId: chunk.conceptId ?? chunk.id,
-      locale: chunk.locale ?? 'en' as const,
-      sourceLocale: chunk.sourceLocale ?? 'en' as const,
-      translationStatus: chunk.translationStatus ?? 'source' as const,
-    })),
-    ...VALIDATED_GENERATED_KNOWLEDGE,
-  ],
+  chunks: STATIC_CORE_CHUNKS,
 });
 
-// Keep the complete editorial corpus available for future opt-in packs without
-// making every request search thousands of secondary notes by default.
-registerPack({
-  id: 'obsidian-secondary',
-  version: '1.0.0',
-  language: 'multi',
-  source: 'bundled',
-  enabledByDefault: false,
-  chunks: SECONDARY_GENERATED_KNOWLEDGE,
-});
+function mapGeneratedChunk(chunk: (typeof GeneratedCorpus)[number]): KnowledgeChunk {
+  return {
+    id: chunk.id,
+    title: chunk.title,
+    keywords: [...chunk.keywords],
+    level: chunk.level,
+    content: chunk.content,
+    retrievalWeight: chunk.retrievalWeight,
+    sourcePath: chunk.sourcePath,
+    theme: chunk.theme,
+    conceptId: chunk.conceptId,
+    locale: chunk.locale,
+    sourceLocale: chunk.sourceLocale,
+    translationStatus: chunk.translationStatus,
+    sourceHash: chunk.sourceHash,
+    phase: chunk.phase,
+    priority: chunk.priority,
+    status: chunk.status,
+    surface: chunk.surface,
+  };
+}
+
+/**
+ * Resolves once the generated Obsidian corpus has been loaded and registered.
+ * Retrieval works before that (static base only); registering the packs bumps
+ * the registry revision, so the retrieval index rebuilds itself on next use.
+ * Exported so tests (and any caller that must see the full corpus) can await it.
+ */
+export const ragCorpusReady: Promise<void> = (async () => {
+  const { GENERATED_OBSIDIAN_KNOWLEDGE_BASE } = await import('./generated/obsidian-rag');
+  const generated = GENERATED_OBSIDIAN_KNOWLEDGE_BASE.map(mapGeneratedChunk);
+  registerPack({
+    id: 'core',
+    version: '1.0.0',
+    language: 'multi',
+    source: 'bundled',
+    chunks: [...STATIC_CORE_CHUNKS, ...generated.filter(chunk => chunk.status === 'valide')],
+  });
+  // Keep the complete editorial corpus available for future opt-in packs without
+  // making every request search thousands of secondary notes by default.
+  registerPack({
+    id: 'obsidian-secondary',
+    version: '1.0.0',
+    language: 'multi',
+    source: 'bundled',
+    enabledByDefault: false,
+    chunks: generated.filter(chunk => chunk.status !== 'valide'),
+  });
+})().catch(() => { /* corpus unavailable: the static base still serves */ });
 
 const ADVANCED_LAYER_2_TERMS = ['ark', 'arkade', 'vtxo', 'vutxo', 'asp', 'lightning', 'layer 2', 'layer-2', 'l2'];
 

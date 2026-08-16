@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import type { BalanceFormat } from '@alice-wallet/alice-ui/balance-format';
+import { setAmountFormat, useAmountState } from '@/components/AmountDisplay';
 import {
   type CustomServerConfig,
   type ChatCleanupMode,
@@ -37,6 +39,8 @@ import {
   ALL_PALETTE_IDS,
   type PaletteId,
 } from '@alice-wallet/alice-content';
+import { configurableNetworks, getNodeOverride, setNodeOverride } from '@/lib/explorer/node-config';
+import { getNetwork } from '@/lib/explorer/networks';
 
 /* ------------------------------------------------------------------ */
 /*  Pixel Wheel constants                                              */
@@ -169,6 +173,50 @@ function PixelWheel({
 /*  Shared UI atoms                                                    */
 /* ------------------------------------------------------------------ */
 
+// The same unit preference as the wallet's balance (alice_balance_format):
+// changing it here changes every amount in Explorer and the wallet alike.
+const UNIT_OPTIONS: { value: BalanceFormat; label: string }[] = [
+  { value: 'symbol', label: '₿' },
+  { value: 'sats', label: 'sats' },
+  { value: 'btc', label: 'BTC' },
+  { value: 'usd', label: '$' },
+];
+
+function BalanceUnitSection() {
+  const amount = useAmountState();
+  return (
+    <div style={sectionStyle}>
+      <SectionLabel>BALANCE UNIT</SectionLabel>
+      <p className="font-numbers m-0 mt-1 mb-3" style={{ fontSize: 14, opacity: 0.5 }}>
+        How amounts are shown across Explorer, shared with the wallet. Clicking any amount in the app cycles it too.
+      </p>
+      <div className="flex gap-2">
+        {UNIT_OPTIONS.map((opt) => {
+          const active = amount.format === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setAmountFormat(opt.value)}
+              className="font-numbers cursor-pointer"
+              style={{
+                fontSize: 14,
+                padding: '8px 16px',
+                border: `2px solid ${active ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
+                borderRadius: 2,
+                backgroundColor: active ? 'var(--alice-primary)' : 'transparent',
+                color: active ? 'var(--alice-on-primary)' : 'var(--alice-text)',
+              }}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const sectionStyle: React.CSSProperties = {
   backgroundColor: 'var(--alice-card-bg)',
   border: '2px solid var(--alice-border)',
@@ -199,6 +247,55 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <h3 className="font-pixel tracking-widest m-0" style={labelStyle}>
       {children}
     </h3>
+  );
+}
+
+function PixelSwitch({
+  label,
+  enabled,
+  onChange,
+  disabled = false,
+}: {
+  label: string;
+  enabled: boolean;
+  onChange: (enabled: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!enabled)}
+      className="flex items-center cursor-pointer"
+      style={{ minHeight: 36, padding: 0, border: 0, background: 'transparent', opacity: disabled ? 0.4 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
+    >
+      <span
+        className="flex items-center"
+        style={{
+          width: 52,
+          height: 28,
+          padding: 3,
+          border: `2px solid ${enabled ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
+          borderRadius: 0,
+          backgroundColor: enabled ? 'var(--alice-primary)' : 'transparent',
+          boxSizing: 'border-box',
+        }}
+      >
+        <span
+          style={{
+            width: 18,
+            height: 18,
+            marginLeft: enabled ? 24 : 0,
+            borderRadius: 0,
+            backgroundColor: enabled ? 'var(--alice-on-primary)' : 'var(--alice-muted)',
+            transition: 'margin-left 140ms ease',
+          }}
+        />
+      </span>
+    </button>
   );
 }
 
@@ -266,6 +363,10 @@ export default function SettingsPage() {
   const [cleaningChat, setCleaningChat] = useState(false);
   const [cleanupNotice, setCleanupNotice] = useState('');
 
+  /* ----- Explorer node overrides (per network, localStorage) ----- */
+  const [nodeDrafts, setNodeDrafts] = useState<Record<string, string>>({});
+  const [nodeNotice, setNodeNotice] = useState('');
+
   /* ----- Load everything on mount ----- */
   useEffect(() => {
     trackProductEvent('settings_opened');
@@ -310,6 +411,11 @@ export default function SettingsPage() {
       }
     })();
 
+    // Load Explorer node overrides from localStorage into the draft inputs.
+    setNodeDrafts(
+      Object.fromEntries(configurableNetworks().map(n => [n.id, getNodeOverride(n.id)])),
+    );
+
     // Load appearance from localStorage
     const storedMode = localStorage.getItem('alice_theme_mode') as 'light' | 'dark' | null;
     const storedPalette = localStorage.getItem('alice_palette') as PaletteId | null;
@@ -351,6 +457,21 @@ export default function SettingsPage() {
     } else {
       chat.setBackendType('cloud');
     }
+  };
+
+  const handleSaveNode = (networkId: string) => {
+    setNodeOverride(networkId, nodeDrafts[networkId] ?? '');
+    // Reflect the trimmed/cleared value back into the input.
+    setNodeDrafts(prev => ({ ...prev, [networkId]: getNodeOverride(networkId) }));
+    setNodeNotice('Node saved. New Explorer tabs use it.');
+    setTimeout(() => setNodeNotice(''), 4000);
+  };
+
+  const handleResetNode = (networkId: string) => {
+    setNodeOverride(networkId, '');
+    setNodeDrafts(prev => ({ ...prev, [networkId]: '' }));
+    setNodeNotice('Reset to the default endpoint.');
+    setTimeout(() => setNodeNotice(''), 4000);
   };
 
   const refreshDesktopModelStates = async () => {
@@ -428,6 +549,9 @@ export default function SettingsPage() {
     setCustomConnected(false);
     setLocalDownloadOpen(false);
     chat.setAiEnabled(true);
+    chat.setBackendEnabled('local', true);
+    chat.setBackendEnabled('cloud', true);
+    chat.setBackendEnabled('custom', true);
     chat.setBackendType(desktopLocalFirst ? 'local' : 'cloud');
     chat.clearMessages();
   };
@@ -558,6 +682,27 @@ export default function SettingsPage() {
           >
             CUSTOMIZE ALICE
           </h2>
+
+          <div style={sectionStyle}>
+            <div className="flex items-center justify-between gap-4">
+              <SectionLabel>LOCAL AI</SectionLabel>
+              <PixelSwitch
+                label="Local AI"
+                enabled={chat.localAvailable && chat.backendEnabled.local}
+                onChange={enabled => chat.setBackendEnabled('local', enabled)}
+                disabled={!chat.localAvailable}
+              />
+            </div>
+            <div style={{ height: 1, backgroundColor: 'var(--alice-border)', margin: '12px 0' }} />
+            <div className="flex items-center justify-between gap-4">
+              <SectionLabel>PRIVATE CLOUD</SectionLabel>
+              <PixelSwitch
+                label="Private Cloud AI"
+                enabled={chat.backendEnabled.cloud}
+                onChange={enabled => chat.setBackendEnabled('cloud', enabled)}
+              />
+            </div>
+          </div>
 
           {/* 1. ALICE INSTRUCTIONS */}
           <div style={sectionStyle}>
@@ -851,7 +996,14 @@ export default function SettingsPage() {
 
           {/* 3. CUSTOM SERVER */}
           <div style={sectionStyle}>
-            <SectionLabel>CUSTOM SERVER</SectionLabel>
+            <div className="flex items-start justify-between gap-4">
+              <SectionLabel>CUSTOM SERVER</SectionLabel>
+              <PixelSwitch
+                label="Custom server AI"
+                enabled={chat.backendEnabled.custom}
+                onChange={enabled => chat.setBackendEnabled('custom', enabled)}
+              />
+            </div>
             <p
               className="font-numbers m-0 mt-1 mb-3"
               style={{ fontSize: 14, opacity: 0.5 }}
@@ -1028,6 +1180,98 @@ export default function SettingsPage() {
           >
             RESET TO DEFAULT
           </button>
+
+          {/* ============================================ */}
+          {/*  EXPLORER                                 */}
+          {/* ============================================ */}
+          <h2
+            className="font-pixel tracking-widest mb-4"
+            style={{ fontSize: 8, opacity: 0.7 }}
+          >
+            EXPLORER
+          </h2>
+
+          <div style={sectionStyle}>
+            <SectionLabel>DATA NODE</SectionLabel>
+            <p
+              className="font-numbers m-0 mt-1 mb-3"
+              style={{ fontSize: 14, opacity: 0.5 }}
+            >
+              Explorer reads the chain through an Esplora / mempool endpoint. The public defaults rate-limit heavy analysis; point a network at your own node for unthrottled, private queries. Leave blank to use the default.
+            </p>
+            <div className="flex flex-col gap-4">
+              {configurableNetworks().map((net) => {
+                const draft = nodeDrafts[net.id] ?? '';
+                const defaultUrl = getNetwork(net.id).baseUrl ?? '';
+                const dirty = draft.trim().replace(/\/$/, '') !== getNodeOverride(net.id);
+                return (
+                  <div key={net.id} className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: net.color, display: 'inline-block' }}
+                      />
+                      <span className="font-pixel tracking-widest" style={{ fontSize: 7 }}>
+                        {net.label.toUpperCase()}
+                      </span>
+                      {getNodeOverride(net.id) && (
+                        <span className="font-pixel tracking-widest" style={{ fontSize: 6, opacity: 0.6 }}>
+                          / CUSTOM
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="url"
+                      value={draft}
+                      onChange={(e) => setNodeDrafts(prev => ({ ...prev, [net.id]: e.target.value }))}
+                      placeholder={defaultUrl}
+                      className="font-numbers outline-none w-full"
+                      style={{
+                        fontSize: 15,
+                        padding: '8px 12px',
+                        backgroundColor: 'var(--alice-bg)',
+                        border: '2px solid var(--alice-primary)',
+                        borderRadius: 2,
+                        color: 'var(--alice-primary-dark)',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSaveNode(net.id)}
+                        className="font-pixel tracking-widest"
+                        disabled={!dirty}
+                        style={{
+                          ...btnBase,
+                          backgroundColor: dirty ? 'var(--alice-primary)' : 'transparent',
+                          color: dirty ? 'var(--alice-on-primary)' : 'var(--alice-primary)',
+                          opacity: dirty ? 1 : 0.5,
+                        }}
+                      >
+                        SAVE
+                      </button>
+                      {getNodeOverride(net.id) && (
+                        <button
+                          onClick={() => handleResetNode(net.id)}
+                          className="font-pixel tracking-widest"
+                          style={{ ...btnBase, backgroundColor: 'transparent', color: 'var(--alice-primary)' }}
+                        >
+                          DEFAULT
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {nodeNotice && (
+              <p className="font-numbers m-0 mt-3" style={{ fontSize: 13, opacity: 0.7 }}>
+                {nodeNotice}
+              </p>
+            )}
+          </div>
+
+          <BalanceUnitSection />
 
           {/* ============================================ */}
           {/*  APPEARANCE                                  */}

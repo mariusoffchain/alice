@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { spacing, typography, type Colors, type Pixel } from '@alice-wallet/alice-content';
 import { useTheme } from '@alice-wallet/alice-ui';
-import { getPaymentDetails, getTransactionHistory, refundPayment } from '@alice-wallet/wallet-core';
+import { friendlyRefundError, getPaymentDetails, getTransactionHistory, refundPayment } from '@alice-wallet/wallet-core';
 import { getConfirmations } from '@alice-wallet/wallet-core';
 import { getFiatCurrency, priceApiUrl, CURRENCY_SYMBOL, type FiatCurrency } from '@alice-wallet/alice-ui';
 import type { Transaction, TransactionStatus, TransactionLayer } from '@alice-wallet/wallet-core';
@@ -32,7 +32,7 @@ function statusConfig(status: TransactionStatus, primary: string): { label: stri
 function paymentStatusConfig(status: PaymentStatus, primary: string): { label: string; color: string } {
   switch (status) {
     case 'settled': return { label: 'Settled', color: '#2ea043' };
-    case 'refundable': return { label: 'Refundable', color: '#d4a017' };
+    case 'refundable': return { label: 'Refund available', color: '#d4a017' };
     case 'refunded': return { label: 'Refunded', color: primary };
     case 'failed': return { label: 'Failed', color: '#e06060' };
     case 'expired': return { label: 'Expired', color: '#e06060' };
@@ -152,7 +152,7 @@ export default function TransactionScreen() {
     try {
       setPayment(await refundPayment(payment.id));
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Unable to refund this swap.');
+      setActionError(friendlyRefundError(cause, payment.provider));
     } finally {
       setRefunding(false);
     }
@@ -209,7 +209,7 @@ export default function TransactionScreen() {
         label: payment.layer === 'onchain' ? 'Bitcoin funding' : 'Arkade funding',
         value: truncate(paymentData.fundingTxid),
       }] : []),
-      ...(paymentData.arkadeFundingTxid ? [{
+      ...(paymentData.arkadeFundingTxid && paymentData.arkadeFundingTxid !== paymentData.fundingTxid ? [{
         label: 'Arkade funding',
         value: truncate(paymentData.arkadeFundingTxid),
       }] : []),
@@ -238,7 +238,11 @@ export default function TransactionScreen() {
           <Text style={s.title}>PAYMENT DETAILS</Text>
           <View style={{ width: 36 }} />
         </View>
-        <View style={s.body}>
+        <ScrollView
+          style={s.scroll}
+          contentContainerStyle={s.body}
+          showsVerticalScrollIndicator
+        >
           <View style={s.hero}>
             <WalletAmount
               sats={payment.amountSats}
@@ -310,7 +314,7 @@ export default function TransactionScreen() {
               <Text style={s.updateText}>SWAP STATUS UPDATES AUTOMATICALLY</Text>
             </View>
           )}
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -351,7 +355,11 @@ export default function TransactionScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      <View style={s.body}>
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.body}
+        showsVerticalScrollIndicator
+      >
         {/* Hero */}
         <View style={s.hero}>
           <WalletAmount
@@ -417,7 +425,7 @@ export default function TransactionScreen() {
             <Text style={s.updateText}>STATUS UPDATES AUTOMATICALLY</Text>
           </View>
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -431,7 +439,8 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     title: { fontFamily: typography.pixel, fontSize: 10, color: colors.primaryDark, letterSpacing: 3 },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     notFound: { fontFamily: typography.pixel, fontSize: 8, color: colors.muted },
-    body: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
+    scroll: { flex: 1 },
+    body: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
 
     hero: { alignItems: 'center', gap: spacing.xs, paddingBottom: spacing.xxl },
     heroAmount: { fontFamily: typography.numbers, fontSize: 44 },
@@ -456,6 +465,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     updateText: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
     refundBtn: { ...pixel, marginTop: spacing.lg, alignSelf: 'center', backgroundColor: '#d4a017', borderColor: '#8f6d0a', paddingVertical: spacing.md, paddingHorizontal: spacing.xl },
     refundBtnText: { fontFamily: typography.pixel, fontSize: 7, color: '#ffffff', letterSpacing: 1 },
+    refundNotice: { marginTop: spacing.lg, paddingHorizontal: spacing.lg, fontFamily: typography.pixel, fontSize: 6, lineHeight: 13, color: '#8f6d0a', textAlign: 'center' },
     actionError: { marginTop: spacing.md, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: '#e06060', textAlign: 'center' },
     disabled: { opacity: 0.4 },
   });

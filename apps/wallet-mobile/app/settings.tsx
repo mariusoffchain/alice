@@ -134,6 +134,17 @@ export default function SettingsScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.row, { borderBottomColor: colors.dotted }]}
+          onPress={account.requestSignIn}
+        >
+          <Text style={[s.rowLabel, { color: colors.primaryDark }]}>ALICE ACCOUNT</Text>
+          <Text style={[s.rowValue, { color: colors.muted }]}>
+            {account.account
+              ? `${account.account.cloud_requests_remaining}/${account.account.cloud_requests_limit} ›`
+              : 'SIGN IN ›'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.row, { borderBottomColor: colors.dotted }]}
           onPress={() => router.push('/about')}
         >
           <Text style={[s.rowLabel, { color: colors.primaryDark }]}>ABOUT</Text>

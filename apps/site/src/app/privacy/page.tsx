@@ -35,7 +35,7 @@ const inApp = [
   {
     title: 'What Alice remembers about you',
     detail:
-      'The memory that personalizes her answers stays on your device, encrypted in the mobile and desktop apps. “What Alice knows” lets you inspect and erase it anytime. It is never sent to us.',
+      'The memory that personalizes her answers stays on your device, encrypted in Alice Wallet and Alice App. “What Alice knows” lets you inspect and erase it anytime. It is never sent to us.',
   },
   {
     title: 'Product analytics',

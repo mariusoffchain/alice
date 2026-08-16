@@ -8,6 +8,10 @@ const internalHost = process.env.TAURI_DEV_HOST;
 
 const nextConfig: NextConfig = {
   output: 'export',
+  // A stray package-lock.json outside the monorepo makes Next infer the wrong
+  // workspace root, which breaks `next build` (PageNotFoundError on /_document).
+  // Pin the root to the monorepo explicitly.
+  outputFileTracingRoot: path.resolve(__dirname, '../..'),
   // Turbopack (used by `next dev`) has its own alias system separate from
   // webpack. Without this, it resolves `react-native` directly and chokes on
   // Flow syntax in the RN source. Mirrors the webpack aliases below exactly.

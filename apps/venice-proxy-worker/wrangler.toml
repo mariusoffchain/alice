@@ -42,6 +42,18 @@ migrations_dir = "migrations"
 # account from localhost affects production, exactly as it would from a
 # hosted console.
 
+# Explorer entity attribution: public, sourced address labels, kept in its own
+# database rather than alongside the accounts. Two reasons. Re-ingesting the
+# labels takes the database offline for the duration, and that must never take
+# account sign-in down with it. And /explorer/entities is public and
+# unauthenticated, so the handle it holds should not be the one that can read
+# user rows.
+[[d1_databases]]
+binding = "ENTITY_DB"
+database_name = "alice-entities"
+database_id = "" # create your own D1 database and paste its id (npx wrangler d1 create)
+migrations_dir = "migrations-entities"
+
 [vars]
 # Comma-separated origin allowlist for CORS. Keep it as tight as the
 # deployment allows; an empty list means no cross-origin browser access.

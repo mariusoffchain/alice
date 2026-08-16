@@ -7,6 +7,10 @@ const current = process.env.VERCEL_GIT_COMMIT_SHA;
 // manually triggered builds, and any Git provider that omits Vercel's metadata.
 if (!previous || !current) process.exit(1);
 
+// Vercel promotions rebuild an existing commit and report the same SHA as
+// both ends of the comparison. Always allow that explicit production action.
+if (previous === current) process.exit(1);
+
 const repository = spawnSync('git', ['rev-parse', '--show-toplevel'], {
   encoding: 'utf8',
 });

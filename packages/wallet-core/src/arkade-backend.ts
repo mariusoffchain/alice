@@ -202,6 +202,7 @@ function deriveLayer(tx: { key: { arkTxid: string; boardingTxid: string } }): Tr
 }
 
 export class ArkadeBackend implements WalletBackend {
+  private readonly transactionTimes = new TransactionTimeCache();
   private wallet: ExpoWallet | null = null;
   private db: SQLite.SQLiteDatabase | null = null;
   private swapDb: SQLite.SQLiteDatabase | null = null;
@@ -341,18 +342,21 @@ export class ArkadeBackend implements WalletBackend {
   async getTransactionHistory(): Promise<Transaction[]> {
     if (!this.wallet) throw new Error('Wallet not initialized');
     const history = await this.wallet.getTransactionHistory();
-    return history.map(tx => ({
-      id: tx.key.arkTxid || tx.key.commitmentTxid || tx.key.boardingTxid,
-      type: tx.type === TxType.TxReceived ? 'incoming' as const : 'outgoing' as const,
-      layer: deriveLayer(tx),
-      amount: tx.amount,
-      settled: tx.settled,
-      status: deriveStatus(tx),
-      createdAt: tx.createdAt,
-      arkTxid: tx.key.arkTxid,
-      commitmentTxid: tx.key.commitmentTxid,
-      boardingTxid: tx.key.boardingTxid,
-    }));
+    return history.map(tx => {
+      const id = tx.key.arkTxid || tx.key.commitmentTxid || tx.key.boardingTxid;
+      return {
+        id,
+        type: tx.type === TxType.TxReceived ? 'incoming' as const : 'outgoing' as const,
+        layer: deriveLayer(tx),
+        amount: tx.amount,
+        settled: tx.settled,
+        status: deriveStatus(tx),
+        createdAt: this.transactionTimes.resolve(id, tx.createdAt),
+        arkTxid: tx.key.arkTxid,
+        commitmentTxid: tx.key.commitmentTxid,
+        boardingTxid: tx.key.boardingTxid,
+      };
+    });
   }
 
   async getVtxos(): Promise<VtxoInfo[]> {

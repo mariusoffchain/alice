@@ -33,7 +33,7 @@ const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   settled: 'SETTLED',
   failed: 'FAILED',
   expired: 'EXPIRED',
-  refundable: 'REFUNDABLE',
+  refundable: 'REFUND AVAILABLE',
   refunded: 'REFUNDED',
 };
 
@@ -55,9 +55,23 @@ function paymentStatusColor(status: PaymentStatus, colors: Colors): string {
 }
 
 function entryDescription(entry: HistoryEntry): string {
+  if (entry.kind === 'payment') {
+    if (entry.payment.status === 'refundable') return 'Swap refund available';
+    if (entry.payment.status === 'refunded') return 'Refunded swap';
+    if (entry.payment.layer === 'lightning') {
+      return entry.payment.direction === 'incoming'
+        ? 'Lightning received'
+        : 'Lightning sent';
+    }
+    if (entry.payment.layer === 'onchain') {
+      return entry.payment.direction === 'incoming'
+        ? 'Bitcoin received'
+        : 'Bitcoin sent';
+    }
+  }
   const layer = entry.kind === 'transaction' ? entry.transaction.layer : entry.payment.layer;
-  if (layer === 'lightning') return 'Lightning payment';
-  if (layer === 'onchain') return 'On-chain transaction';
+  if (layer === 'lightning') return 'Lightning transaction';
+  if (layer === 'onchain') return 'Bitcoin transaction';
   return 'Arkade transaction';
 }
 

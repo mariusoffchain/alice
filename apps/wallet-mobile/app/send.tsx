@@ -67,6 +67,10 @@ type SuccessState = 'idle' | 'animating' | 'complete';
 const MIN_ARKADE_SEND = 1;
 const PAYMENT_NETWORK_LABEL = PAYMENT_NETWORK === 'bitcoin' ? 'Bitcoin Mainnet' : 'Mutinynet';
 const PAYMENT_NETWORK_UPPER = PAYMENT_NETWORK_LABEL.toUpperCase();
+const ARKADE_FUNDS_REFRESH_ERROR = [
+  'YOUR ARKADE FUNDS NEED TO BE REFRESHED. RETURN TO THE WALLET AND WAIT FOR SYNC, THEN TRY AGAIN LATER.',
+  'OR SEND VIA ARKADE OR LIGHTNING INSTEAD.',
+].join('\n');
 
 function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
   return a.length === b.length && a.every((byte, index) => byte === b[index]);
@@ -113,7 +117,7 @@ function friendlySendError(
     return `ARKADE SERVER MISMATCH. USE AN ADDRESS FROM THE ${PAYMENT_NETWORK_UPPER} ARKADE WALLET.`;
   }
   if (normalized.includes('expired') || normalized.includes('vtxo')) {
-    return 'YOUR ARKADE FUNDS NEED TO BE REFRESHED. RETURN TO THE WALLET, WAIT FOR SYNC, THEN TRY AGAIN.';
+    return ARKADE_FUNDS_REFRESH_ERROR;
   }
   if (normalized.includes('signingdescriptor') || normalized.includes('cannot sign input for default contract')) {
     return `THIS WALLET HAS OLD ARKADE TEST FUNDS THAT THIS BUILD CANNOT SIGN. FOR ${PAYMENT_NETWORK_UPPER} TESTING, RESET THE WALLET OR CREATE A FRESH TEST WALLET, THEN FUND IT AGAIN.`;

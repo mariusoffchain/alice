@@ -38,7 +38,7 @@ type ModelSelectorProps = {
   setBackendType: (type: AIBackendType) => void;
   setAiEnabled: (enabled: boolean) => void;
   compactLabel?: boolean;
-  placement?: 'above' | 'mobile-header';
+  placement?: 'above' | 'mobile-header' | 'below';
 };
 
 export function ModelSelector({
@@ -218,7 +218,11 @@ export function ModelSelector({
 
       {open && (
         <div
-          className={placement === 'mobile-header' ? 'fixed' : 'absolute right-0'}
+          className={
+            placement === 'mobile-header' ? 'fixed'
+              : placement === 'below' ? 'absolute left-0'
+                : 'absolute right-0'
+          }
           style={{
             ...(placement === 'mobile-header'
               ? {
@@ -226,11 +230,17 @@ export function ModelSelector({
                   left: 20,
                   right: 20,
                 }
-              : {
-                  bottom: 'calc(100% + 8px)',
-                  width: 296,
-                  maxWidth: 'calc(100vw - 40px)',
-                }),
+              : placement === 'below'
+                ? {
+                    top: 'calc(100% + 8px)',
+                    width: 296,
+                    maxWidth: 'calc(100vw - 40px)',
+                  }
+                : {
+                    bottom: 'calc(100% + 8px)',
+                    width: 296,
+                    maxWidth: 'calc(100vw - 40px)',
+                  }),
             padding: 8,
             backgroundColor: 'var(--alice-bg-soft)',
             border: '2px solid var(--alice-border)',

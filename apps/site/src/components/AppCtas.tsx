@@ -114,8 +114,9 @@ function PlatformSelector({
   );
 }
 
-// Desktop entry. The trigger only reveals the platform choices. Opening the
-// web app remains an explicit action inside the menu.
+// Alice App entry (the AI companion, shipped as web plus desktop builds). The
+// trigger only reveals the platform choices. Opening the web app remains an
+// explicit action inside the menu.
 export function DesktopAppButton({ size = 'md' }: { size?: Size }) {
   return (
     <PlatformSelector
@@ -123,7 +124,7 @@ export function DesktopAppButton({ size = 'md' }: { size?: Size }) {
       trigger={
         <>
           <DesktopIcon size={size === 'sm' ? 16 : 18} />
-          Desktop app
+          Alice App
         </>
       }
       items={[
@@ -136,8 +137,8 @@ export function DesktopAppButton({ size = 'md' }: { size?: Size }) {
   );
 }
 
-// Mobile entry. Android store distribution and the directly installable beta
-// APK are distinct so the menu never implies that a store release exists.
+// Alice Wallet entry. Android store distribution and the directly installable
+// beta APK are distinct so the menu never implies that a store release exists.
 export function MobileWalletButton({ size = 'md' }: { size?: Size }) {
   return (
     <PlatformSelector
@@ -145,7 +146,7 @@ export function MobileWalletButton({ size = 'md' }: { size?: Size }) {
       trigger={
         <>
           <PhoneIcon size={size === 'sm' ? 16 : 18} />
-          Mobile wallet
+          Alice Wallet
         </>
       }
       items={[

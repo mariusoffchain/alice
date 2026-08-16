@@ -17,6 +17,52 @@ reproducible from its tag. Do not distribute it as the closed-beta release.
 Starting with `0.1.0`, the APK is built from the validated public tree and its
 checksum is published with the binary.
 
+### Verifying the APK you were given
+
+Two checks, and they answer different questions.
+
+**Is this the file Alice published?** Compare its checksum with the
+`SHA256SUMS` file from the same release:
+
+```bash
+shasum -a 256 -c SHA256SUMS-v0.1.0.txt
+```
+
+**Was it signed by Alice?** This is the one that matters when an APK reaches
+you through someone else. Every Alice release is signed with the same key, so
+the certificate fingerprint below never changes. A build signed by anyone else
+carries a different fingerprint, whatever its file name says:
+
+```
+SHA-256  189bf5a7bb13f8ddde59074bcdba4b8799368c8cf50b249e1c9d7b4455eef26c
+```
+
+```bash
+apksigner verify --print-certs Alice-Wallet-beta-0.1.0-v11.apk
+```
+
+Android enforces this on its own: it refuses to install an update signed with
+a different key than the app already on the device. The manual check is for
+the first install, which is exactly when you have nothing to compare against.
+
+### How this build was produced
+
+| | |
+| --- | --- |
+| Tag | `v0.1.0` |
+| Commit | `2982c32c4eb300d93912c3deab8f9479c3ee594c` |
+| Android version code | `11` |
+| Expo SDK | `54.0.35` |
+| React Native | `0.81.5` |
+| Node | `24` |
+| Build service | Expo Application Services (EAS), `production` profile |
+
+Stated plainly: this describes the build, it does not let you reproduce it.
+An EAS build is not byte-for-byte reproducible, so the checksum proves the
+file is intact, not that it was compiled from this source. Reproducible
+builds are on the roadmap; until they land, the fingerprint above is what ties
+a binary to Alice.
+
 Always verify the version and checksum supplied with the APK. Do not install an
 APK forwarded by an unknown person.
 
