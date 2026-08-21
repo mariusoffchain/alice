@@ -36,6 +36,12 @@ export type SavedWallet = {
   networkId: string;
   addedAt: number;
   snapshot?: WalletSnapshot;
+  /**
+   * Set on the card the Explorer maintains itself from the Playground's
+   * practice wallet. The literal is persisted in localStorage, so it keeps
+   * its pre-rename value.
+   */
+  source?: 'test-wallet';
 };
 
 function newId(): string {
@@ -100,6 +106,48 @@ export function addWallet(
   });
   persist(wallets);
   return wallets;
+}
+
+/**
+ * Keep the practice wallet's card in step with the practice wallet.
+ *
+ * Continuity between the two screens: a wallet created in the Playground
+ * appears in the Explorer by itself, watch-only and pinned to Mutinynet, and
+ * leaves when the practice wallet is deleted. It is reconciled rather than
+ * inserted once, so a deleted practice wallet does not leave a stale card
+ * behind, and the card comes back if it is removed while the wallet lives on:
+ * it exists exactly as long as its wallet does.
+ */
+export function syncPlaygroundCard(xpub: string | null): SavedWallet[] {
+  const wallets = loadWallets();
+  const existing = wallets.find(w => w.source === 'test-wallet');
+  if (!xpub) {
+    if (!existing) return wallets;
+    const next = wallets.filter(w => w.source !== 'test-wallet');
+    persist(next);
+    return next;
+  }
+  if (existing && existing.input === xpub) {
+    // Cards created before the rename carry the old default label; refresh it
+    // once, without touching a label the user chose themselves.
+    if (existing.label === 'Test Wallet') {
+      existing.label = 'Playground';
+      persist(wallets);
+    }
+    return wallets;
+  }
+  const next = wallets.filter(w => w.source !== 'test-wallet');
+  next.unshift({
+    id: newId(),
+    label: 'Playground',
+    input: xpub,
+    kind: 'wallet',
+    networkId: 'mutinynet',
+    addedAt: Date.now(),
+    source: 'test-wallet',
+  });
+  persist(next);
+  return next;
 }
 
 export function removeWallet(id: string): SavedWallet[] {

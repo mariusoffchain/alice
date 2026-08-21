@@ -1,15 +1,15 @@
-# Private Cloud — end-to-end encryption
+# Private Cloud, end-to-end encryption
 
 This document describes how Alice's **Private** mode protects a message, exactly
-what each party can see, and — importantly — the parts that are **not yet
+what each party can see, and, importantly, the parts that are **not yet
 fully verified**. It is deliberate about wording: read the
 [Status matrix](#status-matrix) before describing Private as "E2EE" anywhere.
 
 Alice has three AI modes:
 
-- **Local** — nothing leaves the device.
-- **Private** — the cloud mode described here.
-- **Custom AI** — a user-configured server, unchanged by this document.
+- **Local**, nothing leaves the device.
+- **Private**, the cloud mode described here.
+- **Custom AI**, a user-configured server, unchanged by this document.
 
 ## What "Private" means, simply
 
@@ -20,8 +20,7 @@ The reply comes back encrypted and is decrypted **on your device**.
 
 > Wording rule: only say *"Messages are encrypted on the user's device and can
 > only be decrypted by a successfully attested enclave matching Alice's approved
-> policy"* once the code actually enforces the full policy for that model —
-> i.e. the [assurance level](#assurance-levels) is `full`. Today it is not (see
+> policy"* once the code actually enforces the full policy for that model, > i.e. the [assurance level](#assurance-levels) is `full`. Today it is not (see
 > the matrix), so the UI says **Private**, never "E2EE verified".
 
 ## The flow
@@ -46,7 +45,7 @@ The reply comes back encrypted and is decrypted **on your device**.
   decrypt each SSE chunk    ◀── stream passthrough ───────  encrypts to session
 ```
 
-## Cryptography vs attestation — the layers
+## Cryptography vs attestation, the layers
 
 These are distinct, and Private only becomes real E2EE when they all hold:
 
@@ -80,35 +79,35 @@ and version are the authoritative deployment behind its current endpoints.
 - **Cloudflare (Alice Worker):** ciphertext, the model id, request/response
   sizes and timing, the Venice API key it attaches. It **cannot** decrypt (it
   holds no client key) and logs only `route, status, duration, model,
-  approxBytes` — never bodies.
+  approxBytes`, never bodies.
 - **Venice, outside the enclave:** ciphertext and metadata. Not the plaintext.
 - **Phala / PCCS:** the **public** DCAP collateral (certificates, TCB info). No
   prompt, no response. With the collateral relay enabled, Phala sees the
   Worker's IP, not the user's.
-- **The enclave (Intel TDX):** the plaintext prompt and response — that is the
+- **The enclave (Intel TDX):** the plaintext prompt and response, that is the
   one place decryption happens, and attestation is our evidence about what runs
   there.
 
 ## The Worker's exact role
 
-- **Protects the API key** — held as a Wrangler secret, attached server-side.
-- **Relays already-encrypted data** — passes the request/response stream through
+- **Protects the API key**, held as a Wrangler secret, attached server-side.
+- **Relays already-encrypted data**, passes the request/response stream through
   untouched; refuses any chat request missing the `X-Venice-TEE-*` headers, so
   it can never be a plaintext relay.
-- **Never holds the decryption key** — the client session secret is generated on
+- **Never holds the decryption key**, the client session secret is generated on
   the device and wiped after each request; it is never sent.
 - **Relays DCAP collateral** (`/pccs/*`) from a **fixed** upstream, GET-only,
-  path-allowlisted, no body logging — it cannot be turned into an open proxy,
+  path-allowlisted, no body logging, it cannot be turned into an open proxy,
   and the client still verifies the quote itself.
 
 ## Cryptographic checks Alice performs (the chain)
 
-In order, **fail-closed at every step** — nothing is sent until all required
+In order, **fail-closed at every step**, nothing is sent until all required
 steps pass:
 
 1. generate a 32-byte random nonce;
 2. fetch the attestation for the exact model;
-3. verify the nonce matches both the response and bytes 32–63 of the
+3. verify the nonce matches both the response and bytes 32-63 of the
    DCAP-verified `report_data` (freshness / anti-replay);
 4. parse the Intel TDX quote;
 5. DCAP-verify the quote against Intel's trust chain;
@@ -126,7 +125,7 @@ from `venice-dcap.ts`, `venice-attestation-verify.ts`, and
 
 ## Fail-closed policy
 
-For **Private**, every one of these is a refusal — **no fallback to a non-E2EE
+For **Private**, every one of these is a refusal, **no fallback to a non-E2EE
 model, no silent fallback to standard Venice**:
 
 missing attestation · DCAP unavailable · PCCS unavailable · refused TCB status ·
@@ -143,12 +142,12 @@ response, or key.
 
 `verifyAttestationChain` returns an explicit level:
 
-- **`attested-unpinned`** — DCAP + non-debug + key binding verified, but
+- **`attested-unpinned`**, DCAP + non-debug + key binding verified, but
   measurements are **not** pinned. Proves *a genuine TDX enclave that committed
   to this key*, **not** *Venice's specific approved code*. **UI must not claim
   E2EE at this level.**
-- **`pinned`** — the above plus measurements matched an approved reference.
-- **`full`** — the above plus GPU attestation where required.
+- **`pinned`**, the above plus measurements matched an approved reference.
+- **`full`**, the above plus GPU attestation where required.
 
 Today, with no published reference values, the reachable level is
 `attested-unpinned`.
@@ -165,16 +164,16 @@ Each has an `id`, optional `label`/`source`, a validity window
 (`notBefore`/`notAfter`), and a `revoked` flag. Rotation = add the new reference,
 later revoke the old; both are valid during the cut-over. An **unknown**
 measurement never passes (refuse, never "present so trust it"). The list ships
-**empty** — values are not invented; they must come from governance (below).
+**empty**, values are not invented; they must come from governance (below).
 
 ## Dependencies and roots of trust
 
-- **Intel** — DCAP trust chain (quote signature, TCB).
-- **NVIDIA** — GPU attestation (where applicable; not yet wired).
-- **Phala PCCS** (or a chosen PCCS) — public collateral only.
-- **dstack governance** — `DstackKms.allowedOsImages`, `DstackApp` compose-hash
+- **Intel**, DCAP trust chain (quote signature, TCB).
+- **NVIDIA**, GPU attestation (where applicable; not yet wired).
+- **Phala PCCS** (or a chosen PCCS), public collateral only.
+- **dstack governance**, `DstackKms.allowedOsImages`, `DstackApp` compose-hash
   whitelist; the authority for approved measurements.
-- **Alice's distributed code** — the client that performs these checks; users
+- **Alice's distributed code**, the client that performs these checks; users
   trust the build they run.
 - **`@phala/dcap-qvl`** `^0.6.1`, Apache-2.0, pure JS (no WASM), ~156 KB +
   transitive deps (all MIT/Apache). Past CVE-2026-22696 was fixed in 0.3.9.
@@ -220,8 +219,8 @@ values from a single production response.
 | Debug-mode rejection | **implemented + verified** |
 | Key ↔ report_data binding | **implemented + verified** (real vector + dstack source); deployed version awaits Venice confirmation |
 | Measurement pinning mechanism (rotation/revocation) | **implemented + verified** |
-| Measurement reference **values** | **externally blocked** — needs Venice/dstack governance data |
-| NVIDIA GPU attestation | **pending** — not implemented; fail-closed when required |
+| Measurement reference **values** | **externally blocked**, needs Venice/dstack governance data |
+| NVIDIA GPU attestation | **pending**, not implemented; fail-closed when required |
 | Collateral relay Worker | **implemented + unit-tested + deployed**; public PCCS routes and issuer-chain headers live-tested |
 | Client wiring into the live send path | **implemented + live-tested**; encrypted prompt returned and decrypted as `OK`; `verified: true` is ignored |
 | Assurance metadata | **implemented** through `AIResponse.privacyAssurance`; no full-E2EE UI claim |

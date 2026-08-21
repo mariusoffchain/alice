@@ -239,7 +239,7 @@ export async function walkSettlementsForward(
  * Walk the funding chain BACKWARD from a known settlement into history: each
  * commitment's first input spends the previous commitment's change. Stops when
  * the parent is not a commitment (the operator's original funding), or after
- * `maxHops` — deep history is discovered progressively, a page per walk.
+ * `maxHops`, deep history is discovered progressively, a page per walk.
  */
 export async function walkSettlementsBackward(
   chain: ChainReader,

@@ -50,6 +50,15 @@ export function ExplorerQrScanner({
   const [error, setError] = useState('');
   const supported = qrDecodingSupported();
 
+  // The result handler is held in a ref rather than being an effect
+  // dependency. A caller that passes an inline arrow gives it a new identity
+  // on every render, which used to tear the camera down and open a fresh one
+  // each time; if a render landed while getUserMedia was still resolving, the
+  // cleanup ran before the stream existed and that stream stayed live with
+  // nothing left to stop it. The camera now opens exactly once per mount.
+  const onResultRef = useRef(onResult);
+  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
+
   useEffect(() => {
     if (!supported) { setError('This browser cannot scan QR codes. Import a file or paste instead.'); return; }
     let stream: MediaStream | null = null;
@@ -66,7 +75,13 @@ export function ExplorerQrScanner({
         return;
       }
       const video = videoRef.current;
-      if (!video || stopped) return;
+      // The component can unmount while getUserMedia is still resolving; the
+      // cleanup then ran with `stream` still null, so this is the only place
+      // left that can release the camera.
+      if (!video || stopped) {
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
       video.srcObject = stream;
       await video.play().catch(() => {});
 
@@ -74,7 +89,15 @@ export function ExplorerQrScanner({
         if (stopped || !videoRef.current) return;
         try {
           const codes = await detector.detect(videoRef.current);
-          if (codes[0]?.rawValue) { onResult(codes[0].rawValue); return; }
+          if (codes[0]?.rawValue) {
+            // Release the camera before handing the result over: the caller
+            // may keep this component mounted, and a live camera it no longer
+            // needs would keep the indicator light on.
+            stopped = true;
+            stream?.getTracks().forEach(t => t.stop());
+            onResultRef.current(codes[0].rawValue);
+            return;
+          }
         } catch {
           /* transient decode failure between frames; keep polling */
         }
@@ -88,7 +111,7 @@ export function ExplorerQrScanner({
       window.clearTimeout(raf);
       stream?.getTracks().forEach(t => t.stop());
     };
-  }, [supported, onResult]);
+  }, [supported]);
 
   return (
     <div
@@ -101,9 +124,9 @@ export function ExplorerQrScanner({
         style={{ maxWidth: 420, width: '100%', backgroundColor: 'var(--alice-bg)', border: '2px solid var(--alice-primary)', borderRadius: 2 }}
         onClick={e => e.stopPropagation()}
       >
-        <span className="font-pixel tracking-widest" style={{ fontSize: 8, color: 'var(--alice-primary)' }}>SCAN A QR CODE</span>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-primary)' }}>SCAN A QR CODE</span>
         {error ? (
-          <p className="font-numbers m-0" style={{ fontSize: 13, color: '#e06060' }}>{error}</p>
+          <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-danger)' }}>{error}</p>
         ) : (
           <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', borderRadius: 2, backgroundColor: '#000' }}>
             <video ref={videoRef} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -117,7 +140,7 @@ export function ExplorerQrScanner({
           type="button"
           onClick={onClose}
           className="font-pixel tracking-widest self-start cursor-pointer"
-          style={{ fontSize: 7, padding: '8px 16px', borderRadius: 2, border: '2px solid var(--alice-border)', backgroundColor: 'transparent', color: 'var(--alice-primary)' }}
+          style={{ fontSize: 10, padding: '8px 16px', borderRadius: 2, border: '2px solid var(--alice-border)', backgroundColor: 'transparent', color: 'var(--alice-primary)' }}
         >
           CANCEL
         </button>

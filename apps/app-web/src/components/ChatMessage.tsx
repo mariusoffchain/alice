@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { AliceIcon } from '@/components/AliceIcon';
 import { splitAskAliceMessage, type MessageAttachment } from '@/lib/explorer/ask-alice';
+import { useOpenSettings } from '@/lib/settings-url';
 import { useChat } from '@alice-wallet/alice-ai';
 import type { TokenUsage, MessageVariant } from '@alice-wallet/alice-ai';
 
@@ -10,6 +11,9 @@ interface ChatMessageProps {
   /** Panel mode (the Explorer sidebar): no left avatar (narrow column), a
       small Alice mark sits next to the timestamp instead. */
   compact?: boolean;
+  /** True while this assistant reply is still being written: shows the
+      blinking terminal cursor at the end of the streamed text. */
+  streaming?: boolean;
   message: {
     id: string;
     role: 'user' | 'assistant' | 'system';
@@ -18,9 +22,9 @@ interface ChatMessageProps {
     usage?: TokenUsage;
     durationMs?: number;
     truncated?: boolean;
-    deep?: boolean;
     variants?: MessageVariant[];
     activeVariant?: number;
+    quotaBlocked?: 'free' | 'plan';
   };
 }
 
@@ -128,6 +132,70 @@ function TruncatedNotice() {
     >
       This answer is unusually long and still isn&apos;t finished. Ask Alice to continue and
       she&apos;ll pick up where she stopped.
+    </div>
+  );
+}
+
+/**
+ * What to offer when an allowance runs out.
+ *
+ * Running out of a free trial and running out of a month you paid for are not
+ * the same event, and they do not deserve the same answer. The free case ends
+ * unless the user buys something; the paid one repairs itself at the next
+ * reset, so the offer is optional and says so. Selling harder to someone who
+ * has already paid would be the fastest way to make a paying user feel farmed.
+ */
+/**
+ * What to say when an allowance stops a message.
+ *
+ * Four situations, and flattening them would send people the wrong way. Two
+ * are about capacity: the free allowance ends unless you buy, a paid month
+ * repairs itself. Two are about Deep Research: one plan does not include it,
+ * the other does and has spent this month's runs. Only the first of each pair
+ * is an occasion to sell anything.
+ */
+function QuotaNotice({ kind }: { kind: 'free' | 'plan' }) {
+  const openSettings = useOpenSettings();
+  const copy: Record<typeof kind, { body: string; action: string | null }> = {
+    free: {
+      body: 'A paid plan adds Private Cloud capacity each month. The wallet and Alice Local stay free either way.',
+      action: 'SEE PLANS',
+    },
+    plan: {
+      body: 'You can buy months ahead if you would rather not wait for the reset.',
+      action: 'BUY MORE MONTHS',
+    },
+  };
+  const { body, action } = copy[kind];
+  return (
+    <div
+      className="font-numbers mt-2"
+      style={{
+        fontSize: 14,
+        lineHeight: '20px',
+        paddingTop: 8,
+        borderTop: '1px solid var(--alice-border)',
+      }}
+    >
+      <p className="m-0" style={{ opacity: 0.6 }}>{body}</p>
+      {action && (
+        <button
+          type="button"
+          onClick={() => openSettings('account')}
+          className="font-pixel tracking-widest mt-3"
+          style={{
+            fontSize: 10,
+            padding: '8px 14px',
+            border: '2px solid var(--alice-primary)',
+            borderRadius: 2,
+            backgroundColor: 'transparent',
+            color: 'var(--alice-primary)',
+            cursor: 'pointer',
+          }}
+        >
+          {action}
+        </button>
+      )}
     </div>
   );
 }
@@ -271,7 +339,7 @@ function VariantNav({ messageId, variants, activeVariant }: { messageId: string;
         style={{
           background: 'none', border: 'none', cursor: activeVariant === 0 ? 'default' : 'pointer',
           padding: 2, display: 'flex', alignItems: 'center',
-          color: 'var(--alice-text)', opacity: activeVariant === 0 ? 0.15 : 0.5,
+          color: 'var(--alice-primary)', opacity: activeVariant === 0 ? 0.15 : 0.5,
           transition: 'opacity 0.15s',
         }}
         onMouseEnter={e => { if (activeVariant > 0) e.currentTarget.style.opacity = '0.8'; }}
@@ -279,7 +347,7 @@ function VariantNav({ messageId, variants, activeVariant }: { messageId: string;
       >
         <ChevronLeftIcon />
       </button>
-      <span style={{ fontSize: 10, color: 'var(--alice-text)', opacity: 0.4, fontFamily: 'var(--font-numbers, monospace)', minWidth: 20, textAlign: 'center' }}>
+      <span style={{ fontSize: 10, color: 'var(--alice-primary)', opacity: 0.4, fontFamily: 'var(--font-numbers, monospace)', minWidth: 20, textAlign: 'center' }}>
         {activeVariant + 1}/{variants.length}
       </span>
       <button
@@ -288,7 +356,7 @@ function VariantNav({ messageId, variants, activeVariant }: { messageId: string;
         style={{
           background: 'none', border: 'none', cursor: activeVariant === variants.length - 1 ? 'default' : 'pointer',
           padding: 2, display: 'flex', alignItems: 'center',
-          color: 'var(--alice-text)', opacity: activeVariant === variants.length - 1 ? 0.15 : 0.5,
+          color: 'var(--alice-primary)', opacity: activeVariant === variants.length - 1 ? 0.15 : 0.5,
           transition: 'opacity 0.15s',
         }}
         onMouseEnter={e => { if (activeVariant < variants.length - 1) e.currentTarget.style.opacity = '0.8'; }}
@@ -314,7 +382,7 @@ function ActionButton({ onClick, title, children }: { onClick: () => void; title
         padding: 4,
         display: 'flex',
         alignItems: 'center',
-        color: 'var(--alice-text)',
+        color: 'var(--alice-primary)',
         opacity: 0.35,
         transition: 'opacity 0.15s',
       }}
@@ -331,7 +399,7 @@ function ActionButton({ onClick, title, children }: { onClick: () => void; title
 function MetricRow({ icon, label, value, unit, primary }: { icon: React.ReactNode; label: string; value: string; unit: string; primary?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-      <span style={{ fontSize: 13, color: 'var(--alice-text)', opacity: 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ fontSize: 13, color: 'var(--alice-primary)', opacity: 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ width: 12, height: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: 0.7 }}>
           {icon}
         </span>
@@ -340,7 +408,7 @@ function MetricRow({ icon, label, value, unit, primary }: { icon: React.ReactNod
       <span style={{
         fontSize: 13,
         fontFamily: 'monospace',
-        color: 'var(--alice-text)',
+        color: 'var(--alice-primary)',
         opacity: primary ? 0.9 : 0.6,
       }}>
         {value} <span style={{ opacity: 0.5 }}>{unit}</span>
@@ -384,7 +452,7 @@ function TokenTooltip({ usage, durationMs }: { usage?: TokenUsage; durationMs?: 
           padding: 4,
           display: 'flex',
           alignItems: 'center',
-          color: 'var(--alice-text)',
+          color: 'var(--alice-primary)',
         }}
       >
         <GaugeIcon />
@@ -554,27 +622,9 @@ function MessageActions({
         justifyContent: isUser ? 'flex-end' : 'flex-start',
       }}
     >
-      <span style={{ fontSize: 10, color: 'var(--alice-text)', opacity: 0.3, marginRight: 4, fontFamily: 'var(--font-numbers, monospace)' }}>
+      <span style={{ fontSize: 10, color: 'var(--alice-primary)', opacity: 0.3, marginRight: 4, fontFamily: 'var(--font-numbers, monospace)' }}>
         {relativeTime(time)}
       </span>
-
-      {!isUser && message.deep && (
-        <span
-          className="font-pixel tracking-widest"
-          title="Answered with Deep (Private Cloud)"
-          style={{
-            fontSize: 7,
-            lineHeight: 1,
-            padding: '3px 5px',
-            marginRight: 4,
-            border: '1px solid var(--alice-primary)',
-            borderRadius: 2,
-            color: 'var(--alice-primary)',
-          }}
-        >
-          DEEP
-        </span>
-      )}
 
       {message.variants && message.variants.length > 1 && (
         <VariantNav
@@ -635,7 +685,7 @@ function SentAttachment({ att }: { att: MessageAttachment }) {
         </span>
         <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-text)' }}>{att.label}</span>
         {att.kind === 'identified' && (
-          <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 6, padding: '2px 4px', border: '1px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)' }}>
+          <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 10, padding: '2px 4px', border: '1px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)' }}>
             FULL
           </span>
         )}
@@ -658,7 +708,7 @@ function UserMessageBody({ content }: { content: string }) {
   const { question, attachments } = splitAskAliceMessage(content);
   return (
     <div className="flex flex-col gap-2">
-      <p className="font-numbers text-lg leading-[26px] m-0" style={{ color: 'var(--alice-text)' }}>
+      <p className="font-numbers text-lg leading-[26px] m-0" style={{ color: 'var(--alice-primary)' }}>
         {question || content || '...'}
       </p>
       {attachments.map(att => <SentAttachment key={att.kind} att={att} />)}
@@ -666,7 +716,7 @@ function UserMessageBody({ content }: { content: string }) {
   );
 }
 
-export function ChatMessage({ message, compact = false }: ChatMessageProps) {
+export function ChatMessage({ message, compact = false, streaming = false }: ChatMessageProps) {
   const { editMessage } = useChat();
   const [editing, setEditing] = useState(false);
 
@@ -674,7 +724,7 @@ export function ChatMessage({ message, compact = false }: ChatMessageProps) {
     return (
       <div className="flex justify-center py-1">
         <p
-          className="font-pixel text-[6px] tracking-widest opacity-70 text-center"
+          className="font-pixel text-[10px] tracking-widest opacity-70 text-center"
           style={{ color: 'var(--alice-text)' }}
         >
           {message.content}
@@ -701,7 +751,7 @@ export function ChatMessage({ message, compact = false }: ChatMessageProps) {
       <div className={`flex items-end gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         {!isUser && !compact && (
           <div className="w-[30px] h-[30px] shrink-0 flex items-end">
-            <AliceIcon size={30} color="var(--alice-text)" />
+            <AliceIcon size={30} color="var(--alice-primary)" />
           </div>
         )}
         <div
@@ -722,7 +772,9 @@ export function ChatMessage({ message, compact = false }: ChatMessageProps) {
               style={{ color: 'var(--alice-text)' }}
             >
               <ChatMarkdownText content={message.content} />
+              {streaming && <span className="stream-cursor" aria-hidden="true" />}
               {message.truncated && <TruncatedNotice />}
+              {message.quotaBlocked && <QuotaNotice kind={message.quotaBlocked} />}
             </div>
           )}
         </div>

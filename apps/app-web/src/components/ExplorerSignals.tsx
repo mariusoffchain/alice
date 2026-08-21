@@ -1,12 +1,14 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { chaptersForConcept } from '@alice-wallet/alice-content/src/learn-anchors';
 import type { PrivacySignal, SignalSeverity, SignalConfidence } from '@/lib/explorer/signals';
 
 const SEVERITY_COLOR: Record<SignalSeverity, string> = {
   info: 'var(--alice-muted)',
   low: 'var(--alice-primary)',
-  medium: '#e0a060',
-  high: '#e06060',
+  medium: 'var(--alice-warning)',
+  high: 'var(--alice-danger)',
 };
 
 function SignalCard({ signal }: { signal: PrivacySignal }) {
@@ -20,12 +22,12 @@ function SignalCard({ signal }: { signal: PrivacySignal }) {
         <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>
           {signal.title}
         </span>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 6, padding: '3px 6px', border: `1px solid ${color}`, borderRadius: 2, color }}>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: `1px solid ${color}`, borderRadius: 2, color }}>
           {severityLabel(signal.severity)}
         </span>
         <span
           className="font-pixel tracking-widest"
-          style={{ fontSize: 6, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}
+          style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}
           title="How sure this is, independent of how serious it is."
         >
           {confidenceLabel(signal.confidence)}
@@ -39,7 +41,25 @@ function SignalCard({ signal }: { signal: PrivacySignal }) {
           {s}
         </p>
       ))}
+      <LearnMoreLink ruleId={signal.ruleId} />
     </div>
+  );
+}
+
+// Deterministic bridge to Learn: the curated concept table maps this rule to
+// the PlanB chapter that explains it. No table entry, no button.
+function LearnMoreLink({ ruleId }: { ruleId: string }) {
+  const router = useRouter();
+  const chapter = chaptersForConcept(ruleId)[0];
+  if (!chapter) return null;
+  return (
+    <button
+      onClick={() => router.push(`/learn/?course=${chapter.courseCode}&chapter=${chapter.chapterId}`)}
+      className="font-pixel self-start cursor-pointer hover:opacity-100 opacity-80 transition-opacity"
+      style={{ fontSize: 7, background: 'none', border: 0, padding: 0, color: 'var(--alice-primary)' }}
+    >
+      LEARN MORE ABOUT THIS →
+    </button>
   );
 }
 
@@ -62,7 +82,7 @@ export function ExplorerSignals({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+      <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
         PRIVACY SIGNALS
       </span>
 

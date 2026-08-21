@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { LaptopIcon, CloudIcon, KeyIcon } from '@/components/icons';
+import { useStepClip } from '@/lib/use-step-clip';
 
 // Pinned scrollytelling. The left panel stays fixed while three steps scroll
 // past; the matching row lights up as each step reaches the centre of the
@@ -22,17 +23,17 @@ const STEPS: { eyebrow: string; title: string; body: string }[] = [
   {
     eyebrow: 'Option 1 · On your device',
     title: 'Local, nothing leaves your machine',
-    body: 'Run Alice entirely on your own device. Your questions are answered on-device and never sent anywhere, the most private way to think out loud about your money.',
+    body: 'Run Alice entirely on your own device, or point her at your own AI hosted on another machine you control, through its API. Your questions are answered by hardware you own and never leave it, the most private way to think out loud about your money.',
   },
   {
     eyebrow: 'Option 2 · When you need power',
     title: 'Private Cloud, encrypted end-to-end',
-    body: 'Or reach for a bigger model in the cloud, with your messages encrypted end-to-end to confidential hardware (a TEE), not logged, not sold, not training data. Both modes live in the app: you choose, and switch whenever you want.',
+    body: 'Ask anything about Bitcoin. Nobody else reads the question. When you need a bigger model, your messages travel encrypted end-to-end to confidential hardware (a TEE), not logged, not sold, not training data. Both modes live in the app: you choose, and switch whenever you want.',
   },
   {
     eyebrow: 'Whichever you pick',
-    title: 'Bitcoin sovereignty, your keys, your coins',
-    body: 'However Alice runs, your Bitcoin stays self-custody: you hold the keys and Alice never can. Your money and your on-chain privacy stay yours, no one in the middle.',
+    title: 'One companion, from the first question to the first payment',
+    body: 'The AI that answers your everyday questions is growing an everyday Bitcoin wallet beside it. Learn in the app, practise in the Playground, then hold and spend real bitcoin in Alice Wallet, with the same Alice explaining each step. However she runs, your keys stay yours: you hold them, and Alice never can.',
   },
 ];
 
@@ -55,6 +56,9 @@ function LayerRow({ layer, on }: { layer: Layer; on: boolean }) {
 export function SovereigntyScroll() {
   const [active, setActive] = useState(0);
   const stepsRef = useRef<HTMLDivElement>(null);
+  const pinnedRef = useRef<HTMLDivElement>(null);
+  // Below md the card pins over the steps: same clip contract as the tour.
+  useStepClip(stepsRef, pinnedRef, '(max-width: 767px)');
 
   useEffect(() => {
     const els = stepsRef.current?.querySelectorAll<HTMLElement>('[data-step]');
@@ -75,23 +79,24 @@ export function SovereigntyScroll() {
   }, []);
 
   return (
-    <section id="sovereignty" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-16">
+    <section id="sovereignty" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-12">
       <h2 className="sr-only">
         How Alice runs, Local or Private Cloud, and how your Bitcoin stays self-custody
       </h2>
       <div className="grid gap-8 md:grid-cols-2">
-        {/* Pinned visual. Pinning is desktop-only, on mobile it sits as a static
-            block above the steps so nothing overlaps. */}
-        <div className="self-start md:sticky md:top-24">
+        {/* Pinned visual, on every viewport. On mobile the wrapper stays
+            transparent so the page grid shows around the card; the step text
+            is cut clean at an invisible line under it (useStepClip). */}
+        <div ref={pinnedRef} className="sticky top-16 z-10 self-start md:top-24">
           <div className="rounded-[6px] border-2 border-[var(--alice-border)] bg-[var(--alice-card-bg)] p-6">
-            <p className="font-pixel text-[9px] uppercase tracking-widest text-[var(--alice-primary)]">
+            <p className="font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-primary)]">
               How Alice runs, you choose
             </p>
             <div className="mt-4 flex flex-col gap-2">
               <LayerRow layer={LAYERS[0]} on={active === 0} />
               <div className="flex items-center gap-3 py-0.5" aria-hidden>
                 <span className="h-px flex-1 bg-[var(--alice-border)]" />
-                <span className="font-pixel text-[9px] uppercase tracking-widest text-[var(--alice-muted)]">
+                <span className="font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-muted)]">
                   or
                 </span>
                 <span className="h-px flex-1 bg-[var(--alice-border)]" />
@@ -99,7 +104,7 @@ export function SovereigntyScroll() {
               <LayerRow layer={LAYERS[1]} on={active === 1} />
             </div>
 
-            <p className="mt-6 font-pixel text-[9px] uppercase tracking-widest text-[var(--alice-primary)]">
+            <p className="mt-6 font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-primary)]">
               Your Bitcoin, always
             </p>
             <div className="mt-4">
@@ -114,9 +119,10 @@ export function SovereigntyScroll() {
             <div
               key={step.title}
               data-step={i}
-              className="flex flex-col justify-center py-6 md:min-h-[68vh]"
+              // First step clear of the pinned card's clip line, as in the tour.
+              className={`flex min-h-[40vh] flex-col justify-center py-6 md:min-h-[48vh] ${i === 0 ? 'mt-24 md:mt-0' : ''}`}
             >
-              <p className="font-pixel text-[9px] uppercase tracking-widest text-[var(--alice-primary)]">
+              <p className="font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-primary)]">
                 {step.eyebrow}
               </p>
               <h3 className="mt-3 text-2xl font-semibold sm:text-3xl">{step.title}</h3>

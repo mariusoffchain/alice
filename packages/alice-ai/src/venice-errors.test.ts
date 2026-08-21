@@ -1,6 +1,39 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { classifyVeniceError, parseVeniceErrorText } from './venice-errors.ts';
+import {
+  classifyVeniceError,
+  parseVeniceErrorText,
+  quotaBlockOf,
+  VeniceAPIError,
+} from './venice-errors.ts';
+
+describe('quotaBlockOf', () => {
+  it('tells the free allowance apart from a paid one', () => {
+    // They lead to different offers: the free one ends unless you buy, the
+    // paid one repairs itself at the next reset.
+    assert.equal(
+      quotaBlockOf(new VeniceAPIError('free_quota_exhausted', 'used up', 402)),
+      'free',
+    );
+    assert.equal(
+      quotaBlockOf(new VeniceAPIError('plan_quota_exhausted', 'used up', 402)),
+      'plan',
+    );
+  });
+
+  it('does not treat other failures as an offer to sell something', () => {
+    // Showing a plan pitch after a network blip or a rejected key would be
+    // both wrong and insulting.
+    assert.equal(quotaBlockOf(new VeniceAPIError('network', 'offline')), null);
+    assert.equal(quotaBlockOf(new VeniceAPIError('auth', 'bad key', 401)), null);
+    assert.equal(
+      quotaBlockOf(new VeniceAPIError('insufficient_credits', 'venice is out', 402)),
+      null,
+    );
+    assert.equal(quotaBlockOf(new Error('something else')), null);
+    assert.equal(quotaBlockOf(null), null);
+  });
+});
 
 describe('classifyVeniceError', () => {
   it('maps 401 and 403 to auth', () => {

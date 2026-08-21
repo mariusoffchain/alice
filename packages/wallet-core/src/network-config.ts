@@ -1,5 +1,5 @@
 /**
- * Network configuration — single source of truth for all environment-specific URLs.
+ * Network configuration, single source of truth for all environment-specific URLs.
  * Reads from environment variables, with sensible Mutinynet defaults.
  */
 
@@ -82,7 +82,7 @@ export const BOLTZ_HEALTH_URL = `${BOLTZ_URL}/v2/swap/submarine`;
 export const SATORA_HEALTH_URL = SATORA_URL ? `${SATORA_URL}/health` : null;
 export const ESPLORA_TIP_URL = `${ESPLORA_URL}/blocks/tip/height`;
 
-// IndexedDB name — prefix with network to avoid collisions
+// IndexedDB name, prefix with network to avoid collisions
 export const WEB_DB_NAME = `alice-ark-${NETWORK}`;
 
 // Payment network type (used by payment parser)

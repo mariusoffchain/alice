@@ -79,7 +79,7 @@ function NetworkButton({
                   production chains above them. */}
               {n.isTest && !NETWORKS[i - 1]?.isTest && (
                 <div className="px-3 pt-2 pb-1" style={{ borderTop: '1px solid var(--alice-border)', marginTop: 4 }}>
-                  <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>TEST NETWORKS</span>
+                  <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>TEST NETWORKS</span>
                 </div>
               )}
               <button

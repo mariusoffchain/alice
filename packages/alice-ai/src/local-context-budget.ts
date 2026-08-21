@@ -21,6 +21,7 @@ function estimatedMessageTokens(message: Message): number {
 export function fitMessagesToEstimatedLocalContext(
   messages: Message[],
   requestedResponseTokens: number,
+  contextTokens: number = LOCAL_CONTEXT_TOKENS,
 ): LocalContextFit {
   const system = messages[0]?.role === 'system' ? messages[0] : undefined;
   let recent = system ? messages.slice(1) : [...messages];
@@ -30,7 +31,7 @@ export function fitMessagesToEstimatedLocalContext(
     const promptTokens = fitted.reduce((sum, message) => sum + estimatedMessageTokens(message), 0);
     const responseTokens = Math.min(
       requestedResponseTokens,
-      LOCAL_CONTEXT_TOKENS - promptTokens - LOCAL_CONTEXT_SAFETY_TOKENS,
+      contextTokens - promptTokens - LOCAL_CONTEXT_SAFETY_TOKENS,
     );
     if (responseTokens >= LOCAL_MIN_RESPONSE_TOKENS) {
       return { messages: fitted, promptTokens, responseTokens };
@@ -43,7 +44,7 @@ export function fitMessagesToEstimatedLocalContext(
   const promptTokens = fitted.reduce((sum, message) => sum + estimatedMessageTokens(message), 0);
   const responseTokens = Math.min(
     requestedResponseTokens,
-    LOCAL_CONTEXT_TOKENS - promptTokens - LOCAL_CONTEXT_SAFETY_TOKENS,
+    contextTokens - promptTokens - LOCAL_CONTEXT_SAFETY_TOKENS,
   );
   if (responseTokens < LOCAL_MIN_RESPONSE_TOKENS) {
     throw new Error('Local prompt is too long for the model context.');

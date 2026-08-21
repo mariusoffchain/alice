@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { APP_URL, appQuestionUrl } from '@/lib/site';
 import { AliceMark } from '@/components/icons';
 
 // Persistent "ask Alice" bar, docked to the bottom of the viewport on every page.
 // Submitting hands off to the app with the question attached (and autosend), so
-// the marketing site never runs an AI backend of its own. The placeholder cycles
+// the website never runs an AI backend of its own. The placeholder cycles
 // example questions and the button breathes a soft glow to invite a try; both
 // respect prefers-reduced-motion (the glow via CSS, the cycling by pausing).
 const EXAMPLES = [
@@ -20,6 +21,9 @@ export function StickyAsk() {
   const [value, setValue] = useState('');
   const [phIdx, setPhIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  // The home hero carries its own working ask interface on large screens
+  // (HeroTour), so there the bar is phone-only; every other page keeps it.
+  const isHome = usePathname() === '/';
 
   useEffect(() => {
     const reduce =
@@ -31,7 +35,9 @@ export function StickyAsk() {
   }, []);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-[var(--alice-border)] bg-[var(--alice-bg-soft)]">
+    <div
+      className={`fixed inset-x-0 bottom-0 z-40 border-t-2 border-[var(--alice-border)] bg-[var(--alice-bg-soft)] ${isHome ? 'lg:hidden' : ''}`}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -59,7 +65,7 @@ export function StickyAsk() {
           disabled={submitting}
           aria-label={submitting ? 'Opening Alice' : 'Ask Alice'}
           aria-live="polite"
-          className="ask-glow flex min-w-[88px] shrink-0 items-center justify-center rounded-[3px] border-2 border-[var(--alice-primary)] bg-[var(--alice-primary)] px-5 py-2.5 text-[15px] font-semibold text-[var(--alice-on-primary)] transition-transform hover:-translate-y-0.5 disabled:cursor-wait disabled:hover:translate-y-0"
+          className="ask-glow raise flex min-w-[88px] shrink-0 items-center justify-center rounded-[3px] border-2 border-[var(--alice-primary)] bg-[var(--alice-primary)] px-5 py-2.5 text-[15px] font-semibold text-[var(--alice-on-primary)] disabled:cursor-wait"
         >
           {submitting ? (
             <span className="flex h-[22px] items-center gap-1" aria-hidden="true">

@@ -31,7 +31,7 @@ describe('isGreeting / createGreetingMessage', () => {
   });
 });
 
-describe('stripGreeting — greeting is never saved', () => {
+describe('stripGreeting, greeting is never saved', () => {
   it('removes the greeting and keeps everything else in order', () => {
     const msgs = [greeting(), user(), assistant()];
     assert.deepEqual(stripGreeting(msgs).map(m => m.id), ['u1', 'a1']);
@@ -49,7 +49,7 @@ describe('stripGreeting — greeting is never saved', () => {
   });
 });
 
-describe('isPersistableSession — no ghost session', () => {
+describe('isPersistableSession, no ghost session', () => {
   it('is false for an untouched New Chat (greeting only)', () => {
     assert.equal(isPersistableSession([greeting()]), false);
   });
@@ -73,7 +73,7 @@ describe('isPersistableSession — no ghost session', () => {
   });
 });
 
-describe('toHistory — what reaches the model', () => {
+describe('toHistory, what reaches the model', () => {
   it('drops the greeting so it is never replayed as a first assistant turn', () => {
     const history = toHistory([greeting(), user(), assistant()]);
     assert.deepEqual(history, [

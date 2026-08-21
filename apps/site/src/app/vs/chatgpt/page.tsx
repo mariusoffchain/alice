@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { APP_URL, BETA_NOTICE, OG_ALT, SITE_URL } from '@/lib/site';
+import { APP_URL, OG_ALT, SITE_URL } from '@/lib/site';
 import { SiteNav } from '@/components/SiteNav';
 import { SiteFooter } from '@/components/SiteFooter';
 
@@ -36,18 +36,13 @@ const rows: { dimension: string; alice: string; chatgpt: string }[] = [
   },
   {
     dimension: 'Can it move your money?',
-    alice: 'No. Alice has no spending authority, the wallet, not the AI, holds keys and signs.',
+    alice: 'No. Alice has no spending authority today, the wallet, not the AI, holds keys and signs. A separate wallet for Alice to make agentic payments on your behalf is planned, not available yet.',
     chatgpt: 'No wallet of its own, but plugins/agents wired to one can be given real spending power.',
   },
   {
     dimension: 'Bitcoin focus',
     alice: 'Purpose-built for Bitcoin, self-custody, and privacy, with the wallet in the same place.',
     chatgpt: 'General-purpose; strong broad knowledge, not specialized or connected to your wallet.',
-  },
-  {
-    dimension: 'Self-custody built in',
-    alice: 'Yes, learn and then act, keys stay on your device.',
-    chatgpt: 'No, it can explain self-custody but can’t set it up with you.',
   },
   {
     dimension: 'Honest about limits',
@@ -63,11 +58,11 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: 'Can Alice spend or move my Bitcoin?',
-    a: 'No. Alice is designed so the AI never has spending authority. The wallet code, not the AI model, holds your keys and signs transactions, so a prompt can never move your funds.',
+    a: 'No. Alice is designed so the AI never has spending authority. The wallet code, not the AI model, holds your keys and signs transactions, so a prompt can never move your funds. A separate wallet giving Alice agentic payment ability is planned for later, not available today.',
   },
   {
     q: 'Where is ChatGPT still better than Alice?',
-    a: 'ChatGPT is a mature, general-purpose assistant with broader world knowledge and a long track record. Alice is a focused product in private beta on Bitcoin mainnet, narrower on purpose, and for small amounts only while it is validated.',
+    a: 'ChatGPT is a mature, general-purpose assistant with broader world knowledge and a long track record. Alice is a focused product in public beta, narrower on purpose, but encrypted end-to-end in the cloud and fully offline when run Local, both further than ChatGPT goes.',
   },
   {
     q: 'Do I need to trust Alice with my coins to try her?',
@@ -94,7 +89,7 @@ export default function VsChatGptPage() {
       />
       <SiteNav />
       <main id="main" className="mx-auto max-w-4xl px-5 py-16">
-        <p className="font-pixel text-[10px] uppercase tracking-widest text-[var(--alice-primary)]">
+        <p className="font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-primary)]">
           Comparison
         </p>
         <h1 className="mt-5 text-4xl font-semibold leading-[1.12] sm:text-5xl">
@@ -145,8 +140,9 @@ export default function VsChatGptPage() {
           <p className="mt-3 leading-relaxed text-[var(--alice-text)]">
             We’re not going to pretend otherwise. ChatGPT is a mature, general-purpose
             assistant with far broader knowledge and years of refinement. Alice is a
-            focused product in private beta: narrower on purpose, on Bitcoin mainnet
-            with small amounts today. If you want a do-everything assistant, ChatGPT
+            focused product in public beta: narrower on purpose, but encrypted
+            end-to-end in the cloud and fully offline when run Local, both further
+            than ChatGPT goes. If you want a do-everything assistant, ChatGPT
             wins. If you want a private, Bitcoin-specialized companion that can’t
             touch your funds, that’s Alice.
           </p>
@@ -169,7 +165,7 @@ export default function VsChatGptPage() {
         <section className="mt-12 flex flex-col items-start gap-4 rounded-[4px] border-2 border-[var(--alice-primary)] p-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold">Try a private Bitcoin companion</h2>
-            <p className="mt-1 text-sm text-[var(--alice-muted)]">{BETA_NOTICE}</p>
+            <p className="mt-1 text-sm text-[var(--alice-muted)]">Free, self-custodial, and open source.</p>
           </div>
           <a
             href={APP_URL}

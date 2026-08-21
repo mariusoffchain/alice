@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { isOnboarded } from '../lib/onboarding';
+import { AppUpdateNotices } from '../components/AppUpdateNotices';
 import { ThemeProvider, useTheme } from '@alice-wallet/alice-ui';
 import {
   AccountProvider,
@@ -190,6 +191,7 @@ function ThemedStack({ checked }: { checked: boolean }) {
           animation: 'slide_from_right',
         }}
       />
+      {checked && <AppUpdateNotices />}
       {!checked && (
         <View
           pointerEvents="none"

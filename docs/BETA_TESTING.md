@@ -73,8 +73,130 @@ APK forwarded by an unknown person.
 - Alice Mutinynet: <https://mutinynet.alicebtc.com>
 - Android: APK distributed directly through the closed-beta channel
 
-The macOS application is available for local QA but is not distributed yet. It
-still requires Apple Developer ID signing and notarization.
+Desktop installers are attached to the `0.2.0` GitHub Release. The first beta
+can be distributed before trusted Apple and Windows certificates are available.
+
+## Installing Alice Desktop 0.2.0
+
+The GitHub Release contains a universal macOS DMG, a Windows MSI, a Linux
+AppImage and a Debian package. It also contains one build information file per
+platform. Read its `signing` line before installing. Early beta builds can be
+published without a trusted certificate. This is expected to produce the
+warnings described below, but it does not replace checksum verification.
+
+Compare the downloaded installer with `SHA256SUMS-desktop-v0.2.0.txt` from the
+same release before opening it.
+
+### macOS
+
+Open the DMG and drag Alice into Applications. A build without an Apple
+Developer ID uses an ad hoc signature for Apple Silicon compatibility, so
+macOS can say that the developer cannot be verified. In Applications,
+right-click Alice, choose **Open**, then confirm **Open**. This explicit action
+only bypasses the warning for this application.
+
+When the `APPLE_CERTIFICATE` and `APPLE_CERTIFICATE_PASSWORD` secrets are
+available, the release workflow signs the application with that identity. If
+`APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` are also available, it
+notarizes the DMG. A certificate without notarization can still produce a
+Gatekeeper warning.
+
+### Windows
+
+Open the MSI. An unsigned build can trigger Microsoft Defender SmartScreen and
+show **Windows protected your PC**. Choose **More info**, verify that the file
+name and checksum match the release, then choose **Run anyway**. A signed
+certificate can still show SmartScreen until it has acquired enough reputation.
+
+When `WINDOWS_CERTIFICATE` and `WINDOWS_CERTIFICATE_PASSWORD` contain a
+base64-encoded PFX and its password, the release workflow imports it and signs
+the MSI automatically. With neither secret, the MSI remains unsigned. A single
+missing secret stops the job rather than silently publishing an unsigned file.
+
+### Linux
+
+Linux shows no comparable platform signature warning for these files. For the
+AppImage, make it executable and run it:
+
+```bash
+chmod +x Alice_0.2.0_*.AppImage
+./Alice_0.2.0_*.AppImage
+```
+
+On Debian or Ubuntu, install the local package with:
+
+```bash
+sudo apt install ./Alice_0.2.0_*.deb
+```
+
+## Publishing the Android 0.2.0 APK
+
+This operation requires the maintainer's Expo account. Run every EAS command
+from `apps/wallet-mobile`, not from the repository root. The root contains a
+different `eas.json` without Alice Wallet's mainnet environment or APK format.
+
+The mobile configuration declares app version `0.2.0`. The distributed APK
+uses the `beta` profile: it inherits the `production` environment
+(`EXPO_PUBLIC_NETWORK=bitcoin`, remote credentials, auto-incremented remote
+version code) and marks the build as internal distribution, which is what a
+GitHub Release installation is.
+
+1. Authenticate with the `alicebitcoin` Expo account, enter the mobile
+   workspace, inspect the currently stored version code, then start the build:
+
+   ```bash
+   cd apps/wallet-mobile
+   npx eas-cli@latest login
+   npx eas-cli@latest build:version:get --platform android --profile beta
+   npx eas-cli@latest build --platform android --profile beta
+   ```
+
+2. Wait for the build to finish. Copy its build ID and record the exact
+   `versionCode` displayed on the EAS build page. Download that build only:
+
+   ```bash
+   export EAS_BUILD_ID="paste-build-id-here"
+   npx eas-cli@latest build:download --build-id "$EAS_BUILD_ID"
+   ```
+
+3. EAS does not guarantee Alice's public release filename. The suffix is the
+   `versionCode` Android actually reads from the file, never a number chosen
+   to fit an existing URL. Read it from the APK itself:
+
+   ```bash
+   aapt dump badging path/to/downloaded.apk | head -1
+   ```
+
+   The 0.2.0 build carries version code `13`. Rename the file with that code,
+   and make sure `ANDROID_APK_URL` in `apps/site/src/lib/site.ts` ends in the
+   same `v13.apk`; if the two disagree, fix the URL, not the file name:
+
+   ```bash
+   mv path/to/downloaded.apk Alice-Wallet-beta-0.2.0-v13.apk
+   ```
+
+4. Calculate and verify its SHA-256 digest:
+
+   ```bash
+   shasum -a 256 Alice-Wallet-beta-0.2.0-v13.apk \
+     > SHA256SUMS-v0.2.0.txt
+   shasum -a 256 -c SHA256SUMS-v0.2.0.txt
+   ```
+
+5. Upload the APK and checksum to the draft release, then inspect both assets
+   in the GitHub interface before publishing:
+
+   ```bash
+   gh release upload v0.2.0 \
+     Alice-Wallet-beta-0.2.0-v13.apk \
+     SHA256SUMS-v0.2.0.txt \
+     --clobber
+   ```
+
+6. In `apps/site/src/lib/site.ts`, change only `ANDROID_VERSION` from `0.1.0`
+   to `0.2.0` after the release assets exist. This derives the release page and
+   APK download URLs. Confirm both URLs return the intended files before the
+   site is deployed.
 
 ## Safety Rules
 

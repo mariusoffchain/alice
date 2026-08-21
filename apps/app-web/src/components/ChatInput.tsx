@@ -8,36 +8,19 @@ interface ChatInputProps {
   onSend: () => void;
   disabled: boolean;
   modelSelector?: ReactNode;
-  deepMode?: boolean;
-  setDeepMode?: (enabled: boolean) => void;
-  // Deep only runs on Private Cloud. When false the button is hidden entirely,
-  // so the UI can never suggest Deep is active on Local or Custom.
-  deepAvailable?: boolean;
   // Panel mode (the Explorer sidebar): the shell drops its max-width and
   // padding so the composer fills its container edge to edge.
   panel?: boolean;
 }
 
-// Minimal brain glyph — the app has no icon library, so this matches the
+// Minimal brain glyph, the app has no icon library, so this matches the
 // existing hand-rolled SVG icons (see AliceIcon).
-export function BrainIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 5a2.5 2.5 0 0 0-5 0 2.5 2.5 0 0 0-2 4 2.5 2.5 0 0 0 1 4.5A2.5 2.5 0 0 0 9.5 19 2.5 2.5 0 0 0 12 16.5Z" />
-      <path d="M12 5a2.5 2.5 0 0 1 5 0 2.5 2.5 0 0 1 2 4 2.5 2.5 0 0 1-1 4.5 2.5 2.5 0 0 1-2.5 5.5A2.5 2.5 0 0 1 12 16.5Z" />
-    </svg>
-  );
-}
-
 export function ChatInput({
   input,
   setInput,
   onSend,
   disabled,
   modelSelector,
-  deepMode,
-  setDeepMode,
-  deepAvailable = false,
   panel = false,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -83,39 +66,18 @@ export function ChatInput({
               {modelSelector}
             </div>
           )}
-          {setDeepMode && deepAvailable && (
-            <button
-              type="button"
-              onClick={() => setDeepMode(!deepMode)}
-              aria-pressed={!!deepMode}
-              aria-label="Deeper answer"
-              title={deepMode
-                ? 'Deeper answer on: uses a stronger private cloud model'
-                : 'Use a stronger private cloud model for complex questions.'}
-              className="flex w-9 h-9 items-center justify-center shrink-0 cursor-pointer transition-colors"
-              style={{
-                backgroundColor: deepMode ? 'var(--alice-primary)' : 'transparent',
-                color: deepMode ? 'var(--alice-on-primary)' : 'var(--alice-muted)',
-                border: 'none',
-                borderRadius: '2px',
-                outline: 'none',
-              }}
-            >
-              <BrainIcon />
-            </button>
-          )}
           <button
             onClick={onSend}
             disabled={!input.trim() || disabled}
-            className="w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+            className="px-raise w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
-              backgroundColor: 'var(--alice-text)',
+              backgroundColor: 'var(--alice-primary)',
               borderRadius: '2px',
             }}
           >
             <span
               className="font-pixel leading-none"
-              style={{ color: 'var(--alice-bg)', fontSize: 18, transform: 'translateY(1px)' }}
+              style={{ color: 'var(--alice-on-primary)', fontSize: 18, transform: 'translateY(1px)' }}
             >
               ↑
             </span>

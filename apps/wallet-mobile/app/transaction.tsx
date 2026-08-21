@@ -20,25 +20,25 @@ const LAYER_LABELS: Record<TransactionLayer, string> = {
 };
 const POLL_INTERVAL = 8_000;
 
-function statusConfig(status: TransactionStatus, primary: string): { label: string; color: string } {
+function statusConfig(status: TransactionStatus, colors: Colors): { label: string; color: string } {
   switch (status) {
-    case 'pending': return { label: 'Pending', color: '#d4a017' };
-    case 'preconfirmed': return { label: 'Preconfirmed', color: primary };
-    case 'settled': return { label: 'Settled', color: '#2ea043' };
-    case 'failed': return { label: 'Failed', color: '#e06060' };
+    case 'pending': return { label: 'Pending', color: colors.warning };
+    case 'preconfirmed': return { label: 'Preconfirmed', color: colors.primary };
+    case 'settled': return { label: 'Settled', color: colors.success };
+    case 'failed': return { label: 'Failed', color: colors.danger };
   }
 }
 
-function paymentStatusConfig(status: PaymentStatus, primary: string): { label: string; color: string } {
+function paymentStatusConfig(status: PaymentStatus, colors: Colors): { label: string; color: string } {
   switch (status) {
-    case 'settled': return { label: 'Settled', color: '#2ea043' };
-    case 'refundable': return { label: 'Refund available', color: '#d4a017' };
-    case 'refunded': return { label: 'Refunded', color: primary };
-    case 'failed': return { label: 'Failed', color: '#e06060' };
-    case 'expired': return { label: 'Expired', color: '#e06060' };
-    case 'created': return { label: 'Created', color: '#d4a017' };
-    case 'quoted': return { label: 'Quoted', color: '#d4a017' };
-    case 'pending': return { label: 'Pending', color: '#d4a017' };
+    case 'settled': return { label: 'Settled', color: colors.success };
+    case 'refundable': return { label: 'Refund available', color: colors.warning };
+    case 'refunded': return { label: 'Refunded', color: colors.primary };
+    case 'failed': return { label: 'Failed', color: colors.danger };
+    case 'expired': return { label: 'Expired', color: colors.danger };
+    case 'created': return { label: 'Created', color: colors.warning };
+    case 'quoted': return { label: 'Quoted', color: colors.warning };
+    case 'pending': return { label: 'Pending', color: colors.warning };
   }
 }
 
@@ -176,7 +176,7 @@ export default function TransactionScreen() {
 
 
   if (payment) {
-    const statusConf = paymentStatusConfig(payment.status, colors.primary);
+    const statusConf = paymentStatusConfig(payment.status, colors);
     const paymentData = (payment.providerData ?? {}) as {
       destination?: string;
       fundingTxid?: string;
@@ -251,8 +251,8 @@ export default function TransactionScreen() {
               btcPrice={btcPrice}
               currencySymbol={currencySymbol}
               iconSize={48}
-              iconColor={payment.direction === 'incoming' ? '#2ea043' : colors.primaryDark}
-              textStyle={[s.heroAmount, { color: payment.direction === 'incoming' ? '#2ea043' : colors.primaryDark }]}
+              iconColor={payment.direction === 'incoming' ? colors.success : colors.primaryDark}
+              textStyle={[s.heroAmount, { color: payment.direction === 'incoming' ? colors.success : colors.primaryDark }]}
             />
             <View style={[s.statusPill, { backgroundColor: statusConf.color }]}>
               {payment.status === 'pending' && <ActivityIndicator size="small" color="#fff" style={{ transform: [{ scale: 0.5 }] }} />}
@@ -307,7 +307,7 @@ export default function TransactionScreen() {
               </Text>
             </TouchableOpacity>
           )}
-          {actionError && <Text style={s.actionError}>{actionError}</Text>}
+          {actionError && <Text style={[s.actionError, { color: colors.danger }]}>{actionError}</Text>}
           {!['settled', 'failed', 'expired', 'refunded'].includes(payment.status) && (
             <View style={s.updateBanner}>
               <ActivityIndicator size="small" color={colors.primary} style={{ transform: [{ scale: 0.5 }] }} />
@@ -320,7 +320,7 @@ export default function TransactionScreen() {
   }
 
   if (!tx) return null;
-  const statusConf = statusConfig(tx.status, colors.primary);
+  const statusConf = statusConfig(tx.status, colors);
   const currencySymbol = CURRENCY_SYMBOL[currency];
   const explorer = resolveTransactionExplorer(tx);
   const url = explorer?.url ?? null;
@@ -338,7 +338,7 @@ export default function TransactionScreen() {
     ...(tx.layer === 'onchain' ? [{
       label: 'Confirmations',
       value: confirmCount === null ? '...' : confirmCount === 0 ? 'Unconfirmed' : `${confirmCount}`,
-      color: confirmCount === null ? undefined : confirmCount === 0 ? '#d4a017' : confirmCount >= 6 ? '#2ea043' : colors.primaryDark,
+      color: confirmCount === null ? undefined : confirmCount === 0 ? colors.warning : confirmCount >= 6 ? colors.success : colors.primaryDark,
     }] : []),
     { label: 'When', value: fmtRelative(tx.createdAt) },
     { label: 'Date', value: fmtDate(tx.createdAt) },
@@ -369,8 +369,8 @@ export default function TransactionScreen() {
             btcPrice={btcPrice}
             currencySymbol={currencySymbol}
             iconSize={48}
-            iconColor={tx.type === 'incoming' ? '#2ea043' : colors.primaryDark}
-            textStyle={[s.heroAmount, { color: tx.type === 'incoming' ? '#2ea043' : colors.primaryDark }]}
+            iconColor={tx.type === 'incoming' ? colors.success : colors.primaryDark}
+            textStyle={[s.heroAmount, { color: tx.type === 'incoming' ? colors.success : colors.primaryDark }]}
           />
           <View style={[s.statusPill, { backgroundColor: statusConf.color }]}>
             {tx.status === 'pending' && <ActivityIndicator size="small" color="#fff" style={{ transform: [{ scale: 0.5 }] }} />}
@@ -436,17 +436,17 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', ...pixel, backgroundColor: colors.cardBg },
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
-    title: { fontFamily: typography.pixel, fontSize: 10, color: colors.primaryDark, letterSpacing: 3 },
+    title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 3 },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    notFound: { fontFamily: typography.pixel, fontSize: 8, color: colors.muted },
+    notFound: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
     scroll: { flex: 1 },
     body: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
 
     hero: { alignItems: 'center', gap: spacing.xs, paddingBottom: spacing.xxl },
     heroAmount: { fontFamily: typography.numbers, fontSize: 44 },
-    heroUnit: { fontFamily: typography.pixel, fontSize: 8, color: colors.muted, letterSpacing: 3 },
+    heroUnit: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 3 },
     statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: 2 },
-    statusPillText: { fontFamily: typography.pixel, fontSize: 6, color: '#ffffff', letterSpacing: 1 },
+    statusPillText: { fontFamily: typography.pixel, fontSize: 12, color: '#ffffff', letterSpacing: 1 },
 
     card: { ...pixel, backgroundColor: colors.cardBg },
     row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, minHeight: 44 },
@@ -459,13 +459,13 @@ function makeStyles(colors: Colors, pixel: Pixel) {
 
     actions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl, justifyContent: 'center' },
     actionBtn: { ...pixel, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.md, paddingHorizontal: spacing.xl },
-    actionBtnText: { fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary, letterSpacing: 1 },
+    actionBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
 
     updateBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.xl },
-    updateText: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
+    updateText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
     refundBtn: { ...pixel, marginTop: spacing.lg, alignSelf: 'center', backgroundColor: '#d4a017', borderColor: '#8f6d0a', paddingVertical: spacing.md, paddingHorizontal: spacing.xl },
-    refundBtnText: { fontFamily: typography.pixel, fontSize: 7, color: '#ffffff', letterSpacing: 1 },
-    refundNotice: { marginTop: spacing.lg, paddingHorizontal: spacing.lg, fontFamily: typography.pixel, fontSize: 6, lineHeight: 13, color: '#8f6d0a', textAlign: 'center' },
+    refundBtnText: { fontFamily: typography.pixel, fontSize: 12, color: '#ffffff', letterSpacing: 1 },
+    refundNotice: { marginTop: spacing.lg, paddingHorizontal: spacing.lg, fontFamily: typography.pixel, fontSize: 12, lineHeight: 13, color: '#8f6d0a', textAlign: 'center' },
     actionError: { marginTop: spacing.md, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: '#e06060', textAlign: 'center' },
     disabled: { opacity: 0.4 },
   });

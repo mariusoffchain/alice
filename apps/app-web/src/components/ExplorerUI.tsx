@@ -17,7 +17,7 @@ export function SectionTitle({ children, muted = true }: { children: ReactNode; 
   return (
     <span
       className="font-pixel tracking-widest"
-      style={{ fontSize: 8, color: muted ? 'var(--alice-muted)' : 'var(--alice-primary)' }}
+      style={{ fontSize: 10, color: muted ? 'var(--alice-muted)' : 'var(--alice-primary)' }}
     >
       {children}
     </span>
@@ -57,9 +57,9 @@ const TONE: Record<BadgeTone, { fg: string; border: string }> = {
   primary: { fg: 'var(--alice-primary)', border: 'var(--alice-primary)' },
   info: { fg: '#6fb6c9', border: '#6fb6c9' },
   low: { fg: '#8bb8ff', border: '#8bb8ff' },
-  medium: { fg: '#e0a060', border: '#e0a060' },
+  medium: { fg: 'var(--alice-warning)', border: 'var(--alice-warning)' },
   high: { fg: '#e0806a', border: '#e0806a' },
-  danger: { fg: '#e06060', border: '#e06060' },
+  danger: { fg: 'var(--alice-danger)', border: 'var(--alice-danger)' },
 };
 
 /** One badge shape/size for the whole app (item 10). */
@@ -69,7 +69,7 @@ export function Badge({ tone = 'neutral', children }: { tone?: BadgeTone; childr
     <span
       className="font-pixel tracking-widest inline-flex items-center shrink-0"
       style={{
-        fontSize: 6, lineHeight: 1, padding: '3px 6px', borderRadius: 2,
+        fontSize: 10, lineHeight: 1, padding: '3px 6px', borderRadius: 2,
         border: `1px solid ${c.border}`, color: c.fg, whiteSpace: 'nowrap',
       }}
     >
@@ -90,7 +90,7 @@ export function NetworkDot({ color, label }: { color: string; label: string }) {
       title={label}
       style={{
         width: 14, height: 14, borderRadius: 3, backgroundColor: color,
-        color: 'var(--alice-bg)', fontSize: 6, fontWeight: 700,
+        color: 'var(--alice-bg)', fontSize: 10, fontWeight: 700,
       }}
     >
       {label.slice(0, 1).toUpperCase()}
@@ -147,7 +147,7 @@ export function SectionPanel({ title, right, children }: { title: string; right?
   return (
     <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
       <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>{title}</span>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{title}</span>
         {right}
       </div>
       {children}

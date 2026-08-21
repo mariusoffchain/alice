@@ -8,16 +8,18 @@ type Claim = { claim: string; href: string; proof: string };
 
 const CLAIMS: Claim[] = [
   { claim: 'Private Cloud is encrypted end-to-end to attested hardware', href: '/trust/', proof: 'what’s verified' },
-  { claim: 'Self-custody, your keys never leave your device', href: '/#sovereignty', proof: 'how it works' },
+  { claim: 'Self-hosted and self-custody, your keys and your data never leave your device', href: '/#sovereignty', proof: 'how it works' },
   { claim: 'No tracking. No cookies.', href: '/privacy/', proof: 'privacy' },
   { claim: 'Honest about what’s verified, and what isn’t', href: '/trust/#status', proof: 'status' },
   { claim: 'Open source, AGPL', href: SOURCE_URL, proof: 'read the code' },
 ];
 
+// Width-agnostic: the parent decides the column. Today it renders inside the
+// hero's left column (HeroTour), right under the claims it backs up.
 export function VerifyBlock() {
   return (
-    <section id="verify" className="mx-auto max-w-4xl px-5 py-16">
-      <h2 className="text-3xl font-semibold sm:text-4xl">Don’t trust. Verify.</h2>
+    <section id="verify" className="pt-16">
+      <h2 className="text-3xl font-semibold">Don’t trust. Verify.</h2>
       <p className="mt-3 text-lg text-[var(--alice-muted)]">
         Every claim links to its proof, not a marketing promise.
       </p>
@@ -27,7 +29,7 @@ export function VerifyBlock() {
           <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-[var(--alice-border)]" />
           <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-[var(--alice-border)]" />
           <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-[var(--alice-border)]" />
-          <span className="ml-2 font-pixel text-[9px] uppercase tracking-widest text-[var(--alice-muted)]">
+          <span className="ml-2 font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-muted)]">
             verify.alice
           </span>
         </div>

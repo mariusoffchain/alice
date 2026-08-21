@@ -25,17 +25,17 @@ const inApp = [
   {
     title: 'Your email',
     detail:
-      'An account is optional, and when you create one we never store your address in clear: only a one-way fingerprint used to sign you in, plus a masked label like ma****@domain.com.',
+      'An account is optional, and when you create one we never store your address in clear: only a one-way fingerprint used to sign you in, plus a masked label like sat****@bitcoin.com.',
   },
   {
     title: 'Your IP address',
     detail:
-      'Hashed with a key that changes every day, used only for rate limiting, then unrecoverable. There is no durable IP record anywhere.',
+      'Hashed together with the day, using a server-side secret, so the result changes daily, is used only for rate limiting, and cannot be reversed back to your address. There is no durable IP record anywhere. That covers our side; every site and network you reach still sees the address itself, so we recommend a VPN, which is the only thing that hides it from everyone else.',
   },
   {
     title: 'What Alice remembers about you',
     detail:
-      'The memory that personalizes her answers stays on your device, encrypted in Alice Wallet and Alice App. “What Alice knows” lets you inspect and erase it anytime. It is never sent to us.',
+      'The memory that personalizes her answers is stored on your device, encrypted in Alice Wallet and Alice App, and “What Alice knows” lets you inspect and erase it anytime. When you use Private Cloud, the relevant memory travels inside the same end-to-end encrypted envelope as your messages, readable only by the attested enclave, never by us.',
   },
   {
     title: 'Product analytics',
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
     <>
       <SiteNav />
       <main id="main" className="mx-auto max-w-3xl px-5 py-16">
-        <p className="font-pixel text-[10px] uppercase tracking-widest text-[var(--alice-primary)]">
+        <p className="font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-primary)]">
           Privacy
         </p>
         <h1 className="mt-5 text-4xl font-semibold leading-[1.12] sm:text-5xl">
@@ -94,12 +94,13 @@ export default function PrivacyPage() {
           ))}
         </ul>
 
-        <h2 className="mt-12 text-2xl font-semibold sm:text-3xl">The one thing we count</h2>
+        <h2 className="mt-12 text-2xl font-semibold sm:text-3xl">On this site’s analytics</h2>
         <p className="mt-3 leading-relaxed text-[var(--alice-text)]">
-          To know whether anyone is reading, we use cookieless, privacy-first analytics
-          (such as Plausible) for aggregate page-view counts only, no cookies, no
-          personal data, no cross-site tracking, and nothing that identifies you. That’s
-          the whole extent of it.
+          This site counts page views with Cloudflare Web Analytics. It sets no
+          cookie, writes nothing to your browser’s storage, and builds no
+          fingerprint, so nothing follows you between sessions or across sites.
+          It tells us which pages get read, from which country, and nothing that
+          identifies you. The app itself is a separate matter, described above.
         </p>
       </main>
       <SiteFooter />

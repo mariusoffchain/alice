@@ -308,7 +308,7 @@ const ANCHOR_SCRIPT_HEX = '51024e73';
 /**
  * Look a virtual (off-chain) Arkade transaction up by txid: the indexer serves
  * its PSBT, decoded here for the inputs/outputs, and the outputs are enriched
- * with their VTXO state. Null when the indexer does not know the txid — which
+ * with their VTXO state. Null when the indexer does not know the txid, which
  * is also the answer for any plain on-chain txid, so callers try Esplora first.
  */
 export async function getArkadeVirtualTx(base: string, txid: string, opts: { signal?: AbortSignal } = {}): Promise<ArkadeVirtualTx | null> {

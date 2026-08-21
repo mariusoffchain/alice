@@ -41,7 +41,7 @@ function ConfirmedBlock({ block, now, focused, marked, markColor, markTextColor,
       }}
       title={`Block ${block.height} - ${block.poolName ?? 'unknown pool'} - ${formatDateTime(block.timestamp)}${marked ? ' - contains an Arkade settlement' : ''}`}
     >
-      <div className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-text)' }}>
+      <div className="font-pixel" style={{ fontSize: 10, color: 'var(--alice-text)' }}>
         {block.height.toLocaleString('en-US')}
       </div>
       <div className="font-numbers" style={{ fontSize: 12, color, marginTop: 3 }}>
@@ -57,7 +57,7 @@ function ConfirmedBlock({ block, now, focused, marked, markColor, markTextColor,
         {formatBlockAgeOrDate(block.timestamp, now)}
       </div>
       {marked && (
-        <div className="font-pixel tracking-widest" style={{ fontSize: 6, color: markTextColor ?? markColor, marginTop: 3 }}>
+        <div className="font-pixel tracking-widest" style={{ fontSize: 10, color: markTextColor ?? markColor, marginTop: 3 }}>
           TX SETTLEMENT
         </div>
       )}
@@ -84,7 +84,7 @@ function PendingBlock({ block, index, focused }: { block: ProjectedBlock; index:
       }}
       title={focused ? 'This transaction is expected in this projected block' : 'Projected block, still in the mempool'}
     >
-      <div className="font-pixel" style={{ fontSize: 8, color: 'var(--alice-muted)' }}>{eta}</div>
+      <div className="font-pixel" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{eta}</div>
       <div className="font-numbers" style={{ fontSize: 12, color, marginTop: 3 }}>~{Math.round(block.medianFee)} sat/vB</div>
       {range && <div className="font-numbers" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{range}</div>}
       <div className="font-numbers" style={{ fontSize: 10, color: 'var(--alice-muted)', marginTop: 3 }}>
@@ -106,7 +106,7 @@ function GapChip({ delta }: { delta: number }) {
       title={`${delta.toLocaleString('en-US')} block${delta > 1 ? 's' : ''} not shown`}
     >
       <span className="font-numbers" style={{ fontSize: 16, lineHeight: '16px', color: 'var(--alice-muted)' }}>⋯</span>
-      <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)', opacity: 0.7, marginTop: 2 }}>{label}</span>
+      <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)', opacity: 0.7, marginTop: 2 }}>{label}</span>
     </div>
   );
 }
@@ -362,7 +362,7 @@ export function ExplorerBlocks({
       className="shrink-0 font-pixel tracking-widest cursor-pointer disabled:cursor-not-allowed"
       style={{
         width: 64, borderRadius: 2, border: '1px dashed var(--alice-border)',
-        backgroundColor: 'transparent', color: 'var(--alice-muted)', fontSize: 7,
+        backgroundColor: 'transparent', color: 'var(--alice-muted)', fontSize: 10,
         opacity: loadingOlder ? 0.5 : 1,
       }}
       aria-label="Load older blocks"
@@ -406,7 +406,7 @@ export function ExplorerBlocks({
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="flex items-center justify-between px-5">
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>LIVE BLOCKS</span>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>LIVE BLOCKS</span>
         {errored && (
           <span className="font-numbers" style={{ fontSize: 11, color: 'var(--alice-muted)', opacity: 0.7 }}>reconnecting...</span>
         )}

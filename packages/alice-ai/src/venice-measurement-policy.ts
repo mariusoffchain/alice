@@ -94,7 +94,7 @@ export type MeasurementMatch = {
 /**
  * Find the active reference the report matches. Skips revoked and out-of-window
  * references, so rotation is just "add the new reference, later revoke the old".
- * Returns the match, or throws — an unknown measurement is a refusal, never a
+ * Returns the match, or throws, an unknown measurement is a refusal, never a
  * pass. Callers must NOT invoke this on an unanchored policy; use
  * `policyIsAnchored` to decide the assurance level first.
  */

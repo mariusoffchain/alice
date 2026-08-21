@@ -1,5 +1,6 @@
 const { execSync, spawnSync } = require('child_process');
 const path = require('path');
+const appConfig = require('../app.json');
 
 const appDir = path.join(__dirname, '..');
 
@@ -24,6 +25,8 @@ function resolveCommitSha() {
 const env = {
   ...process.env,
   EXPO_PUBLIC_APP_COMMIT_SHA: resolveCommitSha(),
+  EXPO_PUBLIC_ALICE_APP_VERSION:
+    process.env.EXPO_PUBLIC_ALICE_APP_VERSION || appConfig.expo.version,
 };
 
 const exportResult = spawnSync(

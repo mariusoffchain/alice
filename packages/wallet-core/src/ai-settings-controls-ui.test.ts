@@ -6,13 +6,20 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../../..');
-const mobile = fs.readFileSync(path.join(root, 'apps/wallet-mobile/app/ai-settings.tsx'), 'utf8');
-const desktop = fs.readFileSync(path.join(root, 'apps/app-web/src/app/settings/page.tsx'), 'utf8');
+// L'ecran mobile delegue ses interrupteurs a PixelToggle (alice-ui), qui
+// porte le accessibilityRole="switch"; on lit les deux sources ensemble.
+const mobile = fs.readFileSync(path.join(root, 'apps/wallet-mobile/app/ai-settings.tsx'), 'utf8')
+  + fs.readFileSync(path.join(root, 'packages/alice-ui/src/components/PixelToggle.tsx'), 'utf8');
+// Depuis la refonte reglages en onglets (#42), les interrupteurs IA desktop
+// vivent dans l'onglet IA; le role="switch" et le style des toggles vivent
+// dans les primitives partagees (PixelSwitch, settings/ui.tsx).
+const desktop = fs.readFileSync(path.join(root, 'apps/app-web/src/components/settings/AiTab.tsx'), 'utf8')
+  + fs.readFileSync(path.join(root, 'apps/app-web/src/components/settings/ui.tsx'), 'utf8');
 
 test('mobile settings expose switches for local, cloud, and custom AI', () => {
   assert.match(mobile, /accessibilityRole="switch"/);
-  assert.match(mobile, /chat\.localAIEnabled/);
-  assert.match(mobile, /chat\.cloudAIEnabled/);
+  assert.match(mobile, /chat\.backendEnabled\.local/);
+  assert.match(mobile, /chat\.backendEnabled\.cloud/);
   assert.match(mobile, /chat\.backendEnabled\.custom/);
   assert.doesNotMatch(mobile, /<Switch/);
   assert.match(mobile, />ALICE AI</);

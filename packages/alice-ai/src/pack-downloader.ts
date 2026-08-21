@@ -58,7 +58,7 @@ export function parsePack(raw: string): KnowledgePack {
  * Downloads a pack, verifies it byte-for-byte against the descriptor's SHA-256
  * before trusting any of its content, persists it, and registers it for
  * retrieval. Throws PackIntegrityError rather than silently degrading if the
- * hash does not match — a corrupted or tampered pack must never be used.
+ * hash does not match, a corrupted or tampered pack must never be used.
  */
 export async function downloadPack(
   descriptor: PackDescriptor,
@@ -123,7 +123,7 @@ export type PackUpdateResult = {
 /**
  * Silently refreshes packs the user already downloaded, at most once per
  * `intervalMs`. This never fetches a pack the user did not already opt into,
- * and it never asks a server which packs are relevant to a query — the
+ * and it never asks a server which packs are relevant to a query, the
  * client just compares the version it already has to the catalog's, so the
  * "blind proxy" privacy model (see docs/security/private-cloud-e2ee.md) is
  * unaffected. A failed refresh keeps the previous, still-valid pack in place.

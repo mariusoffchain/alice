@@ -1,4 +1,15 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, TextInput, Modal } from 'react-native';
+import {
+  ActivityIndicator,
+  DeviceEventEmitter,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  TextInput,
+  Modal,
+} from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -13,7 +24,12 @@ import {
 } from '@alice-wallet/alice-ai';
 import {
   MODEL_CATALOG,
+  NATIVE_SEMANTIC_MODEL_DOWNLOAD_BYTES,
+  SEMANTIC_SEARCH_STATE_EVENT,
+  disableSemanticSearch,
+  downloadSemanticSearchNow,
   formatSize,
+  getSemanticSearchState,
   setPreset,
   getActiveModelId,
   setActiveModelId,
@@ -33,6 +49,7 @@ import {
   type ResponseLanguagePreference,
   type LocalModelId,
   type ModelStatus,
+  type SemanticSearchState,
 } from '@alice-wallet/alice-ai';
 
 type ModelState = {
@@ -40,44 +57,27 @@ type ModelState = {
   downloadProgress: number | null;
 };
 
-function PixelSwitch({
-  label,
-  value,
-  onChange,
-  styles,
-  colors,
-  disabled = false,
-}: {
-  label: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-  styles: ReturnType<typeof makeStyles>;
-  colors: Colors;
-  disabled?: boolean;
-}) {
-  return (
-    <TouchableOpacity
-      accessibilityRole="switch"
-      accessibilityState={{ checked: value }}
-      accessibilityLabel={label}
-      disabled={disabled}
-      style={[styles.switchControl, disabled && styles.disabledBtn]}
-      onPress={() => onChange(!value)}
-    >
-      <View style={[
-        styles.switchTrack,
-        { borderColor: value && !disabled ? colors.primary : colors.border },
-        value && !disabled && { backgroundColor: colors.primary },
-      ]}>
-        <View style={[
-          styles.switchThumb,
-          { backgroundColor: value && !disabled ? colors.onPrimary : colors.muted },
-          value && !disabled && styles.switchThumbOn,
-        ]} />
-      </View>
-    </TouchableOpacity>
-  );
+const SEMANTIC_SIZE_LABEL = formatSize(NATIVE_SEMANTIC_MODEL_DOWNLOAD_BYTES);
+
+function semanticStatusCopy(state: SemanticSearchState): string {
+  switch (state.status) {
+    case 'off':
+      return 'Off. Alice uses keyword search. It will stay off until you download the model again.';
+    case 'idle':
+      return 'Ready to download over Wi-Fi.';
+    case 'blocked-metered':
+      return 'Waiting for Wi-Fi. Alice is using keyword search.';
+    case 'loading':
+      return 'Preparing semantic search. Alice keeps answering with keyword search meanwhile.';
+    case 'ready':
+      return 'Active. Alice matches questions to her knowledge by meaning, in any language.';
+    case 'failed':
+      return 'The download failed. Alice is using keyword search.';
+    case 'unsupported':
+      return '';
+  }
 }
+
 
 export default function AISettingsScreen() {
   const router = useRouter();
@@ -105,6 +105,9 @@ export default function AISettingsScreen() {
   const [chatStorage, setChatStorage] = useState<ChatStorageSummary | null>(null);
   const [confirmChatCleanup, setConfirmChatCleanup] = useState<ChatCleanupMode | null>(null);
   const [cleaningChat, setCleaningChat] = useState(false);
+  const [semanticState, setSemanticState] = useState<SemanticSearchState>(getSemanticSearchState);
+  const [semanticWifi, setSemanticWifi] = useState<boolean | null>(null);
+  const [semanticActionPending, setSemanticActionPending] = useState(false);
 
   const refreshState = useCallback(async () => {
     const [amid, instructions, storageSummary, languagePreference] = await Promise.all([
@@ -139,9 +142,49 @@ export default function AISettingsScreen() {
 
   useEffect(() => { refreshState(); }, [refreshState]);
 
+  useEffect(() => {
+    const sync = () => setSemanticState(getSemanticSearchState());
+    sync();
+    const subscription = DeviceEventEmitter.addListener(SEMANTIC_SEARCH_STATE_EVENT, sync);
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
+    let mounted = true;
+    let subscription: { remove(): void } | null = null;
+    void import('expo-network').then(async Network => {
+      const sync = (networkState: Awaited<ReturnType<typeof Network.getNetworkStateAsync>>) => {
+        if (!mounted) return;
+        setSemanticWifi(
+          networkState.type === Network.NetworkStateType.WIFI
+          && networkState.isInternetReachable !== false,
+        );
+      };
+      sync(await Network.getNetworkStateAsync());
+      if (!mounted) return;
+      subscription = Network.addNetworkStateListener(sync);
+    }).catch(() => {
+      if (mounted) setSemanticWifi(false);
+    });
+    return () => {
+      mounted = false;
+      subscription?.remove();
+    };
+  }, []);
+
   function showToast(message: string) {
     setToast(message);
     setTimeout(() => setToast(null), 2500);
+  }
+
+  async function handleDisableSemanticSearch() {
+    setSemanticActionPending(true);
+    try {
+      await disableSemanticSearch();
+    } finally {
+      setSemanticActionPending(false);
+    }
   }
 
   async function handleActivate(id: LocalModelId) {
@@ -207,8 +250,8 @@ export default function AISettingsScreen() {
     setCustomSaved(false);
     setDownloadDropdownOpen(false);
     chat.setAiEnabled(true);
-    chat.setLocalAiEnabled(true);
-    chat.setCloudAiEnabled(true);
+    chat.setBackendEnabled('local', true);
+    chat.setBackendEnabled('cloud', true);
     chat.clearMessages();
     chat.setBackendType(PRIVATE_CLOUD_ENABLED ? 'cloud' : 'custom');
   }
@@ -268,8 +311,8 @@ export default function AISettingsScreen() {
               <Text style={s.modeHint}>Encrypted cloud answers and 21 free requests.</Text>
             </View>
             <PixelToggle
-              value={chat.cloudAIEnabled}
-              onValueChange={chat.setCloudAiEnabled}
+              value={chat.backendEnabled.cloud}
+              onValueChange={value => chat.setBackendEnabled('cloud', value)}
               disabled={!PRIVATE_CLOUD_ENABLED}
               accessibilityLabel="Enable Private Cloud"
             />
@@ -280,8 +323,8 @@ export default function AISettingsScreen() {
               <Text style={s.modeHint}>Runs entirely on this device.</Text>
             </View>
             <PixelToggle
-              value={chat.localAIEnabled}
-              onValueChange={chat.setLocalAiEnabled}
+              value={chat.backendEnabled.local}
+              onValueChange={value => chat.setBackendEnabled('local', value)}
               disabled={!chat.localAvailable}
               accessibilityLabel="Enable Local AI"
             />
@@ -363,7 +406,7 @@ export default function AISettingsScreen() {
             </TouchableOpacity>
             {aliceInstructions.trim() !== '' && (
               <TouchableOpacity
-                style={[s.actionBtn, { borderColor: '#e06060' }]}
+                style={[s.actionBtn, { borderColor: colors.danger }]}
                 onPress={async () => {
 	                  await setAliceInstructions('');
 	                  setAliceInstructionsState('');
@@ -371,7 +414,7 @@ export default function AISettingsScreen() {
 	                  chat.clearMessages();
 	                }}
               >
-                <Text style={[s.actionBtnText, { color: '#e06060' }]}>CLEAR</Text>
+                <Text style={[s.actionBtnText, { color: colors.danger }]}>CLEAR</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -444,7 +487,7 @@ export default function AISettingsScreen() {
                           <Text style={[s.modelBadge, { color: colors.primary }]}>Active</Text>
                         )}
                         {activeLoading && <Text style={s.modelBadgeSecondary}>Loading...</Text>}
-                        {activeLoadFailed && <Text style={[s.modelBadge, { color: '#e06060' }]}>Unavailable</Text>}
+                        {activeLoadFailed && <Text style={[s.modelBadge, { color: colors.danger }]}>Unavailable</Text>}
                         {state.status === 'installed' && <Text style={s.modelBadgeSecondary}>Installed</Text>}
                         {state.status === 'downloading' && <Text style={s.modelBadgeSecondary}>Downloading...</Text>}
                       </View>
@@ -466,12 +509,79 @@ export default function AISettingsScreen() {
 
               {installedModels.some(m => modelStates[m.id].status === 'installed') && (
                 <TouchableOpacity
-                  style={[s.deleteAllBtn, { borderColor: '#e06060' }]}
+                  style={[s.deleteAllBtn, { borderColor: colors.danger }]}
                   onPress={() => setConfirmDelete('all')}
                 >
-                  <Text style={[s.deleteAllText, { color: '#e06060' }]}>DELETE ALL DOWNLOADED MODELS</Text>
+                  <Text style={[s.deleteAllText, { color: colors.danger }]}>DELETE ALL DOWNLOADED MODELS</Text>
                 </TouchableOpacity>
               )}
+            </>
+          );
+        })()}
+
+        {Platform.OS === 'android' && semanticState.status !== 'unsupported' && (() => {
+          const canDownload = semanticWifi === true && !semanticActionPending;
+          const offersDownload = !semanticActionPending
+            && ['idle', 'blocked-metered', 'off', 'failed'].includes(semanticState.status);
+          return (
+            <>
+              <Text style={[s.sectionTitle, { marginTop: spacing.xxl }]}>SEMANTIC SEARCH</Text>
+              <View style={s.section}>
+                <Text style={s.customHint}>
+                  A small on-device model ({SEMANTIC_SIZE_LABEL}) helps Alice find Bitcoin knowledge by meaning, not only matching words. Without it, Alice still answers using keyword search.
+                </Text>
+                <View style={s.semanticStatusRow}>
+                  {/* Native has no byte progress callback today, so an indeterminate activity indicator is more honest than a frozen 0% bar. */}
+                  {(semanticState.status === 'loading' || semanticActionPending) && (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  )}
+                  <Text style={s.semanticStatus}>
+                    {semanticActionPending
+                      ? 'Removing the semantic model from this device...'
+                      : semanticStatusCopy(semanticState)}
+                  </Text>
+                </View>
+                {offersDownload && semanticWifi !== true && (
+                  <Text style={s.semanticWifiHint}>
+                    {semanticWifi === null
+                      ? 'Checking for Wi-Fi...'
+                      : `Connect to Wi-Fi with internet access to download ${SEMANTIC_SIZE_LABEL}.`}
+                  </Text>
+                )}
+                <View style={s.semanticActions}>
+                  {/* Android keeps the 132 MB transfer Wi-Fi-only. The disabled action and nearby reason make that limit explicit instead of offering a button that does nothing. */}
+                  {offersDownload && (
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: !canDownload }}
+                      disabled={!canDownload}
+                      style={[
+                        s.semanticBtn,
+                        { backgroundColor: colors.primary },
+                        !canDownload && s.disabledBtn,
+                      ]}
+                      onPress={downloadSemanticSearchNow}
+                    >
+                      <Text style={[s.actionBtnText, { color: colors.onPrimary }]}>{semanticState.status === 'failed'
+                          ? 'RETRY DOWNLOAD'
+                          : `DOWNLOAD ${SEMANTIC_SIZE_LABEL}`}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {!semanticActionPending && (semanticState.status === 'ready' || semanticState.status === 'loading') && (
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      style={[s.semanticBtn, { borderColor: colors.danger }]}
+                      onPress={() => void handleDisableSemanticSearch()}
+                    >
+                      <Text style={[s.actionBtnText, { color: colors.danger }]}>{semanticState.status === 'loading'
+                          ? 'CANCEL AND TURN OFF'
+                          : `REMOVE ${SEMANTIC_SIZE_LABEL}`}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
             </>
           );
         })()}
@@ -526,7 +636,7 @@ export default function AISettingsScreen() {
                     )}
                     {installed && (
                       <TouchableOpacity
-                        style={[s.modalBtn, { backgroundColor: '#e06060' }]}
+                        style={[s.modalBtn, { backgroundColor: colors.danger }]}
                         onPress={() => { setSelectedModel(null); setConfirmDelete(selectedModel); }}
                       >
                         <Text style={[s.modalBtnText, { color: '#ffffff' }]}>DELETE</Text>
@@ -546,7 +656,7 @@ export default function AISettingsScreen() {
           <Modal transparent animationType="fade" visible onRequestClose={() => setConfirmDelete(null)}>
             <View style={s.modalOverlay}>
               <View style={[s.modalContent, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Text style={[s.modalTitle, { color: '#e06060' }]}>
+                <Text style={[s.modalTitle, { color: colors.danger }]}>
                   {confirmDelete === 'all' ? 'DELETE ALL MODELS' : 'DELETE MODEL'}
                 </Text>
                 <Text style={[s.modalDescription, { color: colors.primaryDark, marginTop: spacing.lg }]}>
@@ -556,7 +666,7 @@ export default function AISettingsScreen() {
                 </Text>
                 <View style={s.modalActions}>
                   <TouchableOpacity
-                    style={[s.modalBtn, { backgroundColor: '#e06060' }]}
+                    style={[s.modalBtn, { backgroundColor: colors.danger }]}
                     onPress={async () => {
                       if (confirmDelete === 'all') {
                         await handleDeleteAll();
@@ -661,7 +771,7 @@ export default function AISettingsScreen() {
             </TouchableOpacity>
             {customUrl.trim() !== '' && (
               <TouchableOpacity
-                style={[s.actionBtn, { borderColor: '#e06060' }]}
+                style={[s.actionBtn, { borderColor: colors.danger }]}
                 onPress={async () => {
                   await setCustomServer(null);
                   setCustomUrl('');
@@ -673,22 +783,20 @@ export default function AISettingsScreen() {
                   }
                 }}
               >
-                <Text style={[s.actionBtnText, { color: '#e06060' }]}>DISCONNECT</Text>
+                <Text style={[s.actionBtnText, { color: colors.danger }]}>DISCONNECT</Text>
               </TouchableOpacity>
             )}
           </View>
           <View style={s.divider} />
-          <View style={s.backendToggleRow}>
-            <View style={s.backendToggleCopy}>
+          <View style={s.modeRow}>
+            <View style={s.modeCopy}>
               <Text style={s.toggleLabel}>CUSTOM SERVER AI</Text>
-              <Text style={s.toggleHint}>Keeps this server configuration saved.</Text>
+              <Text style={s.modeHint}>Keeps this server configuration saved.</Text>
             </View>
-            <PixelSwitch
-              label="Custom server AI"
+            <PixelToggle
               value={chat.backendEnabled.custom}
-              onChange={value => chat.setBackendEnabled('custom', value)}
-              styles={s}
-              colors={colors}
+              onValueChange={value => chat.setBackendEnabled('custom', value)}
+              accessibilityLabel="Custom server AI"
             />
           </View>
 		        </View>
@@ -722,11 +830,11 @@ export default function AISettingsScreen() {
               <Text style={[s.actionBtnText, { color: colors.primary }]}>KEEP ONLY 10 NEWEST</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[s.actionBtn, { borderColor: '#e06060' }, (chatStorage?.count ?? 0) === 0 && s.disabledBtn]}
+              style={[s.actionBtn, { borderColor: colors.danger }, (chatStorage?.count ?? 0) === 0 && s.disabledBtn]}
               disabled={(chatStorage?.count ?? 0) === 0 || cleaningChat}
               onPress={() => setConfirmChatCleanup('all')}
             >
-              <Text style={[s.actionBtnText, { color: '#e06060' }]}>DELETE ALL</Text>
+              <Text style={[s.actionBtnText, { color: colors.danger }]}>DELETE ALL</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -735,13 +843,13 @@ export default function AISettingsScreen() {
           <Modal transparent animationType="fade" visible onRequestClose={() => setConfirmChatCleanup(null)}>
             <View style={s.modalOverlay}>
               <View style={[s.modalContent, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Text style={[s.modalTitle, { color: '#e06060' }]}>DELETE CONVERSATIONS</Text>
+                <Text style={[s.modalTitle, { color: colors.danger }]}>DELETE CONVERSATIONS</Text>
                 <Text style={[s.modalDescription, { color: colors.primaryDark }]}>
                   Delete {chatCleanupCount} conversation{chatCleanupCount === 1 ? '' : 's'} from this device? This cannot be undone.
                 </Text>
                 <View style={s.modalActions}>
                   <TouchableOpacity
-                    style={[s.modalBtn, { backgroundColor: '#e06060' }]}
+                    style={[s.modalBtn, { backgroundColor: colors.danger }]}
                     disabled={cleaningChat}
                     onPress={() => handleChatCleanup(confirmChatCleanup)}
                   >
@@ -762,8 +870,8 @@ export default function AISettingsScreen() {
           </Modal>
         )}
 
-        <TouchableOpacity style={[s.resetBtn, { borderColor: '#e06060' }]} onPress={handleResetDefaults}>
-          <Text style={[s.resetBtnText, { color: '#e06060' }]}>RESET TO DEFAULT</Text>
+        <TouchableOpacity style={[s.resetBtn, { borderColor: colors.danger }]} onPress={handleResetDefaults}>
+          <Text style={[s.resetBtnText, { color: colors.danger }]}>RESET TO DEFAULT</Text>
         </TouchableOpacity>
 	      </ScrollView>
     </SafeAreaView>
@@ -778,47 +886,53 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
     title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 3 },
     body: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
-    sectionTitle: { fontFamily: typography.pixel, fontSize: 8, color: colors.muted, letterSpacing: 2, marginBottom: spacing.sm, marginTop: spacing.lg },
+    sectionTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 2, marginBottom: spacing.sm, marginTop: spacing.lg },
     section: { ...pixel, backgroundColor: colors.cardBg, padding: spacing.lg },
-    subsectionLabel: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1, marginBottom: spacing.sm },
+    subsectionLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, marginBottom: spacing.sm },
     divider: { height: 1, backgroundColor: colors.dotted, marginVertical: spacing.md },
 
     presetRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    presetLabel: { fontFamily: typography.pixel, fontSize: 8, color: colors.primaryDark, letterSpacing: 1 },
+    presetLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
     presetSwitcher: { flexDirection: 'row', borderWidth: 2, borderColor: colors.border, borderRadius: 2, overflow: 'hidden' },
     presetOption: { paddingVertical: 6, paddingHorizontal: spacing.md },
     presetOptionBorder: { borderLeftWidth: 2, borderLeftColor: colors.border },
-    presetOptionText: { fontFamily: typography.pixel, fontSize: 6, letterSpacing: 1 },
+    presetOptionText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
 
     modelRow: { paddingVertical: spacing.md },
     modelCard: { paddingVertical: spacing.md },
     modelRowBorder: { borderTopWidth: 1, borderTopColor: colors.dotted },
     toast: { marginHorizontal: spacing.lg, marginTop: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, borderRadius: 2 },
-    toastText: { fontFamily: typography.pixel, fontSize: 7, letterSpacing: 1, textAlign: 'center' },
+    toastText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, textAlign: 'center' },
     modelInfo: { marginBottom: spacing.sm },
     modelNameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    modelName: { fontFamily: typography.pixel, fontSize: 9, color: colors.primaryDark, letterSpacing: 1 },
-    modelSize: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted },
+    modelName: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
+    modelSize: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
     modelMeta: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
-    modelBadge: { fontFamily: typography.pixel, fontSize: 6, letterSpacing: 1 },
-	    modelBadgeSecondary: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
-	    dropdownDescription: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1, lineHeight: 12, marginTop: spacing.xs },
+    modelBadge: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
+	    modelBadgeSecondary: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
+	    dropdownDescription: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, lineHeight: 12, marginTop: spacing.xs },
 	    modelActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
 
 	    dropdownTrigger: { ...pixel, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, backgroundColor: colors.background },
-	    dropdownLabel: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1, marginBottom: spacing.xs },
+	    dropdownLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, marginBottom: spacing.xs },
 	    dropdownChevron: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary, width: 24, textAlign: 'center' },
 	    dropdownMenu: { marginTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.dotted },
 	    dropdownOption: { paddingVertical: spacing.md, paddingHorizontal: spacing.sm },
 	    dropdownOptionActive: { backgroundColor: colors.background },
 
     actionBtn: { ...pixel, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg },
-    actionBtnText: { fontFamily: typography.pixel, fontSize: 7, letterSpacing: 1 },
+    actionBtnText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
     disabledBtn: { opacity: 0.4 },
+
+    semanticStatusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    semanticStatus: { flex: 1, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: colors.muted },
+    semanticWifiHint: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 18, color: colors.muted, marginTop: spacing.sm },
+    semanticActions: { gap: spacing.sm, marginTop: spacing.md },
+    semanticBtn: { ...pixel, paddingVertical: spacing.md, paddingHorizontal: spacing.lg, alignItems: 'center' },
 
     progressBar: { flex: 1, height: 8, backgroundColor: colors.dotted, borderRadius: 2, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 2 },
-    progressText: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, width: 32, textAlign: 'right' },
+    progressText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, width: 32, textAlign: 'right' },
 
     cloudRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     webNotice: { fontFamily: typography.numbers, fontSize: 15, lineHeight: 22, color: colors.muted, textAlign: 'center' },
@@ -831,22 +945,22 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: spacing.xl },
     modalContent: { borderWidth: 2, borderRadius: 2, padding: spacing.xl },
     modalTitle: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 2, textAlign: 'center' },
-    modalSize: { fontFamily: typography.pixel, fontSize: 8, color: colors.muted, textAlign: 'center', marginTop: spacing.xs },
+    modalSize: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: spacing.xs },
     modalDescription: { fontFamily: typography.numbers, fontSize: 15, lineHeight: 22, marginTop: spacing.lg, textAlign: 'center' },
     modalStats: { flexDirection: 'row', justifyContent: 'space-around', marginTop: spacing.lg },
     modalStat: { alignItems: 'center' },
-    modalStatLabel: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1, marginBottom: spacing.xs },
-    modalStatValue: { fontFamily: typography.pixel, fontSize: 9 },
+    modalStatLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, marginBottom: spacing.xs },
+    modalStatValue: { fontFamily: typography.pixel, fontSize: 12 },
     modalRecommendation: { marginTop: spacing.lg, padding: spacing.md, borderRadius: 2 },
     modalRecommendationText: { fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, textAlign: 'center' },
     modalActions: { marginTop: spacing.xl, gap: spacing.sm },
     modalBtn: { paddingVertical: spacing.lg, alignItems: 'center', borderRadius: 2 },
-    modalBtnText: { fontFamily: typography.pixel, fontSize: 8, letterSpacing: 1 },
+    modalBtnText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
     modalCancel: { paddingVertical: spacing.md, alignItems: 'center' },
-    modalCancelText: { fontFamily: typography.pixel, fontSize: 7, letterSpacing: 1 },
+    modalCancelText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
 
     toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    toggleLabel: { fontFamily: typography.pixel, fontSize: 10, color: colors.primaryDark, letterSpacing: 1 },
+    toggleLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
     modeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
     modeRowBorder: { borderTopWidth: 1, borderTopColor: colors.dotted, marginTop: spacing.sm, paddingTop: spacing.lg },
     modeCopy: { flex: 1 },
@@ -855,20 +969,20 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     profileChevron: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
     languageOptions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md, flexWrap: 'wrap' },
     languageOption: { borderWidth: 2, borderRadius: 2, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-    languageOptionText: { fontFamily: typography.pixel, fontSize: 7, letterSpacing: 1 },
+    languageOptionText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
     deleteAllBtn: { ...pixel, marginTop: spacing.lg, paddingVertical: spacing.md, alignItems: 'center' },
-    deleteAllText: { fontFamily: typography.pixel, fontSize: 7, letterSpacing: 1 },
+    deleteAllText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
 
     customHint: { fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: colors.muted, marginBottom: spacing.md },
 	    customInput: { ...pixel, fontFamily: typography.numbers, fontSize: 14, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginBottom: spacing.sm, backgroundColor: colors.background },
 	    instructionsInput: { minHeight: 112, lineHeight: 20 },
 	    customActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs, flexWrap: 'wrap' },
     storageSummary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
-    storageCount: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark, letterSpacing: 1 },
-    storageSize: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted },
+    storageCount: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
+    storageSize: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
     cleanupActions: { gap: spacing.sm },
 	    resetBtn: { ...pixel, marginTop: spacing.xxl, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.cardBg },
-	    resetBtnText: { fontFamily: typography.pixel, fontSize: 8, letterSpacing: 1 },
+	    resetBtnText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
 	  });
 	}
 

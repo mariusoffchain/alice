@@ -14,7 +14,40 @@ export type Colors = {
   dotted: string;
   onPrimary: string;
   qrColor: string;
+  danger: string;
+  dangerSoft: string;
+  dangerInk: string;
+  success: string;
+  warning: string;
+  warningSoft: string;
+  warningInk: string;
+  info: string;
 };
+
+// Couleurs d'etat, identiques pour les 8 palettes mais declinees par mode :
+// la version sombre reprend les valeurs historiquement codees en dur pour ne
+// pas changer le rendu, la version claire est assombrie pour rester >= 4.5:1.
+const SEMANTIC_DARK = {
+  danger: '#e06060',
+  dangerSoft: '#e0606022',
+  dangerInk: '#f0a0a0',
+  success: '#3fb950',
+  warning: '#d4a017',
+  warningSoft: '#d4a01722',
+  warningInk: '#e8c574',
+  info: '#8bb8ff',
+} as const;
+
+const SEMANTIC_LIGHT = {
+  danger: '#c23838',
+  dangerSoft: '#fff1f1',
+  dangerInk: '#8f3030',
+  success: '#1e7d32',
+  warning: '#8f6d0a',
+  warningSoft: '#fdf3d7',
+  warningInk: '#8f6d0a',
+  info: '#3d69b8',
+} as const;
 
 type PaletteConfig = {
   label: string;
@@ -51,28 +84,74 @@ function qrDark(primary: string): string {
   return rgbToHex(Math.round(r * 0.2), Math.round(g * 0.2), Math.round(b * 0.2));
 }
 
-function buildPalette(primary: string, primaryDark: string, muted: string, dotted: string, onPrimaryDark: string): { light: Colors; dark: Colors } {
+// Encre de lecture du mode clair : le primaire rabattu vers le noir garde la
+// teinte de la palette tout en restant >= 10:1 sur #fafafa quel que soit le
+// primaire. Le pastel reste pour bordures et accents, jamais pour le corps.
+function lightInk(primary: string): string {
+  const [r, g, b] = hexToRgb(primary);
+  return rgbToHex(Math.round(r * 0.2 + 15), Math.round(g * 0.2 + 15), Math.round(b * 0.2 + 15));
+}
+
+function lightMuted(primary: string): string {
+  const [r, g, b] = hexToRgb(primary);
+  return rgbToHex(Math.round(r * 0.3 + 55), Math.round(g * 0.3 + 55), Math.round(b * 0.3 + 55));
+}
+
+function luminance(hex: string): number {
+  const ch = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  const [r, g, b] = hexToRgb(hex);
+  return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+}
+
+function contrast(a: string, b: string): number {
+  const [l1, l2] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (l1 + 0.05) / (l2 + 0.05);
+}
+
+// Blanc casse du texte courant en sombre : un blanc chaud type papier,
+// identique pour toutes les palettes (choisi sur echantillon par Marius).
+const DARK_TEXT = '#f2efe6';
+
+// Texte sur bouton rempli en clair : blanc sur les primaires satures (red,
+// indigo), encre foncee sur les pastels (blue, coral, bitcoin) ou le blanc
+// ne contraste pas. On prend celui des deux qui contraste le mieux.
+function onPrimaryLight(primary: string): string {
+  const candidates = ['#ffffff', lightInk(primary), '#111418'];
+  return candidates.reduce((best, c) => (contrast(c, primary) > contrast(best, primary) ? c : best));
+}
+
+// darkAccent : accent pastel du mode sombre quand le primaire de marque est
+// trop sombre pour rester lisible sur le fond nuit (recette de la palette
+// Blue : fond derive de la marque, accent eclairci). Sans darkAccent, le
+// primaire sert d'accent tel quel.
+function buildPalette(primary: string, primaryDark: string, muted: string, dotted: string, onPrimaryDark: string, darkAccent?: string, darkAccentDark?: string): { light: Colors; dark: Colors } {
+  const accent = darkAccent ?? primary;
+  const accentDark = darkAccentDark ?? darkAccent ?? primaryDark;
   return {
     light: {
       background: '#fafafa',
       backgroundSoft: '#f6f8fb',
       primary,
       primaryDark,
-      text: primaryDark,
+      text: lightInk(primary),
       border: primary,
-      muted,
+      muted: lightMuted(primary),
       white: '#ffffff',
       cardBg: 'rgba(255, 255, 255, 0.7)',
       dotted,
-      onPrimary: '#ffffff',
+      onPrimary: onPrimaryLight(primary),
       qrColor: qrDark(primary),
+      ...SEMANTIC_LIGHT,
     },
     dark: {
       background: darkBg(primary),
       backgroundSoft: darkBgSoft(primary),
-      primary,
-      primaryDark,
-      text: primary,
+      primary: accent,
+      primaryDark: accentDark,
+      text: DARK_TEXT,
       border: darken(primary),
       muted: desaturate(muted),
       white: '#e6edf3',
@@ -80,6 +159,7 @@ function buildPalette(primary: string, primaryDark: string, muted: string, dotte
       dotted: darken(primary),
       onPrimary: onPrimaryDark,
       qrColor: qrDark(primary),
+      ...SEMANTIC_DARK,
     },
   };
 }
@@ -107,17 +187,17 @@ export const PALETTES: Record<PaletteId, PaletteConfig> = {
     primary: '#8bb8ff',
     light: {
       background: '#fafafa', backgroundSoft: '#f6f8fb',
-      primary: '#8bb8ff', primaryDark: '#6fa3f7', text: '#6f9ee8',
-      border: '#8bb8ff', muted: '#b8d0ff', white: '#ffffff',
-      cardBg: 'rgba(255, 255, 255, 0.7)', dotted: '#d0dfff', onPrimary: '#ffffff',
-      qrColor: '#1c2533',
+      primary: '#8bb8ff', primaryDark: '#6fa3f7', text: '#22304a',
+      border: '#8bb8ff', muted: '#5d7599', white: '#ffffff',
+      cardBg: 'rgba(255, 255, 255, 0.7)', dotted: '#d0dfff', onPrimary: '#1c2b45',
+      qrColor: '#1c2533', ...SEMANTIC_LIGHT,
     },
     dark: {
       background: '#0d1117', backgroundSoft: '#161b22',
-      primary: '#8bb8ff', primaryDark: '#a8ccff', text: '#8bb8ff',
-      border: '#2a3a52', muted: '#4a6a9a', white: '#e6edf3',
+      primary: '#8bb8ff', primaryDark: '#a8ccff', text: '#f2efe6',
+      border: '#2a3a52', muted: '#7f97bd', white: '#e6edf3',
       cardBg: 'rgba(22, 27, 34, 0.8)', dotted: '#2a3a52', onPrimary: '#16294a',
-      qrColor: '#1c2533',
+      qrColor: '#1c2533', ...SEMANTIC_DARK,
     },
   },
   green: {
@@ -133,17 +213,17 @@ export const PALETTES: Record<PaletteId, PaletteConfig> = {
   red: {
     label: 'Red',
     primary: '#c32b27',
-    ...buildPalette('#c32b27', '#c32b27', '#e08080', '#e8a0a0', '#300a09'),
+    ...buildPalette('#c32b27', '#c32b27', '#e08080', '#e8a0a0', '#300a09', '#ea625c', '#f28b86'),
   },
   flame: {
     label: 'Flame',
     primary: '#f14317',
-    ...buildPalette('#f14317', '#f14317', '#f89080', '#faa898', '#3a0e04'),
+    ...buildPalette('#f14317', '#f14317', '#f89080', '#faa898', '#3a0e04', '#f76a3d', '#fa8c66'),
   },
   indigo: {
     label: 'Indigo',
     primary: '#391998',
-    ...buildPalette('#391998', '#391998', '#8a78c0', '#a898d0', '#0e0830'),
+    ...buildPalette('#391998', '#391998', '#8a78c0', '#a898d0', '#0e0830', '#a08cff', '#b8a8ff'),
   },
   bitcoin: {
     label: 'Bitcoin',
@@ -158,14 +238,14 @@ export const PALETTES: Record<PaletteId, PaletteConfig> = {
       primary: '#1a1a1a', primaryDark: '#000000', text: '#1a1a1a',
       border: '#1a1a1a', muted: '#666666', white: '#ffffff',
       cardBg: 'rgba(255, 255, 255, 0.7)', dotted: '#cccccc', onPrimary: '#ffffff',
-      qrColor: '#000000',
+      qrColor: '#000000', ...SEMANTIC_LIGHT,
     },
     dark: {
       background: '#0a0a0a', backgroundSoft: '#141414',
-      primary: '#ffffff', primaryDark: '#e0e0e0', text: '#ffffff',
+      primary: '#ffffff', primaryDark: '#e0e0e0', text: '#f2efe6',
       border: '#333333', muted: '#888888', white: '#e6edf3',
       cardBg: 'rgba(20, 20, 20, 0.8)', dotted: '#333333', onPrimary: '#0a0a0a',
-      qrColor: '#e0e0e0',
+      qrColor: '#e0e0e0', ...SEMANTIC_DARK,
     },
   },
 };

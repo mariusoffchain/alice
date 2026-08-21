@@ -20,9 +20,16 @@ test('desktop context trimming preserves the system message and latest user turn
   assert.ok(result.responseTokens >= 128);
 });
 
-test('native and desktop llama runtimes use the shared 4096-token budget', async () => {
+test('the mobile default stays 4096 while the desktop server takes its context from the caller', async () => {
+  // Mobile keeps the conservative shared default; desktop passes its own
+  // roomier budget (4096 left ~250 tokens for the answer once the system
+  // prompt, the retrieved context and the history were in, which truncated
+  // replies mid-sentence). The Rust side must therefore accept a context size
+  // rather than hardcode one, and clamp it to what llama-server can serve.
   assert.equal(LOCAL_CONTEXT_TOKENS, 4096);
   const rustPath = decodeURIComponent(new URL('../../../apps/app-desktop/src-tauri/src/lib.rs', import.meta.url).pathname);
   const rust = await readFile(rustPath, 'utf8');
-  assert.match(rust, /"--ctx-size",\s*"4096"/);
+  assert.match(rust, /ctx_size:\s*Option<u32>/);
+  assert.match(rust, /ctx_size\.unwrap_or\(\d+\)\.clamp\(\d+,\s*\d+\)/);
+  assert.match(rust, /"--ctx-size",\s*\n?\s*&?ctx/);
 });

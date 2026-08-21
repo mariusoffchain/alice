@@ -21,7 +21,7 @@ export const CONTINUE_INSTRUCTIONS = {
 // re-sends the whole conversation plus the answer so far, so input tokens are
 // re-billed every round while output tokens are billed once per round.
 // Deliberately held at 1 continuation for the beta, until real Venice costs are
-// measured — raising it multiplies the worst-case cost of a single answer.
+// measured, raising it multiplies the worst-case cost of a single answer.
 export const MAX_AUTO_CONTINUATIONS = 1;
 
 export type GenerationOutcome = {
@@ -38,10 +38,9 @@ export type GenerationOutcome = {
 export async function generateWithContinuation(
   backend: AIBackend,
   history: Message[],
-  deep: boolean,
   allowContinuation: boolean,
   onText: (fullSoFar: string) => void,
-  options?: Omit<SendMessageOptions, 'deep' | 'requestId'> & { requestId?: string },
+  options?: Omit<SendMessageOptions, 'requestId'> & { requestId?: string },
 ): Promise<GenerationOutcome> {
   const working = [...history];
   let full = '';
@@ -61,12 +60,11 @@ export async function generateWithContinuation(
         onText(base + streamed);
       }, {
         ...options,
-        deep,
         requestId: options?.requestId ? `${options.requestId}_c${round}` : undefined,
       });
     } catch (err) {
       // Round 0 failing means there is nothing to show: let the caller handle
-      // it as a normal error. A continuation failing is different — the user
+      // it as a normal error. A continuation failing is different, the user
       // already has a real partial answer they paid for, so keep it and mark it
       // truncated instead of replacing it with an error.
       if (round === 0) throw err;
@@ -92,7 +90,7 @@ export async function generateWithContinuation(
     truncated = Boolean(result.truncated);
 
     if (!truncated || !allowContinuation) break;
-    // Nothing visible came back — a reasoning model can burn the whole budget
+    // Nothing visible came back, a reasoning model can burn the whole budget
     // before writing a word. There is no partial answer to extend, and asking
     // anyway makes Alice reply "where did I stop?", so leave it truncated.
     if (!full.trim()) break;

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useChat } from '@alice-wallet/alice-ai';
 import { requestSearch } from '@/lib/search-signal';
+import { useOpenSettings } from '@/lib/settings-url';
 
 /**
  * Bridges the native desktop menu to the web layer.
@@ -20,13 +21,14 @@ export function MenuCommands() {
   const router = useRouter();
   const pathname = usePathname();
   const { clearMessages } = useChat();
+  const openSettings = useOpenSettings();
 
   useEffect(() => {
     const handler = (event: Event) => {
       const action = (event as CustomEvent<string>).detail;
 
       if (action === 'settings') {
-        router.push('/settings');
+        openSettings();
         return;
       }
 
@@ -46,7 +48,7 @@ export function MenuCommands() {
 
     window.addEventListener('alice-menu', handler);
     return () => window.removeEventListener('alice-menu', handler);
-  }, [router, pathname, clearMessages]);
+  }, [router, pathname, clearMessages, openSettings]);
 
   return null;
 }

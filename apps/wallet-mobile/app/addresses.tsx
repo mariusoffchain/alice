@@ -141,7 +141,7 @@ export default function AddressesScreen() {
           <View style={s.currentCard}>
             <View style={s.currentTop}>
               <Text style={s.network}>{network}</Text>
-              <Text style={s.currentStatus}>CURRENT</Text>
+              <Text style={[s.currentStatus, { color: colors.success }]}>CURRENT</Text>
             </View>
             <Text style={s.currentAddress} selectable>{shortAddress(current.address)}</Text>
             <TextInput
@@ -224,8 +224,8 @@ export default function AddressesScreen() {
           </Text>
         </View>
 
-        {success && <Text style={s.success}>{success}</Text>}
-        {error && <Text style={s.error}>{error}</Text>}
+        {success && <Text style={[s.success, { color: colors.success }]}>{success}</Text>}
+        {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
 
         {renderSection('arkade')}
         {renderSection('onchain')}
@@ -275,7 +275,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     title: {
       fontFamily: typography.pixel,
-      fontSize: 11,
+      fontSize: 12,
       color: colors.primaryDark,
       letterSpacing: 2,
     },
@@ -329,12 +329,12 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     network: {
       fontFamily: typography.pixel,
-      fontSize: 8,
+      fontSize: 12,
       color: colors.primaryDark,
     },
     currentStatus: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: '#2ea043',
     },
     currentAddress: {
@@ -367,7 +367,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     generateText: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.onPrimary,
       textAlign: 'center',
     },
@@ -379,7 +379,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     emptyText: {
       marginVertical: spacing.xl,
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.muted,
       textAlign: 'center',
     },
@@ -396,7 +396,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     recoveryHeading: {
       fontFamily: typography.pixel,
-      fontSize: 8,
+      fontSize: 12,
       color: colors.primaryDark,
       letterSpacing: 1,
     },
@@ -421,7 +421,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     archiveButtonText: {
       flex: 1,
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.primaryDark,
       textAlign: 'center',
     },

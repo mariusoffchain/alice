@@ -28,8 +28,30 @@ async function loadBundledRag(): Promise<any> {
 test('the active core stays bounded while secondary knowledge remains outside retrieval', async () => {
   const rag = await loadBundledRag();
   const chunks = rag.getAllChunks();
-  assert.ok(chunks.length >= 150);
-  assert.ok(chunks.length <= 250);
+  // The bound guards the number of CONCEPTS the core carries: a French entry
+  // and its English twin are one concept in two locales, and retrieval only
+  // ever surfaces one of the pair (preferKnowledgeLocale). Counting raw
+  // chunks would punish translating the core, which changes its size but
+  // not its scope.
+  // Two corpora with two purposes, bounded apart: Bitcoin knowledge, which
+  // answers Bitcoin questions, and Alice's own documentation, which answers
+  // questions about the project. Merging the bounds would let one grow
+  // unnoticed behind the other.
+  const isDocs = (chunk: { id: string }) => chunk.id.startsWith('docs-');
+  const knowledge = new Set(
+    chunks.filter((chunk: { id: string }) => !isDocs(chunk))
+      .map((chunk: { conceptId: string }) => chunk.conceptId),
+  );
+  const docs = new Set(
+    chunks.filter(isDocs).map((chunk: { conceptId: string }) => chunk.conceptId),
+  );
+  assert.ok(knowledge.size >= 150);
+  assert.ok(knowledge.size <= 250);
+  assert.ok(docs.size <= 150);
+  const concepts = new Set(chunks.map((chunk: { conceptId: string }) => chunk.conceptId));
+  // Guard against unbounded growth of the shipped corpus itself: at most one
+  // twin per concept, no orphan twin without its source concept.
+  assert.ok(chunks.length <= concepts.size * 2);
   assert.equal(chunks.some((chunk: { status?: string }) => chunk.status === 'secondaire'), false);
 });
 

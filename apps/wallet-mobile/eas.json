@@ -21,6 +21,9 @@
     "production": {
       "credentialsSource": "remote",
       "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_NETWORK": "bitcoin",
         "EXPO_PUBLIC_ASP_URL": "https://arkade.computer",
@@ -30,7 +33,7 @@
         "EXPO_PUBLIC_ARKADE_EXPLORER": "https://arkade.space",
         "EXPO_PUBLIC_VENICE_PROXY_URL": "https://proxy.alicebtc.com",
         "EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED": "true",
-        "EXPO_PUBLIC_ALICE_APP_VERSION": "0.1.0"
+        "EXPO_PUBLIC_ALICE_APP_VERSION": "0.2.0"
       }
     },
     "beta": {

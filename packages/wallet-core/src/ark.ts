@@ -43,10 +43,6 @@ export type WalletState = {
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
-export type ClearWalletBackendDataOptions = {
-  allowUnsafePendingSwaps?: boolean;
-};
-
 let backend: WalletBackend | null = null;
 let initPromise: Promise<WalletBackend> | null = null;
 let connectionStatus: ConnectionStatus = 'disconnected';
@@ -484,14 +480,14 @@ export function isWalletReady(): boolean {
   return backend !== null;
 }
 
-export async function clearWalletBackendData(options: ClearWalletBackendDataOptions = {}): Promise<void> {
+export async function clearWalletBackendData(): Promise<void> {
   const activeBackend = backend ?? await ensureBackend();
   await maintenancePromise?.catch(() => {});
   const paymentRail = await activeBackend.getPaymentRail();
   if (paymentRail) {
     await paymentRail.refresh().catch(() => {});
     const unsafePayments = getUnsafeResetPayments(await paymentRail.listPayments());
-    if (unsafePayments.length > 0 && !options.allowUnsafePendingSwaps) {
+    if (unsafePayments.length > 0) {
       throw new Error(pendingResetWarning(unsafePayments.length));
     }
     await paymentRail.clear();

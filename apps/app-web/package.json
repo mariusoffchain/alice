@@ -1,10 +1,11 @@
 {
   "name": "@alice-wallet/app-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "AGPL-3.0-or-later",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 3000",
+    "prebuild": "node ../../scripts/prepare-learn-packs.mjs",
     "build": "next build",
     "start": "next start"
   },
@@ -12,6 +13,7 @@
     "@alice-wallet/alice-ai": "*",
     "@alice-wallet/alice-content": "*",
     "@alice-wallet/alice-ui": "*",
+    "@alice-wallet/practice-wallet": "*",
     "@arkade-os/sdk": "^0.4.39",
     "@bitcoinerlab/descriptors": "^3.1.7",
     "@ledgerhq/ledger-bitcoin": "file:src/stubs/ledger-bitcoin",
@@ -22,7 +24,8 @@
     "@scure/btc-signer": "^2.0.1",
     "next": "^15.5.21",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-qr-code": "^2.0.18"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

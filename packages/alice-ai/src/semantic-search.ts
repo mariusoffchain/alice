@@ -8,7 +8,7 @@
 // no vocabulary with a note can still find it.
 //
 // Design constraints (see project notes, decided 2026-07-31):
-// - Multilingual coverage is required (~118 MB quantized) — no smaller
+// - Multilingual coverage is required (~118 MB quantized), no smaller
 //   multilingual model is actually available; English-only alternatives are
 //   not meaningfully smaller once you account for needing two of them.
 // - The model download happens automatically for everyone in the
@@ -52,7 +52,7 @@ export function dotProduct(a: EmbeddingVector, b: Float32Array, bOffset: number,
 /**
  * Cosine similarity against every row of a precomputed embedding index.
  * Vectors are assumed pre-normalized (L2 norm 1), so cosine similarity
- * reduces to a plain dot product — no per-call normalization needed.
+ * reduces to a plain dot product, no per-call normalization needed.
  */
 export function rankBySimilarity(
   queryVector: EmbeddingVector,

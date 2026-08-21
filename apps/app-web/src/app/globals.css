@@ -26,11 +26,21 @@
   --alice-bg-soft: #161b22;
   --alice-primary: #8bb8ff;
   --alice-primary-dark: #a8ccff;
-  --alice-text: #8bb8ff;
+  --alice-text: #f2efe6;
   --alice-border: #2a3a52;
-  --alice-muted: #4a6a9a;
+  --alice-muted: #7f97bd;
   --alice-card-bg: rgba(22, 27, 34, 0.8);
   --alice-on-primary: #16294a;
+
+  /* Semantic state colors (dark defaults; theme-init overrides per mode) */
+  --alice-danger: #e06060;
+  --alice-danger-soft: #e0606022;
+  --alice-danger-ink: #f0a0a0;
+  --alice-success: #3fb950;
+  --alice-warning: #d4a017;
+  --alice-warning-soft: #d4a01722;
+  --alice-warning-ink: #e8c574;
+  --alice-info: #8bb8ff;
 
   /* Chat panel colors (always primary bg + onPrimary ink) */
   --alice-chat-bg: #8bb8ff;
@@ -134,7 +144,7 @@ body {
     border-radius: 2px;
     cursor: pointer;
     font-family: 'PressStart2P', monospace;
-    font-size: 7px;
+    font-size: 10px;
     letter-spacing: 0;
   }
 
@@ -151,8 +161,8 @@ body {
   }
 
   .account-danger-button {
-    border: 2px solid #e06060;
-    background: #e06060;
+    border: 2px solid var(--alice-danger);
+    background: var(--alice-danger);
     color: #ffffff;
   }
 
@@ -162,6 +172,64 @@ body {
     cursor: not-allowed;
     opacity: 0.45;
   }
+}
+
+/* ==========================================================================
+   Affordance 8-bit (lot 4): au survol l'element se decolle d'un pixel et
+   projette une ombre dure sans blur; au clic il s'enfonce. Animation en
+   steps() pour rester dans le langage terminal. Neutralise par la regle
+   prefers-reduced-motion plus bas.
+   ========================================================================== */
+button.font-pixel,
+a.font-pixel,
+.account-primary-button,
+.account-secondary-button,
+.account-danger-button,
+.px-raise {
+  transition: transform 0.1s steps(2, jump-none), box-shadow 0.1s steps(2, jump-none);
+}
+
+button.font-pixel:hover:not(:disabled),
+a.font-pixel:hover,
+.account-primary-button:hover:not(:disabled),
+.account-secondary-button:hover:not(:disabled),
+.account-danger-button:hover:not(:disabled),
+.px-raise:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--alice-primary) 35%, transparent);
+}
+
+button.font-pixel:active:not(:disabled),
+a.font-pixel:active,
+.account-primary-button:active:not(:disabled),
+.account-secondary-button:active:not(:disabled),
+.account-danger-button:active:not(:disabled),
+.px-raise:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 color-mix(in srgb, var(--alice-primary) 35%, transparent);
+}
+
+/* Les cards Explorer s'allument au survol, meme recette en plus large. */
+.rh-card {
+  transition: transform 0.1s steps(2, jump-none), box-shadow 0.1s steps(2, jump-none), border-color 0.1s steps(2, jump-none);
+}
+.rh-card:hover {
+  transform: translate(-1px, -1px);
+  border-color: var(--alice-primary);
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--alice-primary) 22%, transparent);
+}
+
+/* Curseur terminal du streaming: un bloc plein qui clignote pendant
+   qu'Alice ecrit, retire des que la reponse est terminee. */
+@keyframes stream-blink { 50% { opacity: 0; } }
+.stream-cursor {
+  display: inline-block;
+  width: 9px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--alice-primary);
+  animation: stream-blink 1s steps(2, jump-none) infinite;
 }
 
 /* ==========================================================================

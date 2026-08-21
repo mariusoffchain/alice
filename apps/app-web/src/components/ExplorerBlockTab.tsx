@@ -22,7 +22,7 @@ const PAGE = 25;
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>{label}</span>
+      <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{label}</span>
       <span className="font-numbers" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{value}</span>
     </div>
   );
@@ -185,15 +185,15 @@ export function ExplorerBlockTab({
   }
   if (state.kind === 'error') {
     return (
-      <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid #e06060', borderRadius: 2 }}>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: '#e06060' }}>COULD NOT LOAD</span>
+      <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>COULD NOT LOAD</span>
         <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{state.message}</p>
         <button
           type="button"
           onClick={() => setRetryToken(t => t + 1)}
           className="font-pixel tracking-widest self-start cursor-pointer"
           style={{
-            fontSize: 7, padding: '8px 16px', border: '2px solid var(--alice-border)',
+            fontSize: 10, padding: '8px 16px', border: '2px solid var(--alice-border)',
             borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-primary)',
           }}
         >
@@ -255,7 +255,7 @@ export function ExplorerBlockTab({
       {/* Transaction list, paginated 25 at a time. */}
       <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
         <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
-          <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>TRANSACTIONS</span>
+          <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>TRANSACTIONS</span>
           <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
             {txs.length.toLocaleString('en-US')} of {b.txCount.toLocaleString('en-US')}
           </span>
@@ -291,7 +291,7 @@ export function ExplorerBlockTab({
           disabled={loadingMore}
           className="font-pixel tracking-widest self-center cursor-pointer disabled:cursor-not-allowed"
           style={{
-            fontSize: 7,
+            fontSize: 10,
             padding: '8px 16px',
             border: '2px solid var(--alice-border)',
             borderRadius: 2,

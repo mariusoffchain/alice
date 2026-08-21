@@ -33,10 +33,8 @@ export type AIResponse = {
   backendTimings?: Record<string, number>;
 };
 
-// Per-message options. Backends that don't support an option ignore it — only
-// the cloud backend currently reads `deep` (it swaps the Venice model).
+// Per-message options. Backends that do not support an option ignore it.
 export type SendMessageOptions = {
-  deep?: boolean;
   responseLanguage?: SupportedLanguage;
   strictLanguageRetry?: boolean;
   temperatureOverride?: number;
@@ -49,7 +47,7 @@ export interface AIBackend {
    * False when replaying earlier assistant turns is unsafe, so the caller must
    * not auto-continue a truncated answer. Under Venice E2EE, assistant messages
    * are not encrypted by the protocol, so Alice drops them rather than sending
-   * prior replies in clear — which also means a continuation would have no
+   * prior replies in clear, which also means a continuation would have no
    * partial answer to extend. Undefined means "no objection".
    */
   readonly allowsAutoContinuation?: boolean;

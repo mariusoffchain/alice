@@ -12,6 +12,7 @@ import { scanWallet, type DerivedAddress, type WalletScan, type WalletScanPartia
 import { loadWallets, updateSnapshot } from '@/lib/explorer/wallet-store';
 import { buildWalletBalanceSeries, collectHistoryTxs, lastMovement, toSparkline, walletTxDelta, type BalanceSeries } from '@/lib/explorer/balance-history';
 import { Amount } from '@/components/AmountDisplay';
+import { useOpenSettings } from '@/lib/settings-url';
 import type { NormalizedTransaction } from '@/lib/explorer/types';
 import { ExplorerUtxoBubbles } from '@/components/ExplorerUtxoBubbles';
 import { ExplorerBalanceChart } from '@/components/ExplorerBalanceChart';
@@ -80,14 +81,14 @@ function AddressRow({ a, onOpen }: { a: DerivedAddress; onOpen: () => void }) {
       style={{ borderTop: '1px solid var(--alice-border)' }}
     >
       <div className="flex items-center gap-2 min-w-0">
-        <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>
+        <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
           {a.chain === 0 ? 'R' : 'C'}/{a.index}
         </span>
         <span className="font-numbers truncate" style={{ fontSize: 12, color: 'var(--alice-primary)' }} title={a.address}>
           {shortAddr(a.address)}
         </span>
         {a.stats.fundedCount > 1 && (
-          <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 5, padding: '2px 4px', border: '1px solid #e0a060', borderRadius: 2, color: '#e0a060' }}>
+          <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 10, padding: '2px 4px', border: '1px solid var(--alice-warning)', borderRadius: 2, color: 'var(--alice-warning)' }}>
             REUSED
           </span>
         )}
@@ -117,6 +118,7 @@ export function ExplorerXpubTab({
   onOpenTx: (txid: string) => void;
   onSignals?: (signals: PrivacySignal[], full?: FullContext) => void;
 }) {
+  const openSettings = useOpenSettings();
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [progress, setProgress] = useState<{ scanned: number; used: number } | null>(null);
   // The parsed wallet and the scan-so-far: they let the whole dashboard paint
@@ -281,8 +283,8 @@ export function ExplorerXpubTab({
 
   if (state.kind === 'error') {
     return (
-      <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid #e06060', borderRadius: 2 }}>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: '#e06060' }}>COULD NOT LOAD</span>
+      <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>COULD NOT LOAD</span>
         <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{state.message}</p>
       </div>
     );
@@ -318,7 +320,7 @@ export function ExplorerXpubTab({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
             {['BALANCE', 'USED ADDRESSES', 'RECEIVE / CHANGE', 'ACTIVITY'].map(l => (
               <div key={l} className="flex flex-col gap-1">
-                <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>{l}</span>
+                <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{l}</span>
                 <Skeleton width="60%" />
               </div>
             ))}
@@ -389,7 +391,7 @@ export function ExplorerXpubTab({
       {historyState !== 'unsupported' && (scanning || scan.usedCount > 0) && (
         <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
           <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>TRANSACTIONS</span>
+            <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>TRANSACTIONS</span>
             <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
               {walletTxs.length > 0
                 ? `${Math.min(txVisible, walletTxs.length).toLocaleString('en-US')} of ${walletTxs.length.toLocaleString('en-US')}${txPartial ? '+' : ''}`
@@ -412,7 +414,7 @@ export function ExplorerXpubTab({
               type="button"
               onClick={() => setTxVisible(v => v + TX_PAGE)}
               className="font-pixel tracking-widest cursor-pointer bg-transparent px-3 py-2"
-              style={{ fontSize: 7, color: 'var(--alice-primary)', borderTop: '1px solid var(--alice-border)' }}
+              style={{ fontSize: 10, color: 'var(--alice-primary)', borderTop: '1px solid var(--alice-border)' }}
             >
               LOAD {Math.min(TX_PAGE, walletTxs.length - txVisible)} MORE
             </button>
@@ -441,23 +443,24 @@ export function ExplorerXpubTab({
       ) : null}
 
       {scan.throttled && (
-        <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid #e0a060', borderRadius: 2 }}>
+        <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid var(--alice-warning)', borderRadius: 2 }}>
           <Badge tone="medium">SCAN INCOMPLETE</Badge>
           <p className="font-numbers m-0" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
             {provider.source.name} rate-limited the address lookups, so the scan stopped early and the totals
             may be incomplete.
           </p>
-          <a
-            href="/settings/"
-            className="font-pixel tracking-widest self-start"
-            style={{ fontSize: 7, padding: '6px 12px', border: '2px solid #e0a060', borderRadius: 2, color: '#e0a060', textDecoration: 'none' }}
+          <button
+            type="button"
+            onClick={() => openSettings('explorer')}
+            className="font-pixel tracking-widest self-start cursor-pointer"
+            style={{ fontSize: 10, padding: '6px 12px', border: '2px solid var(--alice-warning)', borderRadius: 2, color: 'var(--alice-warning)', backgroundColor: 'transparent' }}
           >
             SET YOUR NODE →
-          </a>
+          </button>
         </div>
       )}
       {!scan.throttled && (scan.degraded || scan.reachedCap) && (
-        <p className="font-numbers m-0" style={{ fontSize: 11, color: '#e0a060' }}>
+        <p className="font-numbers m-0" style={{ fontSize: 11, color: 'var(--alice-warning)' }}>
           {scan.reachedCap ? 'The scan hit its address cap; a very large wallet may be truncated. ' : ''}
           {scan.degraded ? 'Some lookups failed, so the totals may be understated.' : ''}
         </p>
@@ -467,7 +470,7 @@ export function ExplorerXpubTab({
       {used.some(a => a.stats.fundedCount > 1) && (
         <div
           className="flex flex-col gap-2 px-4 py-3"
-          style={{ border: '1px solid var(--alice-border)', borderLeft: '3px solid #e0a060', borderRadius: 2 }}
+          style={{ border: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-warning)', borderRadius: 2 }}
         >
           <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>Address reuse in this wallet</span>
           <p className="font-numbers m-0" style={{ fontSize: 13, lineHeight: '19px', color: 'var(--alice-muted)' }}>
@@ -480,7 +483,7 @@ export function ExplorerXpubTab({
       {/* Derived, used addresses. */}
       <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
         <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
-          <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>USED ADDRESSES</span>
+          <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>USED ADDRESSES</span>
           <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>{used.length.toLocaleString('en-US')}</span>
         </div>
         {used.length === 0 ? (

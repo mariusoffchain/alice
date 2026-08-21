@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AIBackend, AIBackendType, AIBackendStatus, TokenUsage } from './ai-backend';
 import { VeniceAPIError, type Message } from './llm';
+import { quotaBlockOf } from './venice-errors';
 import { createBackend, canUseLocal, isTauriDesktop } from './ai-backend-factory';
 import { generateLanguageChecked, WrongResponseLanguageError } from './language-generation';
 import { buildRagTurnContext, isTechnicalRagQuery } from './rag';
@@ -130,6 +131,12 @@ function userFacingSendError(err: unknown, backendType: AIBackendType): string {
     if (err.code === 'free_quota_exhausted') {
       return 'You have used your 21 free Private Cloud requests. Alice Local is still available.';
     }
+    if (err.code === 'plan_quota_exhausted') {
+      // Says what actually happens next, because on a paid plan the allowance
+      // returns on its own and most people should simply wait rather than buy.
+      return 'This month\'s Private Cloud allowance is used up. It renews on its own,'
+        + ' and Alice Local is still available in the meantime.';
+    }
     if (err.code === 'plan_restricted') {
       return 'This Private Cloud model is not included in your current plan.';
     }
@@ -203,12 +210,14 @@ export type ChatMsg = {
   durationMs?: number;
   // Provider stopped on max_tokens: the answer is cut off, not finished.
   truncated?: boolean;
-  // This answer was produced with the Deep toggle on (Private Cloud, a stronger
-  // model). Stamped only when Deep actually applied — never on local/custom.
-  // Absent on older saved answers, which simply show no badge.
-  deep?: boolean;
   variants?: MessageVariant[];
   activeVariant?: number;
+  /**
+   * This answer never happened because an allowance ran out. Surfaces render
+   * an offer here instead of an error line: running out of a quota you bought,
+   * or of a free trial, is the product behaving as sold, not a malfunction.
+   */
+  quotaBlocked?: 'free' | 'plan';
 };
 
 type ChatContextValue = {
@@ -217,8 +226,6 @@ type ChatContextValue = {
   setInput: (s: string) => void;
   send: (text?: string) => Promise<void>;
   busy: boolean;
-  deepMode: boolean;
-  setDeepMode: (enabled: boolean) => void;
   backendType: AIBackendType;
   backendStatus: AIBackendStatus;
   setBackendType: (type: AIBackendType) => void;
@@ -254,11 +261,6 @@ export function ChatProvider({
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  // Deep is per-conversation, not global: it falls back to off whenever the
-  // user starts or opens another conversation, so a Deep credit is never spent
-  // by inheriting a toggle from an earlier chat. Only the cloud backend acts on
-  // it (it swaps the Venice model).
-  const [deepMode, setDeepMode] = useState(false);
   const [backendType, setBackendTypeState] = useState<AIBackendType>(() =>
     // Desktop used to start on 'local'. No model ships with the app, so a fresh
     // install sat on a fifteen-second wait and then an error, while Private
@@ -351,9 +353,6 @@ export function ChatProvider({
     if (type === 'local' && (!localAvailable || !backendEnabled.local)) return;
     if (type === 'custom' && !backendEnabled.custom) return;
     backendSelectedRef.current = true;
-    // Deep only exists on Private Cloud. Leaving cloud drops it so that coming
-    // back later doesn't silently resume Deep on the next message.
-    if (type !== 'cloud') setDeepMode(false);
     // Invalidate the previous engine synchronously. This prevents a tap in the
     // render between selecting Local and initializing Local from reaching a
     // still-ready Cloud backend (or the reverse).
@@ -422,7 +421,7 @@ export function ChatProvider({
   // Requesting the greeting is a signal, not a state mutation: the animation
   // below owns its own interval through the effect cleanup. The previous
   // version started the interval inside a setMessages updater, which React may
-  // invoke more than once, and cleared it through a shared ref — so an older
+  // invoke more than once, and cleared it through a shared ref, so an older
   // tick could kill a newer timer and freeze the sentence mid-word.
   const showGreeting = useCallback(() => {
     setGreetingRequest(n => n + 1);
@@ -472,7 +471,6 @@ export function ChatProvider({
     const sessionId = currentSessionIdRef.current;
     currentSessionIdRef.current = null;
     setActiveSessionId(null);
-    setDeepMode(false);
     setMessages(prev => {
       if (sessionDirtyRef.current) persistSessionMessages(prev, sessionId, false);
       return [];
@@ -486,7 +484,6 @@ export function ChatProvider({
 
   const openSession = useCallback(async (id: string) => {
     const sessionId = currentSessionIdRef.current;
-    setDeepMode(false);
     setMessages(prev => {
       if (sessionDirtyRef.current) persistSessionMessages(prev, sessionId, false);
       return [];
@@ -614,7 +611,17 @@ export function ChatProvider({
         return;
       }
 
-      const bs = backend?.status();
+      // A backend that is still initializing (a local model loading into
+      // memory right after a download, for instance) deserves a bounded wait,
+      // not an instant failure: the typing indicator covers the pause.
+      let bs = backend?.status();
+      if (backend && backend.type === backendType && bs?.state === 'loading') {
+        const deadline = Date.now() + 30_000;
+        while (Date.now() < deadline && backend.status().state === 'loading') {
+          await new Promise<void>(resolve => setTimeout(resolve, 500));
+        }
+        bs = backend.status();
+      }
       if (!backend || backend.type !== backendType || bs?.state !== 'ready') {
         const reason = bs?.state === 'error' ? (bs as any).message : 'AI is still loading. Please wait a moment.';
         setMessages(prev => {
@@ -629,7 +636,7 @@ export function ChatProvider({
 
       const instructions = await getAliceInstructions();
       // Auto-continuation is a cloud-only behaviour. It re-sends the whole
-      // conversation each round — a reasonable trade against Venice, but wrong
+      // conversation each round, a reasonable trade against Venice, but wrong
       // for a local model (slow, battery) or an unknown custom server. Local and
       // Custom still surface the truncation notice through result.truncated; they
       // just never silently continue. A "one sentence" instruction also makes a
@@ -637,7 +644,7 @@ export function ChatProvider({
       // A "one sentence" instruction buffers the answer and trims it to a single
       // sentence, so the displayed reply is complete by construction. Provider
       // truncation of the raw output is then irrelevant, and the "may be
-      // incomplete" notice would contradict the user's own request — suppress it.
+      // incomplete" notice would contradict the user's own request, suppress it.
       // (The smallest preset budget is 256 tokens, far more than one sentence, so
       // a genuinely cut-off single sentence is not a realistic case.)
       const buffered = requiresBufferedAliceResponse(instructions);
@@ -646,14 +653,10 @@ export function ChatProvider({
       const allowContinuation = backend.type === 'cloud'
         && backend.allowsAutoContinuation !== false
         && !buffered;
-      // Deep only takes effect on cloud; record what actually applied, so the
-      // badge never appears on a local or custom answer.
-      const answeredDeep = deepMode && backend.type === 'cloud';
       usedBackend = true;
       const result = await generateLanguageChecked({
         backend,
         history: generationPreparation.history,
-        deep: deepMode,
         allowContinuation,
         targetLanguage: languageDecision.targetLanguage,
         requestId: backend.type === 'cloud' ? createPrivateCloudRequestId() : undefined,
@@ -680,7 +683,7 @@ export function ChatProvider({
       full = applyAliceResponseConstraints(instructions, result.text);
       void rememberAliceCandidates(result.memoryCandidates).catch(() => {});
       setMessages(prev => {
-        const next = prev.map(m => m.id === aid ? { ...m, content: full, usage: result.usage, durationMs: result.durationMs, truncated: result.truncated && !buffered, deep: answeredDeep } : m);
+        const next = prev.map(m => m.id === aid ? { ...m, content: full, usage: result.usage, durationMs: result.durationMs, truncated: result.truncated && !buffered } : m);
         persistSessionMessages(next);
         return next;
       });
@@ -689,13 +692,15 @@ export function ChatProvider({
       console.warn('[chat] send failed:', err);
       setMessages(prev => {
         const content = userFacingSendError(err, backendType);
+        const quotaBlocked = quotaBlockOf(err) ?? undefined;
         const next = pendingAssistantId
-          ? prev.map(message => message.id === pendingAssistantId ? { ...message, content } : message)
+          ? prev.map(message => message.id === pendingAssistantId ? { ...message, content, quotaBlocked } : message)
           : [...prev, {
             id: (Date.now() + 2).toString(),
             role: 'assistant' as const,
             content,
             time: new Date(),
+            quotaBlocked,
           }];
         persistSessionMessages(next);
         return next;
@@ -711,7 +716,6 @@ export function ChatProvider({
     aiEnabled,
     backendType,
     busy,
-    deepMode,
     input,
     persistSessionMessages,
     storageCipher,
@@ -817,10 +821,8 @@ export function ChatProvider({
         storageCipher,
         backend.allowsAutoContinuation === false,
       );
-      // Deep only takes effect on cloud; badge reflects what actually applied.
-      const answeredDeep = deepMode && backend.type === 'cloud';
       // A "one sentence" instruction trims the answer on purpose, so a provider
-      // truncation notice would be a false positive — suppress it here too.
+      // truncation notice would be a false positive, suppress it here too.
       const buffered = requiresBufferedAliceResponse(instructions);
       // allowsAutoContinuation is false under E2EE: assistant turns are dropped
       // rather than sent in clear, so there is no partial answer to extend.
@@ -843,8 +845,7 @@ export function ChatProvider({
         const result = await generateLanguageChecked({
           backend,
           history: generationPreparation.history,
-          deep: deepMode,
-          allowContinuation,
+            allowContinuation,
           targetLanguage: languageDecision.targetLanguage,
           requestId: backend.type === 'cloud' ? createPrivateCloudRequestId() : undefined,
           onText: buffered ? undefined : visible => {
@@ -872,14 +873,14 @@ export function ChatProvider({
             if (m.id !== assistantMsg.id) return m;
             const vs = [...(m.variants ?? [])];
             vs[newAIdx] = { content: full, time: new Date(), usage: result.usage, durationMs: result.durationMs };
-            return { ...m, content: full, variants: vs, activeVariant: newAIdx, usage: result.usage, durationMs: result.durationMs, truncated: result.truncated && !buffered, deep: answeredDeep };
+            return { ...m, content: full, variants: vs, activeVariant: newAIdx, usage: result.usage, durationMs: result.durationMs, truncated: result.truncated && !buffered };
           });
           persistSessionMessages(next);
           return next;
         });
         historyRef.current.push({ role: 'assistant', content: full });
       } else {
-        // No paired assistant message — create one
+        // No paired assistant message, create one
         const aid = (Date.now() + 1).toString();
         pendingAssistantId = aid;
         setMessages(p => [...p, { id: aid, role: 'assistant' as const, content: '', time: new Date() }]);
@@ -887,8 +888,7 @@ export function ChatProvider({
         const result = await generateLanguageChecked({
           backend,
           history: generationPreparation.history,
-          deep: deepMode,
-          allowContinuation,
+            allowContinuation,
           targetLanguage: languageDecision.targetLanguage,
           requestId: backend.type === 'cloud' ? createPrivateCloudRequestId() : undefined,
           onText: buffered ? undefined : visible => {
@@ -908,7 +908,7 @@ export function ChatProvider({
         full = applyAliceResponseConstraints(instructions, result.text);
         void rememberAliceCandidates(result.memoryCandidates).catch(() => {});
         setMessages(p => {
-          const next = p.map(m => m.id === aid ? { ...m, content: full, usage: result.usage, durationMs: result.durationMs, truncated: result.truncated && !buffered, deep: answeredDeep } : m);
+          const next = p.map(m => m.id === aid ? { ...m, content: full, usage: result.usage, durationMs: result.durationMs, truncated: result.truncated && !buffered } : m);
           persistSessionMessages(next);
           return next;
         });
@@ -918,15 +918,16 @@ export function ChatProvider({
       console.warn('[chat] edit re-send failed:', err);
       if (pendingAssistantId) {
         const errorMessage = userFacingSendError(err, backendType);
+        const quotaBlocked = quotaBlockOf(err) ?? undefined;
         setMessages(p => {
           const next = p.map(message => {
             if (message.id !== pendingAssistantId) return message;
             if (!message.variants || message.activeVariant == null) {
-              return { ...message, content: errorMessage };
+              return { ...message, content: errorMessage, quotaBlocked };
             }
             const variants = [...message.variants];
             variants[message.activeVariant] = { ...variants[message.activeVariant], content: errorMessage };
-            return { ...message, content: errorMessage, variants };
+            return { ...message, content: errorMessage, variants, quotaBlocked };
           });
           persistSessionMessages(next);
           return next;
@@ -940,7 +941,7 @@ export function ChatProvider({
       }
       setBusy(false);
     }
-  }, [account, aiEnabled, backendType, busy, deepMode, persistSessionMessages, rebuildHistory, storageCipher]);
+  }, [account, aiEnabled, backendType, busy, persistSessionMessages, rebuildHistory, storageCipher]);
 
   const setMessageVariant = useCallback((id: string, variantIndex: number) => {
     sessionDirtyRef.current = true;
@@ -970,8 +971,8 @@ export function ChatProvider({
   }, [persistSessionMessages, rebuildHistory]);
 
   const value = useMemo(
-    () => ({ messages, input, setInput, send, busy, deepMode, setDeepMode, backendType, backendStatus, setBackendType, localAvailable, aiEnabled, setAiEnabled, backendEnabled, setBackendEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant }),
-    [messages, input, send, busy, deepMode, backendType, backendStatus, setBackendType, localAvailable, aiEnabled, setAiEnabled, backendEnabled, setBackendEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant],
+    () => ({ messages, input, setInput, send, busy, backendType, backendStatus, setBackendType, localAvailable, aiEnabled, setAiEnabled, backendEnabled, setBackendEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant }),
+    [messages, input, send, busy, backendType, backendStatus, setBackendType, localAvailable, aiEnabled, setAiEnabled, backendEnabled, setBackendEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant],
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

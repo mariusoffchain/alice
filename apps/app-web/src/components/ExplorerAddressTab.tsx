@@ -66,7 +66,7 @@ type State =
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex flex-col">
-      <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>{label}</span>
+      <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{label}</span>
       <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>{value}</span>
     </div>
   );
@@ -276,7 +276,7 @@ export function ExplorerAddressTab({
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3">
             {['BALANCE', 'TRANSACTIONS', 'TIMES RECEIVED', 'RECEIVED', 'FIRST SEEN', 'AVG COIN AGE'].map(l => (
               <div key={l} className="flex flex-col gap-1">
-                <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>{l}</span>
+                <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{l}</span>
                 <Skeleton width="60%" />
               </div>
             ))}
@@ -297,8 +297,8 @@ export function ExplorerAddressTab({
   }
   if (state.kind === 'error') {
     return (
-      <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid #e06060', borderRadius: 2 }}>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: '#e06060' }}>COULD NOT LOAD</span>
+      <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>COULD NOT LOAD</span>
         <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{state.message}</p>
       </div>
     );
@@ -408,12 +408,12 @@ export function ExplorerAddressTab({
       {reused && (
         <div
           className="flex flex-col gap-2 px-4 py-3"
-          style={{ border: '1px solid var(--alice-border)', borderLeft: '3px solid #e0a060', borderRadius: 2 }}
+          style={{ border: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-warning)', borderRadius: 2 }}
         >
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>Address reuse</span>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 6, padding: '3px 6px', border: '1px solid #e0a060', borderRadius: 2, color: '#e0a060' }}>MEDIUM</span>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 6, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}>CERTAIN CONFIDENCE</span>
+            <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-warning)', borderRadius: 2, color: 'var(--alice-warning)' }}>MEDIUM</span>
+            <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}>CERTAIN CONFIDENCE</span>
           </div>
           <p className="font-numbers m-0" style={{ fontSize: 13, lineHeight: '19px', color: 'var(--alice-muted)' }}>
             This address has received funds {s.fundedCount} times. Reusing an address publicly ties
@@ -427,13 +427,13 @@ export function ExplorerAddressTab({
       {linked.length > 0 && (
         <div
           className="flex flex-col gap-2 px-4 py-3 rh-fade-in"
-          style={{ border: '1px solid var(--alice-border)', borderLeft: '3px solid #e0a060', borderRadius: 2 }}
+          style={{ border: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-warning)', borderRadius: 2 }}
         >
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>
               {linked.length} linked address{linked.length > 1 ? 'es' : ''}
             </span>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 6, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}>PROBABLE</span>
+            <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}>PROBABLE</span>
           </div>
           <p className="font-numbers m-0" style={{ fontSize: 13, lineHeight: '19px', color: 'var(--alice-muted)' }}>
             These addresses were spent together with this one, so common-input ownership ties them
@@ -475,7 +475,7 @@ export function ExplorerAddressTab({
         className="flex flex-col gap-1 px-4 py-3"
         style={{ border: '1px dashed var(--alice-border)', borderRadius: 2 }}
       >
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>KYC EXPOSURE</span>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>KYC EXPOSURE</span>
         <p className="font-numbers m-0" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
           Checking whether this address touches a known exchange or service needs a labelled
           entity database, which is not loaded yet. Coming with the entity dataset.
@@ -513,7 +513,7 @@ export function ExplorerAddressTab({
           onClick={() => setVisible(v => v + LIST_PAGE)}
           className="font-pixel tracking-widest self-center cursor-pointer"
           style={{
-            fontSize: 7, padding: '8px 16px', borderRadius: 2,
+            fontSize: 10, padding: '8px 16px', borderRadius: 2,
             border: '2px solid var(--alice-border)', backgroundColor: 'transparent', color: 'var(--alice-primary)',
           }}
         >

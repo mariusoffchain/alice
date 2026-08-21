@@ -37,15 +37,11 @@ export async function loadPublicKey(): Promise<string | null> {
   return AsyncStorage.getItem(PUBKEY_KEY);
 }
 
-export type ClearWalletOptions = {
-  allowUnsafePendingSwaps?: boolean;
-};
-
-export async function clearWallet(options: ClearWalletOptions = {}): Promise<void> {
+export async function clearWallet(): Promise<void> {
   const { clearWalletBackendData } = await import('./ark');
   const { clearAppLock } = await import('./app-lock');
   const { clearDelegateRenewalPreference } = await import('./delegate-settings');
-  await clearWalletBackendData({ allowUnsafePendingSwaps: options.allowUnsafePendingSwaps });
+  await clearWalletBackendData();
   await clearAppLock();
   await clearDelegateRenewalPreference();
   if (Platform.OS === 'web') {

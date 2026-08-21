@@ -32,8 +32,18 @@ function formatDate(sec: number): string {
 // Balance over time as a stepped area chart, with range buttons and a hover
 // readout. The series is a step function (balance holds between transactions),
 // drawn as filled area plus the line on top.
-export function ExplorerBalanceChart({ points, partial }: { points: BalancePoint[]; partial: boolean }) {
-  const unit = useAmountState();
+export function ExplorerBalanceChart({
+  points,
+  partial,
+  noFiat = false,
+}: {
+  points: BalancePoint[];
+  partial: boolean;
+  /** Playground: valueless sats must never display as fiat. */
+  noFiat?: boolean;
+}) {
+  const rawUnit = useAmountState();
+  const unit = noFiat && rawUnit.format === 'usd' ? { ...rawUnit, format: 'symbol' as const } : rawUnit;
   const [rangeIdx, setRangeIdx] = useState(RANGES.length - 1); // default ALL
   const [hoverX, setHoverX] = useState<number | null>(null);
 
@@ -82,7 +92,7 @@ export function ExplorerBalanceChart({ points, partial }: { points: BalancePoint
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>BALANCE</span>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>BALANCE</span>
         <div className="flex gap-1">
           {RANGES.map((r, i) => (
             <button
@@ -91,7 +101,7 @@ export function ExplorerBalanceChart({ points, partial }: { points: BalancePoint
               onClick={() => setRangeIdx(i)}
               className="font-pixel tracking-widest cursor-pointer"
               style={{
-                fontSize: 7, padding: '4px 8px', borderRadius: 2,
+                fontSize: 10, padding: '4px 8px', borderRadius: 2,
                 border: `1px solid ${i === rangeIdx ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
                 backgroundColor: 'transparent',
                 color: i === rangeIdx ? 'var(--alice-primary)' : 'var(--alice-muted)',

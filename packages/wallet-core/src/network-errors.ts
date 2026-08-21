@@ -8,6 +8,7 @@ import {
 } from './network-config';
 import { explorerUnavailableError } from './network-labels';
 import { healthCheckFailureDetail } from './network-health';
+import { friendlyBoltzLimitError } from './boltz-error-message';
 
 export {
   ARKADE_INFO_URL,

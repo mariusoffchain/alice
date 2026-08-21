@@ -59,3 +59,71 @@ export function saveTabs(tabs: Tab[], activeId: string): void {
     // Storage full or unavailable: persistence is a nicety, not essential.
   }
 }
+
+// One-shot deep-link channel: another surface (Learn's "See in the Explorer"
+// anchors, the Playground's transactions) requests a subject to open, and the
+// workspace consumes it on mount. Kept separate from the tab list itself so it
+// never races the panel's own persistence.
+const PENDING_KEY = 'explorer.pending-open.v1';
+const OPENABLE: TabKind[] = ['tx', 'address', 'block', 'xpub'];
+
+export interface PendingOpenNote {
+  /** Human words for what the subject is ("Les 2 pizzas à 10 000 BTC"). */
+  label: string;
+  /** Where the visitor comes from ("Cours BTC101"), for the arrival banner. */
+  origin: string;
+}
+
+export function requestPendingOpen(
+  kind: Exclude<TabKind, 'overview'>,
+  query: string,
+  note?: PendingOpenNote,
+  /** Network the subject lives on; omitted means the visitor's default. */
+  networkId?: string,
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(PENDING_KEY, JSON.stringify({ kind, query, note, networkId }));
+  } catch {
+    // Best-effort; the Explorer just opens on Home.
+  }
+}
+
+export function consumePendingOpen(): {
+  kind: Exclude<TabKind, 'overview'>;
+  query: string;
+  note?: PendingOpenNote;
+  networkId?: string;
+} | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(PENDING_KEY);
+    if (!raw) return null;
+    window.localStorage.removeItem(PENDING_KEY);
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const p = parsed as Record<string, unknown>;
+    if (typeof p.kind !== 'string' || typeof p.query !== 'string' || !p.query) return null;
+    if (!OPENABLE.includes(p.kind as TabKind)) return null;
+    const rawNote = p.note as Record<string, unknown> | undefined;
+    const note =
+      rawNote && typeof rawNote.label === 'string' && typeof rawNote.origin === 'string'
+        ? { label: rawNote.label, origin: rawNote.origin }
+        : undefined;
+    // A network id read back from storage is only honoured if the registry
+    // still knows it: a link kept from before a network was retired must fall
+    // back to the visitor's default rather than open a tab on nothing.
+    const networkId =
+      typeof p.networkId === 'string' && getNetwork(p.networkId).id === p.networkId
+        ? p.networkId
+        : undefined;
+    return {
+      kind: p.kind as Exclude<TabKind, 'overview'>,
+      query: p.query,
+      note,
+      networkId,
+    };
+  } catch {
+    return null;
+  }
+}

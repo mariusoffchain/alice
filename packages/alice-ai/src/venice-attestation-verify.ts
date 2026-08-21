@@ -10,7 +10,7 @@
 //     unauthenticated JSON.
 //
 // They are only meaningful once the TDX quote's SIGNATURE has been verified
-// against Intel's trust chain (DCAP) — otherwise a malicious relay could forge
+// against Intel's trust chain (DCAP), otherwise a malicious relay could forge
 // a consistent quote + report_data + key. The DCAP signature/TCB step and the
 // measurement-pinning policy live in the integration layer; see
 // verifyTdReportBinding's contract below.
@@ -51,7 +51,7 @@ export function assertNotDebug(tdAttributesHex: string): void {
 /**
  * The binding check: the first 20 bytes of the quote's report_data must equal
  * the address derived from the model's signing public key. This is what stops a
- * relay from swapping in a key it controls — it cannot produce a valid quote
+ * relay from swapping in a key it controls, it cannot produce a valid quote
  * whose report_data matches a foreign key.
  *
  * `reportDataHex` MUST come from a DCAP-verified quote, not from an unauthenticated
@@ -115,8 +115,7 @@ export const ACCEPTABLE_TCB_STATUSES = new Set(['UpToDate']);
  *
  * Authority (per dstack): MRTD + RTMR0-2 are the OS/hardware layer, whitelisted
  * on-chain by `DstackKms.allowedOsImages` and reproducible from meta-dstack.
- * RTMR3 carries the app compose-hash, whitelisted by the `DstackApp` contract —
- * change one byte of Venice's compose and RTMR3 won't match. Values must come
+ * RTMR3 carries the app compose-hash, whitelisted by the `DstackApp` contract, * change one byte of Venice's compose and RTMR3 won't match. Values must come
  * from an authoritative source (Phala trust-center / dstack-verifier against
  * Venice's app-id, or a reproducible build), never invented here.
  *
@@ -158,14 +157,14 @@ export function assertPinnedMeasurements(
 /**
  * Run the checks against an already-DCAP-verified report.
  *
- * Contract — what the caller MUST have done first:
+ * Contract, what the caller MUST have done first:
  *   The report MUST come from a verifier that checked the quote signature
  *   against Intel's trust chain (e.g. @phala/dcap-qvl >= 0.3.9, avoiding
  *   CVE-2026-22696). This function trusts `report` is authentic.
  *
  * Trust levels:
  *   - Without `pins`, this proves "a genuine, TCB-current, non-debug Intel TDX
- *     enclave that committed to this key" — NOT "Venice's specific code". The UI
+ *     enclave that committed to this key", NOT "Venice's specific code". The UI
  *     must not claim trustless end-to-end encryption in this state.
  *   - With `pins`, it additionally proves the enclave runs the pinned OS image
  *     and app compose-hash, which is what backs a real E2EE claim.

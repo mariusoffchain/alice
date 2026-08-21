@@ -7,6 +7,7 @@ import worker, { type Env } from './index.ts';
 let miniflare: Miniflare;
 let db: D1Database;
 let env: Env;
+let sentCode = '';
 
 const AUTH_SECRET = 'alice-test-hmac-secret-with-more-than-thirty-two-bytes';
 const BOOTSTRAP_SECRET = 'alice-test-bootstrap-secret-with-more-than-32-bytes';
@@ -30,8 +31,16 @@ beforeEach(async () => {
       await db.prepare(statement).run();
     }
   }
+  sentCode = '';
   env = {
     ACCOUNT_DB: db,
+    EMAIL: {
+      async send(message: { subject: string }) {
+        sentCode = message.subject.match(/\b(\d{6})\b/)?.[1] ?? '';
+        return { messageId: 'message-test' };
+      },
+    },
+    AUTH_EMAIL_FROM: 'login@alice.example',
     AUTH_HMAC_KEY: AUTH_SECRET,
     ADMIN_BOOTSTRAP_SECRET: BOOTSTRAP_SECRET,
     // The console is off by default in production; these tests exercise it,
@@ -65,23 +74,55 @@ function jsonRequest(path: string, body: unknown, headers: Record<string, string
   });
 }
 
-async function registerAccount(prefix: string) {
+/**
+ * An account with a name and a password, created the way the apps create one:
+ * an address proved by a code first, then a username and a password added to
+ * it. There is no password-only registration route any more, because every
+ * account is expected to be reachable.
+ */
+async function registerAccount(prefix: string, password = ADMIN_PASSWORD) {
   // A distinct install id per account: the free 21-request grant is claimed
   // once per installation, so sharing one id across accounts in a test would
   // silently starve every account after the first.
-  const res = await worker.fetch(
-    jsonRequest('/auth/password/register', {
-      password: ADMIN_PASSWORD,
-      prefix,
-      suffix: 'wonderland',
-    }, { 'x-alice-install-id': `install-${prefix}-000000000000` }),
+  const headers = { 'x-alice-install-id': `install-${prefix}-000000000000` };
+  const email = `${prefix}@example.com`;
+  // Creation goes through the deliberate door: an anonymous session that
+  // links this email. Bare code sign-in stopped creating accounts.
+  const anonymous = await worker.fetch(jsonRequest('/auth/anonymous', {}, headers), env);
+  assert.equal(anonymous.status, 200);
+  const anonSession = await anonymous.json() as { access_token: string };
+  const authed = { ...headers, authorization: `Bearer ${anonSession.access_token}` };
+  assert.equal(
+    (await worker.fetch(jsonRequest('/account/identities/email/start', { email }, authed), env)).status,
+    200,
+  );
+  const verified = await worker.fetch(
+    jsonRequest('/account/identities/email/verify', { email, code: sentCode }, authed),
     env,
   );
-  assert.equal(res.status, 200);
-  return res.json() as Promise<{
-    access_token: string;
-    account: { user_id: string; username: string };
-  }>;
+  assert.equal(verified.status, 200);
+  const linked = await verified.json() as { account: { user_id: string } };
+  const session = {
+    access_token: anonSession.access_token,
+    account: linked.account,
+  };
+
+  const named = await worker.fetch(
+    jsonRequest('/account/password', {
+      password,
+      prefix,
+      suffix: 'wonderland',
+    }, { ...headers, authorization: `Bearer ${session.access_token}` }, 'PUT'),
+    env,
+  );
+  return {
+    status: named.status,
+    body: named,
+    access_token: session.access_token,
+    account: named.status === 200
+      ? (await named.json() as { account: { user_id: string; username: string } }).account
+      : { user_id: session.account.user_id, username: '' },
+  };
 }
 
 function bearer(token: string) {
@@ -750,19 +791,11 @@ describe('audit log hygiene', () => {
 
 describe('first-run bootstrap flow', () => {
   it('walks a brand-new operator from account creation to admin access', async () => {
-    // 1. Create an Alice account with a password, exactly as the app does.
-    const created = await worker.fetch(
-      jsonRequest('/auth/password/register', {
-        password: 'a-very-strong-and-long-password-1',
-        prefix: 'marius',
-        suffix: 'wonderland',
-      }, { 'x-alice-install-id': 'install-firstrun-0000000001' }),
-      env,
-    );
+    // 1. Create an Alice account, exactly as the app does: an address proved
+    //    by a code, then a username and a password on top of it.
+    const created = await registerAccount('marius');
     assert.equal(created.status, 200);
-    const account = await created.json() as {
-      account: { username: string };
-    };
+    const account = { account: created.account };
     assert.match(account.account.username, /^marius\.wonderland#\d{4}$/);
 
     // 2. Sign in from the dashboard's login form.
@@ -822,17 +855,10 @@ describe('first-run bootstrap flow', () => {
   });
 
   it('refuses a password shorter than Alice allows', async () => {
-    const res = await worker.fetch(
-      jsonRequest('/auth/password/register', {
-        password: 'short-pass',
-        prefix: 'tooshort',
-        suffix: 'wonderland',
-      }, { 'x-alice-install-id': 'install-shortpw-0000000001' }),
-      env,
-    );
-    assert.equal(res.status, 400);
+    const created = await registerAccount('tooshort', 'short-pass');
+    assert.equal(created.status, 400);
     assert.equal(
-      (await res.json() as { error: { code: string } }).error.code,
+      (await created.body.json() as { error: { code: string } }).error.code,
       'invalid_password',
     );
   });

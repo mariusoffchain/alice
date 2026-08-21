@@ -1,6 +1,6 @@
 {
   "productName": "Alice",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "com.alicebitcoin.desktop",
   "build": {
     "beforeDevCommand": "",
@@ -23,12 +23,12 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' tauri: asset: ipc: blob: 'unsafe-inline' 'unsafe-eval'; connect-src ipc: 'self' https://api.venice.ai https://*.alicebtc.com https://huggingface.co https://*.hf.co http://localhost:* http://127.0.0.1:*; img-src 'self' data: asset: blob:"
+      "csp": "default-src 'self' tauri: asset: ipc: blob: 'unsafe-inline' 'unsafe-eval'; connect-src ipc: 'self' https://cdn.jsdelivr.net https://api.venice.ai https://*.alicebtc.com https://huggingface.co https://*.hf.co http://localhost:* http://127.0.0.1:*; img-src 'self' data: asset: blob: https://raw.githubusercontent.com; frame-src https://www.youtube-nocookie.com"
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["app"],
+    "targets": ["dmg", "msi", "appimage", "deb"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

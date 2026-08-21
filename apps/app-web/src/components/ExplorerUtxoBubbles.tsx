@@ -44,7 +44,7 @@ export function ExplorerUtxoBubbles({ utxos, confidential = false, title = 'UNSP
       style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
     >
       <div className="flex items-center justify-between">
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
           {title}
         </span>
         <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>

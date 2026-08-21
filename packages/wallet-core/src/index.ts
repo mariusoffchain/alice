@@ -92,6 +92,7 @@ export {
   friendlyNetworkError,
   checkNetworkHealth,
 } from './network-errors';
+export { friendlyRefundError } from './refund-errors';
 export {
   NETWORK,
   ASP_URL,

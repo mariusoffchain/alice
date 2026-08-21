@@ -8,6 +8,7 @@ import {
 } from './generate-with-continuation.ts';
 import type { AIBackend, AIResponse, AIBackendStatus } from './ai-backend';
 import type { Message } from './llm';
+import type { PartMessage } from './message-parts';
 
 // One scripted reply per round. `sendMessage` streams `content` chunk by chunk
 // (so the streaming path is exercised), records the messages it was handed, and
@@ -15,7 +16,7 @@ import type { Message } from './llm';
 type Round = Partial<AIResponse> & { content: string; throws?: Error };
 
 function fakeBackend(rounds: Round[]) {
-  const calls: { messages: Message[]; deep: boolean }[] = [];
+  const calls: { messages: PartMessage[] }[] = [];
   let round = 0;
   const backend: AIBackend = {
     type: 'cloud',
@@ -25,7 +26,7 @@ function fakeBackend(rounds: Round[]) {
     async sendMessage(messages, onChunk, options) {
       const current = rounds[round] ?? { content: '' };
       round += 1;
-      calls.push({ messages: messages.map(m => ({ ...m })), deep: Boolean(options?.deep) });
+      calls.push({ messages: messages.map(m => ({ ...m })) });
       if (current.throws) throw current.throws;
       if (onChunk && current.content) {
         for (const ch of current.content) onChunk(ch);
@@ -43,11 +44,11 @@ function fakeBackend(rounds: Round[]) {
 
 const history: Message[] = [{ role: 'user', content: 'Explain UTXOs.' }];
 
-async function run(rounds: Round[], allowContinuation = true, deep = false) {
+async function run(rounds: Round[], allowContinuation = true) {
   const { backend, calls, callCount } = fakeBackend(rounds);
   const texts: string[] = [];
   const outcome = await generateWithContinuation(
-    backend, history, deep, allowContinuation, t => texts.push(t),
+    backend, history, allowContinuation, t => texts.push(t),
   );
   return { outcome, calls, callCount: callCount(), texts };
 }
@@ -98,7 +99,7 @@ describe('generateWithContinuation', () => {
     assert.equal(callCount, 1);
     assert.equal(outcome.text, 'Just one sentence.');
     // The caller asked to suppress continuation, but the answer really was cut,
-    // so the flag stays true — that is what drives the "may be incomplete" note.
+    // so the flag stays true, that is what drives the "may be incomplete" note.
     assert.equal(outcome.truncated, true);
   });
 
@@ -106,7 +107,7 @@ describe('generateWithContinuation', () => {
     const boom = new Error('network down');
     const { backend } = fakeBackend([{ content: '', throws: boom }]);
     await assert.rejects(
-      () => generateWithContinuation(backend, history, false, true, () => {}),
+      () => generateWithContinuation(backend, history, true, () => {}),
       /network down/,
     );
   });
@@ -160,19 +161,6 @@ describe('generateWithContinuation', () => {
     assert.equal(outcome.durationMs, undefined);
   });
 
-  it('passes deep through on every round', async () => {
-    const { calls } = await run(
-      [
-        { content: 'part ', truncated: true },
-        { content: 'end', truncated: false },
-      ],
-      true,
-      true,
-    );
-    assert.equal(calls.length, 2);
-    assert.ok(calls.every(c => c.deep === true));
-  });
-
   it('falls back to streamed text when content is empty but chunks arrived', async () => {
     // Some backends stream deltas and return an empty `content`; the streamed
     // text must not be lost.
@@ -184,7 +172,7 @@ describe('generateWithContinuation', () => {
         return { content: '', truncated: false };
       },
     };
-    const outcome = await generateWithContinuation(streaming, history, false, true, () => {});
+    const outcome = await generateWithContinuation(streaming, history, true, () => {});
     assert.equal(outcome.text, 'streamed only');
   });
 });
@@ -195,7 +183,7 @@ it('uses the localized continuation instruction for a French answer', async () =
     { content: ' puis la conclusion.', truncated: false },
   ]);
 
-  await generateWithContinuation(backend, [{ role: 'user', content: 'Explique Bitcoin.' }], false, true, () => {}, {
+  await generateWithContinuation(backend, [{ role: 'user', content: 'Explique Bitcoin.' }], true, () => {}, {
     responseLanguage: 'fr',
   });
 

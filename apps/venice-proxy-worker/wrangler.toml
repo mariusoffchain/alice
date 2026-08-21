@@ -1,4 +1,10 @@
 name = "alice-venice-proxy"
+# Pinned because this machine also deploys other projects under another
+# Cloudflare account. The morning offchain-site was shipped, wrangler's OAuth
+# switched accounts and the next Alice deploy failed as a bare authorization
+# error, read as a success. With the id pinned, a wrong-account token says
+# plainly which account it is missing.
+# account_id intentionally omitted; Wrangler can infer yours from your token.
 main = "src/index.ts"
 compatibility_date = "2026-07-29"
 compatibility_flags = ["nodejs_compat"]
@@ -57,12 +63,81 @@ migrations_dir = "migrations-entities"
 [vars]
 # Comma-separated origin allowlist for CORS. Keep it as tight as the
 # deployment allows; an empty list means no cross-origin browser access.
-ALLOWED_ORIGINS = "https://app.alicebtc.com,https://wallet.alicebtc.com,https://mutinynet.alicebtc.com,https://mainnet-alice-wallet.vercel.app,tauri://localhost,http://localhost:3000,http://127.0.0.1:3000"
+ALLOWED_ORIGINS = "https://alicebtc.com,https://app.alicebtc.com,https://wallet.alicebtc.com,https://mutinynet.alicebtc.com,https://mainnet-alice-wallet.vercel.app,tauri://localhost,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3002,http://localhost:8100"
 AUTH_EMAIL_FROM = "login@auth.alicebtc.com"
 AUTH_EMAIL_PROVIDER = "resend"
 FREE_CLOUD_MODELS = "e2ee-gpt-oss-120b-p"
 FREE_CLOUD_MAX_TOKENS = "2048"
 FREE_CLOUD_MAX_REQUEST_BYTES = "262144"
+
+# What a paid plan may reach. Deep Research is the one model gated by plan
+# rather than by allowance: Cloud+ includes it, Cloud does not, and asking for
+# it on the wrong plan is refused with its own code so the app can offer the
+# upgrade instead of a dead end. A paid plan is metered by volume, so its
+# answer ceiling is not the free plan's short one.
+PAID_CLOUD_MODELS = "e2ee-gpt-oss-120b-p"
+PAID_CLOUD_MAX_TOKENS = "8192"
+
+# The context a single Deep Research run may carry, and the request size that
+# follows from it through BYTES_PER_TOKEN. The free plan keeps its own, smaller
+# limit: there is no trial run, so no free request ever reaches this model.
+PAID_CLOUD_MAX_REQUEST_BYTES = "524288"
+
+# Commercial grid. Prices in cents, allowances in tokens as advertised.
+# See docs/billing-and-quotas.md for what is actually metered and why.
+PLAN_CLOUD_PRICE_CENTS = "500"
+PLAN_INPUT_TOKENS = "8000000"
+PLAN_OUTPUT_TOKENS = "2000000"
+# Five runs, not twenty-one. At 500k of context a single run costs about 0.80
+# EUR of Venice inference, so twenty-one of them cost more than the plan sells
+# for. Five leaves the worst case around 5.70 EUR against 10 EUR collected.
+# See docs/billing-and-quotas.md for the full arithmetic.
+
+# The calibration constant that turns the advertised token allowance into the
+# byte budget the Worker can actually enforce.
+#
+# Alice relays end-to-end encrypted traffic and never buffers a response, so
+# she cannot read Venice's token counts. She counts the bytes that pass
+# through instead, without inspecting them. Once a month, compare the Worker's
+# total metered bytes against Venice's invoice and adjust this value. Both are
+# global totals: no per-user measurement is involved.
+BYTES_PER_TOKEN = "3.7"
+
+# Prices are quoted in satoshis and never in euros. The plans stay anchored to
+# a fiat amount so they keep covering what Venice charges, but that anchor is
+# internal: BILLING_CURRENCY is the anchor, SAT_PRICE_STEP is the rounding step
+# a quote lands on. The rate is pinned in the database and only the hourly cron
+# is allowed to move it, so a price does not tick while somebody reads it.
+BILLING_CURRENCY = "EUR"
+SAT_PRICE_STEP = "100"
+
+# BTCPay. The API key and the webhook secret are Wrangler secrets, never vars:
+#   npx wrangler secret put BTCPAY_API_KEY
+#   npx wrangler secret put BTCPAY_WEBHOOK_SECRET
+#
+# Leaving these unset makes checkout answer 503 and changes nothing else, which
+# is how the Worker ships until the store is live.
+BTCPAY_BASE_URL = "https://btcpay.alicebtc.com"
+BTCPAY_STORE_ID = "" # create your own BTCPay store
+# Where BTCPay sends the buyer back once they have paid. The account screen,
+# because that is where the confirmation and the new usage gauge appear.
+BILLING_RETURN_URL = "https://app.alicebtc.com/?settings=account"
+
+# ACCOUNT_EMAIL_KEY is a secret. It encrypts the address every account carries,
+# which Alice decrypts only when there is something to send: a plan about to
+# lapse, and the occasional product mail people opt into. It defends against a
+# leaked database or backup, not against Alice herself, and the interface says
+# so rather than implying more.
+#
+#   openssl rand -base64 48 | npx wrangler secret put ACCOUNT_EMAIL_KEY
+#
+# BILLING_EMAIL_KEY is the former name and is still read, because rows written
+# under it must stay readable.
+#
+# BILLING_EMAIL_KEY is a secret. It encrypts the optional renewal-reminder
+# address at rest, and exists only because Alice's sign-in deliberately keeps
+# no readable email address at all:
+#   openssl rand -base64 48 | npx wrangler secret put BILLING_EMAIL_KEY
 
 # Second gate on the admin dashboard, independent of the database. A session
 # must match one of these usernames AND have an admin_users row. A rogue or

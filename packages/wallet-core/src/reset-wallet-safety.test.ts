@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { getUnsafeResetPayments, pendingResetWarning } from './reset-wallet-safety.ts';
 import type { PaymentRecord, PaymentStatus } from './payment-types.ts';
@@ -42,4 +43,12 @@ test('reset safety warning names the number of pending or refundable swaps', () 
     pendingResetWarning(2),
     'Wallet reset blocked: 2 payment swaps are still pending or refundable. Settle or refund them first.',
   );
+});
+
+test('wallet reset exposes no unsafe pending-swap bypass', () => {
+  const storageSource = readFileSync(decodeURIComponent(new URL('./storage.ts', import.meta.url).pathname), 'utf8');
+  const arkSource = readFileSync(decodeURIComponent(new URL('./ark.ts', import.meta.url).pathname), 'utf8');
+
+  assert.doesNotMatch(storageSource, /allowUnsafePendingSwaps/);
+  assert.doesNotMatch(arkSource, /allowUnsafePendingSwaps/);
 });

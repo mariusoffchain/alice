@@ -145,11 +145,11 @@ export default function EmergencyExitScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-        <View style={s.warningBand}>
-          <Ionicons name="warning-outline" size={22} color="#c84f4f" />
+        <View style={[s.warningBand, { borderColor: colors.danger }]}>
+          <Ionicons name="warning-outline" size={22} color={colors.danger} />
           <View style={s.warningBody}>
-            <Text style={s.warningTitle}>UNILATERAL ON-CHAIN EXIT</Text>
-            <Text style={s.warningCopy}>
+            <Text style={[s.warningTitle, { color: colors.danger }]}>UNILATERAL ON-CHAIN EXIT</Text>
+            <Text style={[s.warningCopy, { color: colors.dangerInk }]}>
               This bypasses the Arkade server. It requires on-chain fee funds, confirmations and the VTXO timelock. Broadcast steps cannot be undone.
             </Text>
           </View>
@@ -157,8 +157,8 @@ export default function EmergencyExitScreen() {
 
         {loading && <ActivityIndicator color={colors.primary} style={s.loader} />}
         {!loading && !state && error && (
-          <View style={s.errorBand}>
-            <Text style={s.error}>{error}</Text>
+          <View style={[s.errorBand, { borderColor: colors.danger }]}>
+            <Text style={[s.error, { color: colors.danger }]}>{error}</Text>
             <TouchableOpacity style={s.primaryBtn} onPress={() => void load()}>
               <Text style={s.primaryText}>RETRY</Text>
             </TouchableOpacity>
@@ -170,8 +170,8 @@ export default function EmergencyExitScreen() {
               <Text style={s.sectionLabel}>STATUS</Text>
               <Text style={[
                 s.stage,
-                state.stage === 'completed' && s.good,
-                (state.stage === 'failed' || state.stage === 'needs-fee-funding') && s.danger,
+                state.stage === 'completed' && [s.good, { color: colors.success }],
+                (state.stage === 'failed' || state.stage === 'needs-fee-funding') && [s.danger, { color: colors.danger }],
               ]}>
                 {stageLabel(state.stage)}
               </Text>
@@ -242,7 +242,7 @@ export default function EmergencyExitScreen() {
                 <View style={s.feeSection}>
                   <View style={s.feeTitleLine}>
                     <Text style={s.sectionLabel}>P2A FEE WALLET</Text>
-                    <Text style={[s.feeBalance, state.feeBalanceSats <= 0 && s.danger]}>
+                    <Text style={[s.feeBalance, state.feeBalanceSats <= 0 && [s.danger, { color: colors.danger }]]}>
                       {fmt(state.feeBalanceSats)} SATS
                     </Text>
                   </View>
@@ -267,16 +267,16 @@ export default function EmergencyExitScreen() {
                 )}
 
                 {state.finalTxid && (
-                  <View style={s.completeBand}>
-                    <Ionicons name="checkmark-circle" size={24} color="#2ea043" />
+                  <View style={[s.completeBand, { borderColor: colors.success }]}>
+                    <Ionicons name="checkmark-circle" size={24} color={colors.success} />
                     <View style={s.completeBody}>
-                      <Text style={s.completeTitle}>BITCOIN EXIT BROADCAST</Text>
+                      <Text style={[s.completeTitle, { color: colors.success }]}>BITCOIN EXIT BROADCAST</Text>
                       <Text style={s.completeTxid}>{shortId(state.finalTxid)}</Text>
                     </View>
                   </View>
                 )}
 
-                {error && <Text style={s.error}>{error}</Text>}
+                {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
 
                 {state.stage !== 'completed' && (
                   <TouchableOpacity
@@ -313,7 +313,7 @@ export default function EmergencyExitScreen() {
               </>
             )}
 
-            {!prepared && error && <Text style={s.error}>{error}</Text>}
+            {!prepared && error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
           </>
         )}
       </ScrollView>
@@ -344,52 +344,52 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     iconBtn: { ...pixel, width: 38, height: 38, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardBg },
     headerSpacer: { width: 38 },
-    title: { fontFamily: typography.pixel, fontSize: 11, color: colors.primaryDark, letterSpacing: 2 },
+    title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 2 },
     content: { width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
     warningBand: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.lg, borderTopWidth: 2, borderBottomWidth: 2, borderColor: '#e06060' },
     warningBody: { flex: 1 },
-    warningTitle: { fontFamily: typography.pixel, fontSize: 8, color: '#c84f4f' },
+    warningTitle: { fontFamily: typography.pixel, fontSize: 12, color: '#c84f4f' },
     warningCopy: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: '#9e4141' },
     loader: { marginTop: spacing.xxxl },
     errorBand: { ...pixel, marginTop: spacing.lg, padding: spacing.lg, gap: spacing.md, backgroundColor: colors.cardBg, borderColor: '#c84f4f' },
     statusSection: { alignItems: 'center', paddingVertical: spacing.xl },
-    sectionLabel: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 1 },
-    stage: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 8, lineHeight: 18, color: colors.primaryDark, textAlign: 'center' },
+    sectionLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
+    stage: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 12, lineHeight: 18, color: colors.primaryDark, textAlign: 'center' },
     progress: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
     good: { color: '#2ea043' },
     danger: { color: '#c84f4f' },
     emptySelection: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.xl },
-    emptyTitle: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark },
+    emptyTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark },
     bodyCopy: { fontFamily: typography.numbers, fontSize: 15, lineHeight: 21, color: colors.muted, textAlign: 'center' },
     formSection: { gap: spacing.md },
     selectionLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     selectionValue: { fontFamily: typography.numbers, fontSize: 15, color: colors.primaryDark },
-    inputLabel: { marginTop: spacing.md, fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark },
+    inputLabel: { marginTop: spacing.md, fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark },
     input: { ...pixel, minHeight: 64, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, fontFamily: typography.numbers, fontSize: 16, color: colors.primaryDark, backgroundColor: colors.cardBg },
     dataSection: { ...pixel, backgroundColor: colors.cardBg },
     dataRow: { minHeight: 58, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.dotted },
-    dataLabel: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted },
+    dataLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
     dataValue: { flexShrink: 1, fontFamily: typography.numbers, fontSize: 15, color: colors.primaryDark, textAlign: 'right' },
     copyLine: { minHeight: 44, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.sm },
-    copyText: { fontFamily: typography.pixel, fontSize: 7, color: colors.primary },
+    copyText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary },
     feeSection: { marginTop: spacing.lg, padding: spacing.lg, borderTopWidth: 2, borderBottomWidth: 2, borderColor: colors.border, backgroundColor: colors.cardBg },
     feeTitleLine: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
     feeBalance: { fontFamily: typography.numbers, fontSize: 15, color: colors.primaryDark },
     feeAddress: { marginTop: spacing.md, fontFamily: typography.numbers, fontSize: 13, lineHeight: 19, color: colors.primaryDark },
     currentBand: { marginTop: spacing.lg, paddingVertical: spacing.lg, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.dotted },
     currentValue: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 15, color: colors.primaryDark },
-    currentTxid: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 12, color: colors.muted },
+    currentTxid: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
     completeBand: { marginTop: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.lg, borderTopWidth: 2, borderBottomWidth: 2, borderColor: '#2ea043' },
     completeBody: { flex: 1 },
-    completeTitle: { fontFamily: typography.pixel, fontSize: 8, color: '#2ea043' },
+    completeTitle: { fontFamily: typography.pixel, fontSize: 12, color: '#2ea043' },
     completeTxid: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 13, color: colors.primaryDark },
     error: { marginTop: spacing.lg, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: '#c84f4f', textAlign: 'center' },
     primaryBtn: { ...pixel, width: '100%', minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    primaryText: { fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary },
+    primaryText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary },
     dangerBtn: { ...pixel, width: '100%', minHeight: 58, marginTop: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, backgroundColor: '#c84f4f', borderColor: '#8f3030' },
-    dangerBtnText: { fontFamily: typography.pixel, fontSize: 7, color: '#ffffff' },
+    dangerBtnText: { fontFamily: typography.pixel, fontSize: 12, color: '#ffffff' },
     secondaryBtn: { minHeight: 52, marginTop: spacing.md, alignItems: 'center', justifyContent: 'center' },
-    secondaryText: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted },
+    secondaryText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
     disabled: { opacity: 0.45 },
   });
 }

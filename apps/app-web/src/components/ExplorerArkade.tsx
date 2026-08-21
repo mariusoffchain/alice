@@ -48,13 +48,13 @@ function shortHex(s: string, head = 10, tail = 8): string {
   return s.length > head + tail + 1 ? `${s.slice(0, head)}…${s.slice(-tail)}` : s;
 }
 function fmtDuration(sec: number): string {
-  if (!sec) return '—';
+  if (!sec) return '-';
   if (sec < 60) return `${sec}s`;
   if (sec < 3600) return `${Math.round(sec / 60)}m`;
   return `${Math.round(sec / 3600)}h`;
 }
 function fmtTime(sec?: number): string {
-  if (!sec) return '—';
+  if (!sec) return '-';
   return new Date(sec * 1000).toISOString().replace('T', ' ').slice(0, 19);
 }
 
@@ -66,7 +66,7 @@ export function SettlementBadge({ children = 'ARKADE TX SETTLEMENT' }: { childre
     <span
       className="font-pixel tracking-widest inline-flex items-center shrink-0"
       style={{
-        fontSize: 6, lineHeight: 1, padding: '3px 6px', borderRadius: 2,
+        fontSize: 10, lineHeight: 1, padding: '3px 6px', borderRadius: 2,
         border: `1px solid ${ARKADE_ACCENT}`, color: '#ffffff',
         backgroundColor: ARKADE_ACCENT, whiteSpace: 'nowrap',
       }}
@@ -161,7 +161,7 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
       {txHistory.length > 0 && (
         <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
           <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>TRANSACTIONS</span>
+            <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>TRANSACTIONS</span>
             <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
               {Math.min(txLimit, txHistory.length).toLocaleString('en-US')} of {txHistory.length.toLocaleString('en-US')}
             </span>
@@ -183,7 +183,7 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
                   {e.time !== undefined ? fmtTime(e.time) : 'time unknown'}
                 </span>
               </div>
-              <span className="font-numbers shrink-0 flex items-center gap-1" style={{ fontSize: 12, color: e.deltaSats >= 0 ? '#3fa46a' : 'var(--alice-text)' }}>
+              <span className="font-numbers shrink-0 flex items-center gap-1" style={{ fontSize: 12, color: e.deltaSats >= 0 ? 'var(--alice-success)' : 'var(--alice-text)' }}>
                 {e.deltaSats >= 0 ? '+' : '−'}
                 <Amount sats={Math.abs(e.deltaSats)} style={{ fontSize: 12, color: 'inherit' }} />
               </span>
@@ -195,7 +195,7 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
               onClick={() => setTxLimit(l => l + FEED_STEP)}
               className="font-pixel tracking-widest cursor-pointer"
               style={{
-                fontSize: 7, padding: '8px 16px', borderTop: '1px solid var(--alice-border)',
+                fontSize: 10, padding: '8px 16px', borderTop: '1px solid var(--alice-border)',
                 backgroundColor: 'transparent', color: 'var(--alice-primary)',
               }}
             >
@@ -208,7 +208,7 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
       {info.vtxos.length > 0 ? (
         <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
           <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>VTXOS</span>
+            <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>VTXOS</span>
             <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
               {Math.min(vtxoLimit, info.vtxos.length).toLocaleString('en-US')} of {info.vtxos.length.toLocaleString('en-US')}
             </span>
@@ -220,7 +220,7 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
               onClick={() => setVtxoLimit(l => l + FEED_STEP)}
               className="font-pixel tracking-widest cursor-pointer"
               style={{
-                fontSize: 7, padding: '8px 16px', borderTop: '1px solid var(--alice-border)',
+                fontSize: 10, padding: '8px 16px', borderTop: '1px solid var(--alice-border)',
                 backgroundColor: 'transparent', color: 'var(--alice-primary)',
               }}
             >
@@ -277,7 +277,7 @@ export function CommitmentCard({ c, onOpenTx }: { c: ArkadeCommitment; onOpenTx?
       {c.batches.length > 0 && (
         <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
           <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>BATCHES</span>
+            <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>BATCHES</span>
             <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>{c.batches.length}</span>
           </div>
           {c.batches.map(b => (
@@ -349,10 +349,10 @@ export function ArkadeLiveSettlements({ apiBaseUrl, onOpenTx }: { apiBaseUrl: st
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>ON-CHAIN SETTLEMENTS</span>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>ON-CHAIN SETTLEMENTS</span>
         <span className="flex items-center gap-1.5">
-          <span style={{ width: 7, height: 7, borderRadius: 7, backgroundColor: live ? '#3fa46a' : 'var(--alice-muted)' }} />
-          <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>{live ? 'LIVE' : 'CONNECTING'}</span>
+          <span style={{ width: 7, height: 7, borderRadius: 7, backgroundColor: live ? 'var(--alice-success)' : 'var(--alice-muted)' }} />
+          <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{live ? 'LIVE' : 'CONNECTING'}</span>
         </span>
       </div>
       <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
@@ -385,7 +385,7 @@ export function ArkadeLiveSettlements({ apiBaseUrl, onOpenTx }: { apiBaseUrl: st
           onClick={() => setLimit(l => l + FEED_STEP)}
           className="font-pixel tracking-widest self-center cursor-pointer"
           style={{
-            fontSize: 7, padding: '8px 16px', border: '2px solid var(--alice-border)',
+            fontSize: 10, padding: '8px 16px', border: '2px solid var(--alice-border)',
             borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-primary)',
           }}
         >
@@ -416,10 +416,10 @@ export function ArkadeAspInfo({ apiBaseUrl }: { apiBaseUrl: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="font-pixel tracking-widest" style={{ fontSize: 8, color: 'var(--alice-muted)' }}>SERVICE PROVIDER</span>
+      <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>SERVICE PROVIDER</span>
       {infoErr ? (
-        <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid #e06060', borderRadius: 2 }}>
-          <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: '#e06060' }}>ASP UNREACHABLE</span>
+        <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+          <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>ASP UNREACHABLE</span>
           <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{infoErr}</p>
         </div>
       ) : info ? (
@@ -431,16 +431,16 @@ export function ArkadeAspInfo({ apiBaseUrl }: { apiBaseUrl: string }) {
             <Metric label="VTXO MAX" value={<Amount sats={info.vtxoMaxSats} style={{ fontSize: 13, color: 'var(--alice-text)' }} />} />
             <Metric label="EXIT DELAY" value={`${info.unilateralExitDelay.toLocaleString('en-US')} blocks`} />
             <Metric label="MAX TX WEIGHT" value={info.maxTxWeight.toLocaleString('en-US')} />
-            <Metric label="VERSION" value={info.version || '—'} />
-            <Metric label="SETTLES ON" value={info.network || '—'} />
+            <Metric label="VERSION" value={info.version || '-'} />
+            <Metric label="SETTLES ON" value={info.network || '-'} />
           </div>
           <div className="flex flex-col gap-1">
-            <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>SIGNER PUBKEY</span>
-            <span className="font-numbers break-all" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{info.signerPubkey || '—'}</span>
+            <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>SIGNER PUBKEY</span>
+            <span className="font-numbers break-all" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{info.signerPubkey || '-'}</span>
           </div>
           {info.forfeitAddress && (
             <div className="flex flex-col gap-1">
-              <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>FORFEIT ADDRESS</span>
+              <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>FORFEIT ADDRESS</span>
               <span className="font-numbers break-all" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{info.forfeitAddress}</span>
             </div>
           )}
@@ -457,7 +457,7 @@ export function ArkadeAspInfo({ apiBaseUrl }: { apiBaseUrl: string }) {
 /**
  * The view a VIRTUAL (off-chain) Arkade transaction gets: the txid exists in
  * the ASP's indexer but not on Bitcoin, so instead of Esplora's "not found"
- * the tab shows the decoded transaction — what it spent, what it created, and
+ * the tab shows the decoded transaction, what it spent, what it created, and
  * where each output stands (preconfirmed, settled, spent, its expiry).
  */
 export function ArkadeVirtualTxCard({ vtx, onOpenTx }: { vtx: ArkadeVirtualTx; onOpenTx?: (txid: string) => void }) {
@@ -488,7 +488,7 @@ export function ArkadeVirtualTxCard({ vtx, onOpenTx }: { vtx: ArkadeVirtualTx; o
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
           <div className="px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>INPUTS ({vtx.inputs.length})</span>
+            <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>INPUTS ({vtx.inputs.length})</span>
           </div>
           {vtx.inputs.map((inp, i) => (
             <div key={`${inp.txid}:${inp.vout}:${i}`} className="flex items-center justify-between gap-3 px-3 py-2" style={{ borderTop: '1px solid var(--alice-border)' }}>
@@ -512,7 +512,7 @@ export function ArkadeVirtualTxCard({ vtx, onOpenTx }: { vtx: ArkadeVirtualTx; o
 
         <div className="flex-1 flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
           <div className="px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>OUTPUTS ({vtx.outputs.length})</span>
+            <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>OUTPUTS ({vtx.outputs.length})</span>
           </div>
           {vtx.outputs.map(o => (
             <div key={o.index} className="flex items-center justify-between gap-3 px-3 py-2" style={{ borderTop: '1px solid var(--alice-border)' }}>
@@ -591,7 +591,7 @@ export function ExplorerArkadeAddressTab({ apiBaseUrl, address, onOpenTx }: {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
             {['SPENDABLE', 'SPENDABLE VTXOS', 'TOTAL VTXOS', 'AVG COIN AGE'].map(l => (
               <div key={l} className="flex flex-col gap-1">
-                <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>{l}</span>
+                <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{l}</span>
                 <Skeleton width="60%" />
               </div>
             ))}
@@ -612,15 +612,15 @@ export function ExplorerArkadeAddressTab({ apiBaseUrl, address, onOpenTx }: {
   }
   if (state.kind === 'error') {
     return (
-      <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid #e06060', borderRadius: 2 }}>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: '#e06060' }}>COULD NOT LOAD</span>
+      <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>COULD NOT LOAD</span>
         <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{state.message}</p>
         <button
           type="button"
           onClick={() => setRetryToken(t => t + 1)}
           className="font-pixel tracking-widest self-start cursor-pointer"
           style={{
-            fontSize: 7, padding: '8px 16px', border: '2px solid var(--alice-border)',
+            fontSize: 10, padding: '8px 16px', border: '2px solid var(--alice-border)',
             borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-primary)',
           }}
         >

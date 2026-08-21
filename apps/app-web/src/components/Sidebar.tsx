@@ -1,17 +1,19 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   type ChatSession,
   useAccount,
   useChat,
   isTauriDesktop,
 } from '@alice-wallet/alice-ai';
-import { SETTINGS_SVG } from '@alice-wallet/alice-ui/components/settings-icon-svg';
+import { NEW_CHAT_ICON_SVG } from '@alice-wallet/alice-ui/components/new-chat-icon-svg';
 import { SvgIcon } from '@/components/SvgIcon';
 import { AliceLogo } from '@/components/AliceLogo';
 import { FeedbackModal } from '@/components/FeedbackModal';
+import { SidebarAccountMenu } from '@/components/SidebarAccountMenu';
+import { useOpenSettings } from '@/lib/settings-url';
 import { consumeSearchRequest, onSearchRequest } from '@/lib/search-signal';
 import appWebPackage from '../../package.json';
 import appDesktopPackage from '../../../app-desktop/package.json';
@@ -24,17 +26,7 @@ export const SIDEBAR_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox
   <rect x="5" y="3" width="2" height="10" fill="{{COLOR}}"/>
 </svg>`;
 
-const CHAT_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
-  <rect x="3" y="1" width="10" height="2" fill="{{COLOR}}"/>
-  <rect x="1" y="3" width="2" height="2" fill="{{COLOR}}"/>
-  <rect x="13" y="3" width="2" height="2" fill="{{COLOR}}"/>
-  <rect x="1" y="5" width="2" height="4" fill="{{COLOR}}"/>
-  <rect x="13" y="5" width="2" height="4" fill="{{COLOR}}"/>
-  <rect x="3" y="9" width="10" height="2" fill="{{COLOR}}"/>
-  <rect x="1" y="9" width="2" height="2" fill="{{COLOR}}"/>
-  <rect x="5" y="11" width="2" height="2" fill="{{COLOR}}"/>
-  <rect x="3" y="13" width="2" height="2" fill="{{COLOR}}"/>
-</svg>`;
+const CHAT_ICON_SVG = NEW_CHAT_ICON_SVG;
 
 const SEARCH_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
   <rect x="4" y="1" width="4" height="2" fill="{{COLOR}}"/>
@@ -49,7 +41,7 @@ const SEARCH_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16
   <rect x="12" y="13" width="2" height="2" fill="{{COLOR}}"/>
 </svg>`;
 
-// A block: dimmed header band on top, solid body below — what Explorer
+// A block: dimmed header band on top, solid body below, what Explorer
 // browses. No vertical bar, so it does not echo mempool.space's trademark
 // composition; and not a magnifier, so it never reads as the Search command
 // next to it.
@@ -58,29 +50,30 @@ const EXPLORER_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 
   <rect x="2" y="6.5" width="12" height="7.5" rx="1.5" fill="{{COLOR}}"/>
 </svg>`;
 
-// Beetle seen from above: antennae, head, shell, three legs a side. The bug is
-// the established icon for "report a bug" (GitHub, Jira, Sentry); a wrench or
-// hammer would read as settings or maintenance instead.
-const REPORT_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
-  <rect x="4" y="1" width="1" height="2" fill="{{COLOR}}"/>
-  <rect x="11" y="1" width="1" height="2" fill="{{COLOR}}"/>
-  <rect x="6" y="2" width="4" height="2" fill="{{COLOR}}"/>
-  <rect x="5" y="4" width="6" height="9" fill="{{COLOR}}"/>
-  <rect x="2" y="5" width="3" height="1" fill="{{COLOR}}"/>
-  <rect x="2" y="8" width="3" height="1" fill="{{COLOR}}"/>
-  <rect x="2" y="11" width="3" height="1" fill="{{COLOR}}"/>
-  <rect x="11" y="5" width="3" height="1" fill="{{COLOR}}"/>
-  <rect x="11" y="8" width="3" height="1" fill="{{COLOR}}"/>
-  <rect x="11" y="11" width="3" height="1" fill="{{COLOR}}"/>
+// Books standing on a shelf. Upright on purpose: a stack of books lying flat
+// is the obvious drawing, and it is the one shape already taken, Explorer is
+// two stacked blocks, directly above this entry in the same column. Turning
+// the books vertical keeps the "several books" idea without the echo.
+//
+// Unequal heights, or three identical bars read as a bar chart. The shelf
+// carries the solid fill and the books the 45% one, so the structure and its
+// contents never merge into a single mass at 18px.
+const LEARN_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <rect x="2" y="2" width="3" height="10" fill="{{COLOR}}" fill-opacity="0.45"/>
+  <rect x="6" y="4" width="3" height="8" fill="{{COLOR}}" fill-opacity="0.45"/>
+  <rect x="10" y="3" width="3" height="9" fill="{{COLOR}}" fill-opacity="0.45"/>
+  <rect x="1" y="12" width="14" height="2" fill="{{COLOR}}"/>
 </svg>`;
 
-const ACCOUNT_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
-  <rect x="5" y="1" width="6" height="2" fill="{{COLOR}}"/>
-  <rect x="3" y="3" width="2" height="5" fill="{{COLOR}}"/>
-  <rect x="11" y="3" width="2" height="5" fill="{{COLOR}}"/>
-  <rect x="5" y="8" width="6" height="2" fill="{{COLOR}}"/>
-  <rect x="3" y="11" width="10" height="2" fill="{{COLOR}}"/>
-  <rect x="1" y="13" width="14" height="2" fill="{{COLOR}}"/>
+// Building blocks: two on the ground, one being placed on top. The wallet
+// glyph this replaces is reserved for the real Wallet entry, the day it
+// joins this sidebar; a practice space wearing the money icon was the exact
+// wrong message. The placed block carries the solid fill against the base's
+// 45%, same subject-over-structure rule as Learn's books on their shelf.
+const PLAYGROUND_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <rect x="5" y="2.5" width="6" height="5" rx="1" fill="{{COLOR}}"/>
+  <rect x="1.5" y="8.5" width="6" height="5" rx="1" fill="{{COLOR}}" fill-opacity="0.45"/>
+  <rect x="8.5" y="8.5" width="6" height="5" rx="1" fill="{{COLOR}}" fill-opacity="0.45"/>
 </svg>`;
 
 interface SidebarProps {
@@ -97,18 +90,21 @@ function MenuItem({
   icon,
   label,
   shortcut,
+  active,
   onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   shortcut?: string;
+  /** The section currently on screen, shaded like the active chat entry. */
+  active?: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 w-full px-4 py-2.5 cursor-pointer bg-transparent border-none outline-none transition-colors hover:bg-white/5"
-      style={{ color: 'var(--alice-text)' }}
+      className="flex items-center gap-3 w-full px-4 py-2.5 cursor-pointer border-none outline-none transition-colors hover:bg-white/5"
+      style={{ color: 'var(--alice-text)', backgroundColor: active ? 'var(--alice-bg)' : 'transparent' }}
     >
       <span className="w-5 h-5 flex items-center justify-center shrink-0 opacity-70">
         {icon}
@@ -129,44 +125,16 @@ function MenuItem({
 const TITLEBAR_HEIGHT = 28;
 const SESSION_PAGE_SIZE = 20;
 
-function SidebarVersion({ collapsed, isDesktop }: { collapsed: boolean; isDesktop: boolean }) {
-  const version = isDesktop
-    ? appDesktopPackage.version
-    : appWebPackage.version;
-
-  return (
-    <div
-      className={collapsed ? 'mt-auto pt-3' : 'mt-auto px-4 py-3'}
-      style={{
-        borderTop: collapsed ? 'none' : '1px solid var(--alice-border)',
-        width: collapsed ? '100%' : undefined,
-      }}
-    >
-      <p
-        className="font-numbers m-0 text-center"
-        style={{
-          fontSize: collapsed ? 9 : 11,
-          lineHeight: collapsed ? '12px' : '16px',
-          color: 'var(--alice-muted)',
-          opacity: 0.55,
-          letterSpacing: collapsed ? 0.3 : 0.4,
-        }}
-        title={`Version ${version}`}
-      >
-        v{version}
-      </p>
-    </div>
-  );
-}
-
 const SIDEBAR_WIDTH_KEY = 'alice.sidebar.width';
 const SIDEBAR_WIDTH_MIN = 200;
 const SIDEBAR_WIDTH_MAX = 420;
 
 export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { sessions, openSession, removeSession, refreshSessions, clearMessages, activeSessionId } = useChat();
   const account = useAccount();
+  const openSettings = useOpenSettings();
   const [pendingDelete, setPendingDelete] = useState<ChatSession | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -223,7 +191,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
       }
       if (e.metaKey && e.key === ',') {
         e.preventDefault();
-        router.push('/settings');
+        openSettings();
       }
       if (e.key === 'Escape' && mobileOpen) {
         onMobileClose();
@@ -231,7 +199,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [clearMessages, router, mobileOpen, onMobileClose]);
+  }, [clearMessages, router, mobileOpen, onMobileClose, openSettings]);
 
   // The Search menu command is routed here by MenuCommands, which owns the
   // desktop menu bridge at the app root. Set rather than toggle: firing twice
@@ -256,6 +224,20 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
     setPendingDelete(null);
     await removeSession(sessionId);
   };
+
+  const version = isDesktop ? appDesktopPackage.version : appWebPackage.version;
+  const accountName = account.account?.username
+    ?? account.account?.display_name
+    ?? null;
+  // The quota is the one number an anonymous user cannot find anywhere else, so
+  // it doubles as the subtitle when there is no email to show. On a paid plan
+  // the request counter no longer exists; the estimated percentage takes over.
+  const accountSubtitle = account.account?.email_masked
+    ?? (account.cloudUsage
+      ? account.cloudUsage.kind === 'paid'
+        ? `${account.cloudUsage.percentUsed}% of monthly usage`
+        : `${account.cloudUsage.remaining}/${account.cloudUsage.limit} cloud requests left`
+      : null);
 
   const filteredSessions = searchQuery
     ? sessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -293,54 +275,45 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
           className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
           aria-label="Expand sidebar"
         >
-          <SvgIcon svg={SIDEBAR_ICON_SVG} size={18} color="var(--alice-text)" />
+          <SvgIcon svg={SIDEBAR_ICON_SVG} size={18} color="var(--alice-primary)" />
         </button>
         <button
           onClick={() => { clearMessages(); router.push('/'); }}
           className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
           aria-label="New chat"
         >
-          <SvgIcon svg={CHAT_ICON_SVG} size={18} color="var(--alice-text)" />
+          <SvgIcon svg={CHAT_ICON_SVG} size={18} color="var(--alice-primary)" />
         </button>
         <button
           onClick={() => router.push('/explorer')}
           className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
           aria-label="Explorer"
         >
-          <SvgIcon svg={EXPLORER_ICON_SVG} size={18} color="var(--alice-text)" />
+          <SvgIcon svg={EXPLORER_ICON_SVG} size={18} color="var(--alice-primary)" />
+        </button>
+        <button
+          onClick={() => { router.push('/learn'); window.dispatchEvent(new Event('alice-learn-reset')); }}
+          className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
+          aria-label="Learn"
+        >
+          <SvgIcon svg={LEARN_ICON_SVG} size={18} color="var(--alice-primary)" />
         </button>
         <button
           onClick={() => { onToggle(); setSearchOpen(true); }}
           className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
           aria-label="Search"
         >
-          <SvgIcon svg={SEARCH_ICON_SVG} size={18} color="var(--alice-text)" />
+          <SvgIcon svg={SEARCH_ICON_SVG} size={18} color="var(--alice-primary)" />
         </button>
-        <button
-          onClick={() => router.push('/settings')}
-          className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-          aria-label="Settings"
-        >
-          <SvgIcon svg={SETTINGS_SVG} size={18} color="var(--alice-text)" />
-        </button>
-        <button
-          onClick={account.requestSignIn}
-          className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-          aria-label="Alice account"
-          title={account.cloudQuota
-            ? `${account.cloudQuota.remaining} Private Cloud requests left`
-            : 'Alice account'}
-        >
-          <SvgIcon svg={ACCOUNT_ICON_SVG} size={18} color="var(--alice-text)" />
-        </button>
-        <button
-          onClick={() => setFeedbackOpen(true)}
-          className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-          aria-label="Report"
-        >
-          <SvgIcon svg={REPORT_ICON_SVG} size={18} color="var(--alice-text)" />
-        </button>
-        <SidebarVersion collapsed isDesktop={isDesktop} />
+        <SidebarAccountMenu
+          collapsed
+          username={accountName}
+          subtitle={accountSubtitle}
+          version={version}
+          onSettings={() => openSettings()}
+          onAccount={() => account.requestSignIn()}
+          onReport={() => setFeedbackOpen(true)}
+        />
         {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
       </div>
     );
@@ -377,7 +350,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
         >
           <div className="flex items-center gap-2">
             <AliceLogo size={20} />
-            <span className="font-pixel" style={{ fontSize: 12, lineHeight: '20px', color: 'var(--alice-text)' }}>
+            <span className="font-pixel" style={{ fontSize: 12, lineHeight: '20px', color: 'var(--alice-primary)' }}>
               Alice
             </span>
           </div>
@@ -386,53 +359,64 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
             className="w-8 h-8 flex items-center justify-center cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
             aria-label={mobileOpen ? 'Close menu' : 'Collapse sidebar'}
           >
-            <SvgIcon svg={SIDEBAR_ICON_SVG} size={16} color="var(--alice-text)" />
+            <SvgIcon svg={SIDEBAR_ICON_SVG} size={16} color="var(--alice-primary)" />
           </button>
         </div>
 
         {/* Menu items */}
         <div className="flex flex-col shrink-0">
           <MenuItem
-            icon={<SvgIcon svg={CHAT_ICON_SVG} size={18} color="var(--alice-text)" />}
+            icon={<SvgIcon svg={CHAT_ICON_SVG} size={18} color="var(--alice-primary)" />}
             label="New Chat"
             shortcut="⌘ N"
             onClick={() => { clearMessages(); router.push('/'); closeIfMobile(); }}
           />
           <MenuItem
-            icon={<SvgIcon svg={EXPLORER_ICON_SVG} size={18} color="var(--alice-text)" />}
+            icon={<SvgIcon svg={EXPLORER_ICON_SVG} size={18} color="var(--alice-primary)" />}
             label="Explorer"
+            active={pathname.startsWith('/explorer')}
             onClick={() => { router.push('/explorer'); closeIfMobile(); }}
           />
           <MenuItem
-            icon={<SvgIcon svg={SEARCH_ICON_SVG} size={18} color="var(--alice-text)" />}
-            label="Search"
-            shortcut="⌘ K"
-            onClick={() => setSearchOpen(prev => !prev)}
+            icon={<SvgIcon svg={LEARN_ICON_SVG} size={18} color="var(--alice-primary)" />}
+            label="Learn"
+            active={pathname.startsWith('/learn')}
+            onClick={() => { router.push('/learn'); window.dispatchEvent(new Event('alice-learn-reset')); closeIfMobile(); }}
           />
           <MenuItem
-            icon={<SvgIcon svg={SETTINGS_SVG} size={18} color="var(--alice-text)" />}
-            label="Settings"
-            shortcut="⌘ ,"
-            onClick={() => { router.push('/settings'); closeIfMobile(); }}
-          />
-          <MenuItem
-            icon={<SvgIcon svg={ACCOUNT_ICON_SVG} size={18} color="var(--alice-text)" />}
-            label="Account"
-            shortcut={account.cloudQuota
-              ? `${account.cloudQuota.remaining}/${account.cloudQuota.limit}`
-              : undefined}
-            onClick={() => { account.requestSignIn(); closeIfMobile(); }}
-          />
-          <MenuItem
-            icon={<SvgIcon svg={REPORT_ICON_SVG} size={18} color="var(--alice-text)" />}
-            label="Report"
-            onClick={() => { setFeedbackOpen(true); closeIfMobile(); }}
+            icon={<SvgIcon svg={PLAYGROUND_ICON_SVG} size={18} color="var(--alice-primary)" />}
+            label="Playground"
+            active={pathname.startsWith('/playground')}
+            onClick={() => { router.push('/playground'); closeIfMobile(); }}
           />
         </div>
 
-        {/* Search input (toggled) */}
+        {/* Chats section */}
+        <div
+          className="flex items-center justify-between gap-2 pl-4 pr-2 pt-4 pb-1 shrink-0"
+          style={{ borderTop: '1px solid var(--alice-border)', marginTop: 8 }}
+        >
+          <span
+            className="font-numbers text-xs uppercase tracking-wider"
+            style={{ color: 'var(--alice-muted)', opacity: 0.6 }}
+          >
+            Chats
+          </span>
+          <button
+            onClick={() => setSearchOpen(prev => !prev)}
+            className="w-7 h-7 flex items-center justify-center shrink-0 cursor-pointer bg-transparent border-none outline-none transition-opacity"
+            style={{ opacity: searchOpen ? 1 : 0.55 }}
+            aria-label="Search conversations"
+            aria-expanded={searchOpen}
+            title="Search conversations (⌘ K)"
+          >
+            <SvgIcon svg={SEARCH_ICON_SVG} size={15} color="var(--alice-primary)" />
+          </button>
+        </div>
+
+        {/* Search input (toggled from the Chats header) */}
         {searchOpen && (
-          <div className="px-3 pt-2 pb-1">
+          <div className="px-3 pt-1 pb-2 shrink-0">
             <input
               autoFocus
               type="text"
@@ -455,19 +439,6 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
             />
           </div>
         )}
-
-        {/* Chats section */}
-        <div
-          className="px-4 pt-4 pb-1 shrink-0"
-          style={{ borderTop: '1px solid var(--alice-border)', marginTop: 8 }}
-        >
-          <span
-            className="font-numbers text-xs uppercase tracking-wider"
-            style={{ color: 'var(--alice-muted)', opacity: 0.6 }}
-          >
-            Chats
-          </span>
-        </div>
 
         {/* Session list */}
         <div
@@ -508,6 +479,14 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
                   <button
                     onClick={async () => {
                       await openSession(session.id);
+                      // From Learn (or any non-chat page), opening a past
+                      // conversation shows it in the full chat page. Explorer
+                      // keeps its own behaviour: a linked session restores the
+                      // exploration in place.
+                      if (!window.location.pathname.startsWith('/explorer')
+                        && window.location.pathname !== '/') {
+                        router.push('/');
+                      }
                       closeIfMobile();
                     }}
                     className="flex-1 text-left cursor-pointer bg-transparent border-none outline-none py-2 px-2.5 min-w-0"
@@ -543,21 +522,29 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
                 filteredSessions.length,
               ))}
               className="font-pixel tracking-widest block mx-auto my-3 px-2 py-2 cursor-pointer bg-transparent border-none"
-              style={{ fontSize: 6, color: 'var(--alice-muted)', opacity: 0.75 }}
+              style={{ fontSize: 10, color: 'var(--alice-muted)', opacity: 0.75 }}
             >
               LOAD {Math.min(SESSION_PAGE_SIZE, filteredSessions.length - visibleSessions.length)} MORE
             </button>
           ) : filteredSessions.length > SESSION_PAGE_SIZE ? (
             <p
               className="font-pixel tracking-widest text-center my-3"
-              style={{ fontSize: 6, color: 'var(--alice-muted)', opacity: 0.6 }}
+              style={{ fontSize: 10, color: 'var(--alice-muted)', opacity: 0.6 }}
             >
               {visibleSessions.length} OF {filteredSessions.length}
             </p>
           ) : null}
         </div>
 
-        <SidebarVersion collapsed={false} isDesktop={isDesktop} />
+        <SidebarAccountMenu
+          collapsed={false}
+          username={accountName}
+          subtitle={accountSubtitle}
+          version={version}
+          onSettings={() => { openSettings(); closeIfMobile(); }}
+          onAccount={() => { account.requestSignIn(); closeIfMobile(); }}
+          onReport={() => { setFeedbackOpen(true); closeIfMobile(); }}
+        />
       </div>
 
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
@@ -583,7 +570,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
           >
             <h3
               className="font-pixel tracking-widest m-0"
-              style={{ fontSize: 9, color: 'var(--alice-primary-dark)' }}
+              style={{ fontSize: 10, color: 'var(--alice-primary-dark)' }}
             >
               DELETE CONVERSATION
             </h3>
@@ -598,7 +585,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
                 onClick={() => setPendingDelete(null)}
                 className="font-pixel tracking-widest flex-1 cursor-pointer"
                 style={{
-                  fontSize: 7,
+                  fontSize: 10,
                   padding: '10px 12px',
                   border: '2px solid var(--alice-border)',
                   borderRadius: 2,
@@ -612,7 +599,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
                 onClick={() => void confirmDelete()}
                 className="font-pixel tracking-widest flex-1 cursor-pointer"
                 style={{
-                  fontSize: 7,
+                  fontSize: 10,
                   padding: '10px 12px',
                   border: '2px solid #e06060',
                   borderRadius: 2,

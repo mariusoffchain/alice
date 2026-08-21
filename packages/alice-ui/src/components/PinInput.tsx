@@ -93,10 +93,13 @@ function makeStyles(colors: Colors, pixel: Pixel) {
       height: 62,
       paddingVertical: 0,
       paddingHorizontal: spacing.lg,
-      fontFamily: typography.pixel,
-      fontSize: 16,
+      // Grotesque, pas pixel : la meme fonte habille la saisie (des points,
+      // secureTextEntry) et le placeholder en toutes lettres, qui doit rester
+      // une phrase lisible et discrete, pas un titre.
+      fontFamily: typography.numbers,
+      fontSize: 17,
       color: colors.primaryDark,
-      letterSpacing: 0,
+      letterSpacing: 1,
       textAlign: 'center',
       textAlignVertical: 'center',
       includeFontPadding: true,
@@ -111,7 +114,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     revealText: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.primaryDark,
       letterSpacing: 1,
     },

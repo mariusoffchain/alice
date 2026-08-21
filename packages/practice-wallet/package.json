@@ -1,0 +1,14 @@
+{
+  "name": "@alice-wallet/practice-wallet",
+  "version": "0.2.0",
+  "license": "AGPL-3.0-or-later",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@noble/hashes": "^2.2.0",
+    "@scure/bip32": "^2.2.0",
+    "@scure/bip39": "^2.0.1",
+    "@scure/btc-signer": "^2.0.1"
+  }
+}

@@ -88,7 +88,7 @@ export function ExplorerIntroModal({ onClose }: { onClose: () => void }) {
             onClick={confirm}
             className="font-pixel tracking-widest cursor-pointer"
             style={{
-              fontSize: 9,
+              fontSize: 10,
               padding: '10px 22px',
               border: '2px solid var(--alice-primary)',
               borderRadius: 2,

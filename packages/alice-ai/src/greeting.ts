@@ -1,5 +1,5 @@
 // The greeting is UI chrome, not conversation. It is shown on a fresh chat but
-// is never saved into a session and never replayed to the model — including
+// is never saved into a session and never replayed to the model, including
 // sessions saved by earlier versions, which did store it. These pure helpers
 // are the single place that rule is enforced, so it can be tested directly
 // (chat-context.tsx cannot: it pulls in React and react-native).
@@ -21,7 +21,7 @@ export function stripGreeting<T extends { id: string }>(messages: T[]): T[] {
 }
 
 // A conversation with no real user turn is not a session, and the greeting
-// alone never makes one — it is dropped before the check. This is the guard
+// alone never makes one, it is dropped before the check. This is the guard
 // that keeps an untouched "New Chat" from becoming a ghost session on disk.
 export function isPersistableSession(messages: { id: string; role: string }[]): boolean {
   return stripGreeting(messages).some(m => m.role === 'user');

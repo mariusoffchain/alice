@@ -9,7 +9,7 @@ import { FICHE_FR } from './fiche-corpus.fr.ts';
 
 const CHECKED = '2026-08-13';
 
-// FICHE_ADDRESS_REUSE — the remediation and impact for the ADDRESS_REUSE rule.
+// FICHE_ADDRESS_REUSE, the remediation and impact for the ADDRESS_REUSE rule.
 // Advice to use a fresh address per payment is uncontroversial and safe to
 // recommend. Past reuse is permanent (irreversible), only the future is fixable.
 const FICHE_ADDRESS_REUSE: Fiche = {
@@ -49,7 +49,7 @@ const FICHE_ADDRESS_REUSE: Fiche = {
   stability: 'stable',
 };
 
-// FICHE_COIN_CONTROL — choosing which UTXOs a transaction spends. A best
+// FICHE_COIN_CONTROL, choosing which UTXOs a transaction spends. A best
 // practice Alice may propose freely.
 const FICHE_COIN_CONTROL: Fiche = {
   id: 'FICHE_COIN_CONTROL',
@@ -88,7 +88,7 @@ const FICHE_COIN_CONTROL: Fiche = {
   stability: 'stable',
 };
 
-// FICHE_SILENT_PAYMENTS — a static address that still lands each payment on a
+// FICHE_SILENT_PAYMENTS, a static address that still lands each payment on a
 // distinct output. Directly remediates address reuse.
 const FICHE_SILENT_PAYMENTS: Fiche = {
   id: 'FICHE_SILENT_PAYMENTS',
@@ -126,7 +126,7 @@ const FICHE_SILENT_PAYMENTS: Fiche = {
   stability: 'stable',
 };
 
-// FICHE_PAYJOIN — a collaborative payment where the receiver also adds an input,
+// FICHE_PAYJOIN, a collaborative payment where the receiver also adds an input,
 // breaking the common-input-ownership assumption.
 const FICHE_PAYJOIN: Fiche = {
   id: 'FICHE_PAYJOIN',

@@ -220,6 +220,7 @@ fn resolve_llama_server() -> &'static str {
 #[tauri::command]
 fn local_ai_start(
     model_path: String,
+    ctx_size: Option<u32>,
     state: tauri::State<'_, LocalAIState>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
@@ -228,6 +229,9 @@ fn local_ai_start(
         let _ = child.kill();
     }
     let binary = resolve_llama_server();
+    // 4096 was too tight once Alice's system prompt, retrieved context and the
+    // conversation history are in: answers were truncated after ~250 tokens.
+    let ctx = ctx_size.unwrap_or(8192).clamp(2048, 32768).to_string();
     let (_rx, child) = app
         .shell()
         .command(binary)
@@ -237,7 +241,7 @@ fn local_ai_start(
             "--port",
             "11435",
             "--ctx-size",
-            "4096",
+            &ctx,
             "--log-disable",
         ])
         .spawn()

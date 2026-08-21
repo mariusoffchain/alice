@@ -9,6 +9,8 @@
 //   - buffer the response (the upstream stream is passed straight through)
 //   - serve as a plaintext relay (missing E2EE headers are rejected outright)
 
+import { APP_RELEASE_VERSION } from './app-release.ts';
+import { checkAndAlert, handleTunnelAlert } from './ops-alert.ts';
 import {
   AccountHttpError,
   authenticate,
@@ -16,10 +18,12 @@ import {
   confirmFreeRequest,
   createAnonymousSession,
   getCurrentAccount,
+  hmac,
   logout,
   loginWithPassword,
   recordCloudRequestMilestones,
   refreshSession,
+  rateLimit,
   refundFreeRequest,
   requestAccountDeletion,
   requestId,
@@ -27,12 +31,13 @@ import {
   reserveFreeRequest,
   startEmailLogin,
   startEmailIdentityLink,
-  registerPasswordAccount,
   setAccountPassword,
   suggestUsernames,
   updateAccountProfile,
   verifyEmailLogin,
   verifyEmailIdentityLink,
+  updateEmailPreferences,
+  usernameVocabulary,
 } from './account.ts';
 import {
   adminAdjustCredits,
@@ -54,12 +59,31 @@ import {
   adminReactivateAccount,
   adminSession,
   adminSuspendAccount,
+  adminTestWalletFaucet,
   recordProductEvents,
   recordTechnicalEvent,
   redeemPromoCode,
 } from './admin.ts';
+import {
+  cleanupBillingData,
+  getPlanQuotes,
+  recordMeasuredBytes,
+  countingStream,
+  createCheckout,
+  getCurrentBilling,
+  handleBtcpayWebhook,
+  refundCloudBytes,
+  reserveCloudBytes,
+  resolvePlan,
+  sendExpiryReminders,
+  settleCloudBytes,
+  bytesPerToken,
+  type Plan,
+} from './billing.ts';
+import { refreshSatPrice } from './sat-price.ts';
 import { ADMIN_DASHBOARD_HTML } from './admin-dashboard-html.ts';
 import { lookupEntities } from './entities.ts';
+import { claimTestWalletFaucet } from './test-wallet-faucet.ts';
 import {
   DEFAULT_FREE_REQUEST_BYTES,
   MAX_FREE_MESSAGES,
@@ -73,6 +97,16 @@ export type Env = Omit<CloudflareEnv, 'AUTH_EMAIL_PROVIDER' | 'EMAIL'> & {
   AUTH_HMAC_KEY: string;
   /** Optional Wrangler secret when AUTH_EMAIL_PROVIDER=resend. */
   RESEND_API_KEY?: string;
+  /**
+   * Optional Wrangler secret: the 12 words of the Mutinynet wallet Alice
+   * dispenses test sats from. Mutinynet coins have no value, so this key
+   * guards nothing of worth, but it is still a secret rather than a var so
+   * it never sits in git. Unset simply turns the faucet off.
+   *   npx wrangler secret put TEST_WALLET_FAUCET_MNEMONIC
+   */
+  TEST_WALLET_FAUCET_MNEMONIC?: string;
+  /** Watch-only account key: lets the console read the float, never spend it. */
+  TEST_WALLET_FAUCET_XPUB?: string;
   /**
    * Wrangler secret, set once. Lets the first authenticated Alice account
    * promote itself to admin via POST /admin/api/bootstrap. Generate with:
@@ -114,7 +148,82 @@ export type Env = Omit<CloudflareEnv, 'AUTH_EMAIL_PROVIDER' | 'EMAIL'> & {
   VENICE_API_BASE?: string;
   /** Fixed upstream PCCS for the DCAP collateral relay. Never client-chosen. */
   PCCS_UPSTREAM?: string;
+
+  // --- Billing -------------------------------------------------------------
+  // Payment is Bitcoin only, through BTCPay. Leaving BTCPAY_* unset makes
+  // checkout return 503 and changes nothing else, which is the state the
+  // Worker ships in until the store is live.
+  /** e.g. https://btcpay.example.com */
+  BTCPAY_BASE_URL?: string;
+  BTCPAY_STORE_ID?: string;
+  /** Wrangler secret: npx wrangler secret put BTCPAY_API_KEY */
+  BTCPAY_API_KEY?: string;
+  /** Wrangler secret. Without it the webhook route does not exist at all. */
+  BTCPAY_WEBHOOK_SECRET?: string;
+  /** Where BTCPay sends the buyer back once the invoice is settled. */
+  BILLING_RETURN_URL?: string;
+
+  /**
+   * Where to warn a human when payments cannot be taken (src/ops-alert.ts).
+   * Use an address you actually watch, not the public contact one: a technical
+   * alert buried under user mail is an alert nobody reads. Both channels are
+   * optional and independent, so one being unset never silences the other.
+   *   npx wrangler secret put OPS_ALERT_EMAIL
+   */
+  OPS_ALERT_EMAIL?: string;
+  /** Telegram bot token from @BotFather: the channel that actually buzzes. */
+  TELEGRAM_BOT_TOKEN?: string;
+  /** Chat to write to. Ask @userinfobot for your own id. */
+  TELEGRAM_CHAT_ID?: string;
+  /**
+   * Shared secret in the alert URL. Notification webhooks generally cannot
+   * send custom headers, so the secret travels in the path. Unset means the
+   * route answers 404 rather than standing open.
+   *   openssl rand -hex 32 | npx wrangler secret put OPS_ALERT_SECRET
+   */
+  OPS_ALERT_SECRET?: string;
+  /**
+   * Wrangler secret. Encrypts the optional renewal-reminder address at rest:
+   *   openssl rand -base64 48 | npx wrangler secret put BILLING_EMAIL_KEY
+   * Unset means no reminder emails are stored or sent, and the rest of billing
+   * still works. Rotating it makes stored addresses undecryptable, so the
+   * reminders stop rather than going to the wrong person.
+   */
+  BILLING_EMAIL_KEY?: string;
+
+  /**
+   * Encrypts the address every account carries. Alice opens it only to send:
+   * an expiring plan, and the product mail people opt into. See
+   * email-vault.ts for what that protects and what it does not.
+   */
+  ACCOUNT_EMAIL_KEY?: string;
+  /** Plan prices in cents. Defaults: 500 and 1000. */
+  PLAN_CLOUD_PRICE_CENTS?: string;
+  /** Monthly allowance as advertised, in tokens. Defaults: 8M in, 2M out. */
+  PLAN_INPUT_TOKENS?: string;
+  PLAN_OUTPUT_TOKENS?: string;
+  /** Deep Research runs included with Cloud+ each month. Default: 21. */
+  /**
+   * Bytes per token, the calibration constant that converts the advertised
+   * token allowance into the byte budget actually enforced.
+   *
+   * The proxy relays end-to-end encrypted traffic and never buffers it, so it
+   * cannot read Venice's token counts; it counts bytes instead. Compare the
+   * Worker's monthly byte total with Venice's invoice and adjust this. Default
+   * 3.7, which suits French and English prose.
+   */
+  BYTES_PER_TOKEN?: string;
+
+  /**
+   * Prices are quoted in satoshis. These two govern the quote: the currency
+   * the plans are anchored to, and the rounding step the quote lands on.
+   */
+  BILLING_CURRENCY?: string;
+  SAT_PRICE_STEP?: string;
 };
+
+/** Backstop on the money route. Generous for a person, narrow for a script. */
+const CHAT_REQUESTS_PER_HOUR = 240;
 
 const DEFAULT_VENICE_BASE = 'https://api.venice.ai/api/v1';
 const DEFAULT_PCCS_UPSTREAM = 'https://pccs.phala.network';
@@ -155,6 +264,7 @@ const ALICE_REQUEST_HEADERS = [
 ];
 const EXPOSED_RESPONSE_HEADERS = [
   'x-alice-cloud-requests-remaining',
+  'x-alice-plan',
   'x-alice-request-id',
 ];
 
@@ -170,7 +280,12 @@ export function corsHeaders(origin: string | null, env: Env): Record<string, str
   if (!origin || !allowed.includes(origin)) return {};
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    // Every method a browser route actually uses. PUT and DELETE were missing
+    // for as long as no browser called them; the day the account screens
+    // shipped, setting a password or saving a username died in preflight, as
+    // a "network error" with nothing in the server logs, because the blocked
+    // request is never sent at all.
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': [
       ...FORWARDED_REQUEST_HEADERS,
       ...ALICE_REQUEST_HEADERS,
@@ -235,7 +350,17 @@ export function sanitizeChatBody(raw: string): { body: string; model: string } {
     : MAX_TOKENS_CEILING;
   parsed.max_tokens = Math.max(1, Math.min(requested, MAX_TOKENS_CEILING));
   // E2EE is selected by the three required TEE headers. Do not forward Venice
-  // capability switches from an untrusted client through the free relay.
+  // capability switches from an untrusted client through the free relay: web
+  // search and scraping bill per request, so a browser that could set them
+  // could spend Alice's balance at will.
+  //
+  // Alice tried setting enable_web_search here herself, for Deep Research
+  // runs. It was delivered to Venice, byte for byte, and changed nothing: the
+  // search subsystem has to read the question to search for it, and under E2EE
+  // the question is ciphertext addressed to the enclave. The switch is
+  // accepted and ignored. Search and end-to-end encryption exclude each other,
+  // and not only at Venice: searching the web means telling someone what you
+  // are looking for. See docs/billing-and-quotas.md.
   delete parsed.venice_parameters;
 
   return {
@@ -258,13 +383,56 @@ function freeMaxRequestBytes(env: Env): number {
   return Math.min(configured, 1024 * 1024);
 }
 
-function freeCloudModels(env: Env): Set<string> {
+function modelList(value: string | undefined, fallback: string): Set<string> {
   return new Set(
-    (env.FREE_CLOUD_MODELS ?? 'e2ee-gpt-oss-120b-p')
+    (value ?? fallback)
       .split(',')
       .map(model => model.trim())
       .filter(Boolean),
   );
+}
+
+function freeCloudModels(env: Env): Set<string> {
+  return modelList(env.FREE_CLOUD_MODELS, 'e2ee-gpt-oss-120b-p');
+}
+
+/**
+ * Which models a plan may reach.
+ *
+ * Deep Research is the one model gated by plan rather than by allowance, so
+ * this is the only place that decides it. A Cloud subscriber asking for it is
+ * refused with a code that says the plan does not include it, which is a
+ * different sentence from having run out, and leads somewhere different.
+ */
+export function modelsForPlan(env: Env, plan: Plan): Set<string> {
+  if (plan === 'free') return freeCloudModels(env);
+  return modelList(env.PAID_CLOUD_MODELS, [...freeCloudModels(env)].join(','));
+}
+
+/**
+ * The answer-length ceiling. A paid plan is metered by volume, so capping it at
+ * the free plan's short answers would sell capacity that cannot be spent.
+ */
+function paidMaxTokens(env: Env): number {
+  const configured = Number(env.PAID_CLOUD_MAX_TOKENS ?? 8192);
+  if (!Number.isSafeInteger(configured) || configured < 1) return 8192;
+  return Math.min(configured, MAX_TOKENS_CEILING);
+}
+
+/**
+ * How large a single request may be.
+ *
+ * Tokens cannot be counted here: the payload is encrypted. Bytes are, so a
+ * limit stated in tokens anywhere else is converted with the same calibration
+ * ratio the whole meter uses. A wrong ratio therefore moves this limit as
+ * well, in the same direction, which is one more reason to calibrate it
+ * against a real invoice.
+ */
+export function maxRequestBytes(env: Env, plan: Plan): number {
+  if (plan === 'free') return freeMaxRequestBytes(env);
+  const configured = Number(env.PAID_CLOUD_MAX_REQUEST_BYTES ?? 512 * 1024);
+  if (!Number.isSafeInteger(configured) || configured < 32 * 1024) return 512 * 1024;
+  return configured;
 }
 
 export function missingE2EEHeaders(request: Request): string[] {
@@ -336,9 +504,37 @@ async function relayChat(
     return json({ error: `Missing E2EE headers: ${missing.join(', ')}` }, 400, cors);
   }
 
-  const maxRequestBytes = freeMaxRequestBytes(env);
+  // A ceiling on the one route that spends money.
+  //
+  // Every other budget here is a product rule: twenty-one free requests, a
+  // month of bytes. Those bound what a person may have, not how fast a script
+  // may ask, and they were the only thing standing between a valid session and
+  // Alice's Venice balance. This is the backstop underneath them: a person
+  // types, and 240 requests an hour is far more than typing.
+  //
+  // Keyed on the account rather than the IP on purpose. Alice is used over Tor
+  // and shared exits, where an address is a crowd, and throttling the crowd to
+  // protect a balance would charge the wrong people for it. Anonymous accounts
+  // are already capped per IP where they are created.
+  await rateLimit(
+    env,
+    await hmac(env, `cloud-chat:${user.userId}`),
+    'cloud_chat',
+    CHAT_REQUESTS_PER_HOUR,
+    Date.now(),
+  );
+
+  // The plan decides what may be asked for, so it is resolved before anything
+  // is read or judged.
+  const plan = await resolvePlan(env, user.userId);
+
+  // Checked twice against the same limit, on purpose. The declared length is
+  // refused first so an oversized payload is never buffered; the real length
+  // is refused after, because a Content-Length header is a claim and not a
+  // measurement.
+  const ceilingBytes = maxRequestBytes(env, plan);
   const declaredBytes = Number(request.headers.get('content-length') ?? '0');
-  if (Number.isFinite(declaredBytes) && declaredBytes > maxRequestBytes) {
+  if (Number.isFinite(declaredBytes) && declaredBytes > ceilingBytes) {
     throw new AccountHttpError(
       413,
       'body_too_large',
@@ -346,7 +542,8 @@ async function relayChat(
     );
   }
   const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > maxRequestBytes) {
+  const rawBytes = new TextEncoder().encode(raw).byteLength;
+  if (rawBytes > ceilingBytes) {
     throw new AccountHttpError(
       413,
       'body_too_large',
@@ -360,22 +557,47 @@ async function relayChat(
     return json({ error: err instanceof Error ? err.message : 'Invalid body' }, 400, cors);
   }
 
-  if (!freeCloudModels(env).has(sanitized.model)) {
+  if (!modelsForPlan(env, plan).has(sanitized.model)) {
     throw new AccountHttpError(
       403,
-      'model_not_in_free_plan',
-      'This model is not included in the free Alice account.',
+      'model_not_in_plan',
+      'This model is not included in your Alice plan.',
+    );
+  }
+
+  // Now the model is known, so the real size limit applies.
+  if (rawBytes > maxRequestBytes(env, plan)) {
+    throw new AccountHttpError(
+      413,
+      'body_too_large',
+      'This Private Cloud request is too large.',
     );
   }
 
   const parsed = JSON.parse(sanitized.body) as Record<string, unknown>;
+  const maxTokens = plan === 'free' ? freeMaxTokens(env) : paidMaxTokens(env);
   parsed.max_tokens = Math.min(
-    typeof parsed.max_tokens === 'number' ? parsed.max_tokens : freeMaxTokens(env),
-    freeMaxTokens(env),
+    typeof parsed.max_tokens === 'number' ? parsed.max_tokens : maxTokens,
+    maxTokens,
   );
   sanitized.body = JSON.stringify(parsed);
 
-  const reservation = await reserveFreeRequest(env, user.userId, idempotencyKey);
+  // Free accounts are metered in requests, paid ones in bytes. The two ledgers
+  // share a table but never a row: a request is charged to exactly one of them.
+  const inputBytes = new TextEncoder().encode(sanitized.body).byteLength;
+  const freeReservation = plan === 'free'
+    ? await reserveFreeRequest(env, user.userId, idempotencyKey)
+    : null;
+  const byteReservation = plan === 'free'
+    ? null
+    : await reserveCloudBytes(
+      env,
+      user.userId,
+      idempotencyKey,
+      inputBytes,
+      parsed.max_tokens as number,
+    );
+
   const headers: Record<string, string> = {
     Authorization: `Bearer ${env.VENICE_API_KEY}`,
     'Content-Type': 'application/json',
@@ -394,21 +616,28 @@ async function relayChat(
       body: sanitized.body,
     });
   } catch (error) {
-    await refundFreeRequest(env, reservation.ledgerId, 'upstream_network_error');
+    if (freeReservation) {
+      await refundFreeRequest(env, freeReservation.ledgerId, 'upstream_network_error');
+    }
+    if (byteReservation) {
+      await refundCloudBytes(env, byteReservation, 'upstream_network_error');
+    }
     throw error;
   }
 
   if (!upstream.ok) {
-    await refundFreeRequest(env, reservation.ledgerId, `upstream_http_${upstream.status}`);
-    await recordTechnicalEvent(env, 'venice', `upstream_http_${upstream.status}`, upstream.status, user.userId)
+    const failure = `upstream_http_${upstream.status}`;
+    if (freeReservation) await refundFreeRequest(env, freeReservation.ledgerId, failure);
+    if (byteReservation) await refundCloudBytes(env, byteReservation, failure);
+    await recordTechnicalEvent(env, 'venice', failure, upstream.status, user.userId)
       .catch(() => {});
-  } else {
-    await confirmFreeRequest(env, reservation.ledgerId);
+  } else if (freeReservation) {
+    await confirmFreeRequest(env, freeReservation.ledgerId);
     const milestoneWrite = recordCloudRequestMilestones(
       request,
       env,
-      reservation.used,
-      reservation.limit,
+      freeReservation.used,
+      freeReservation.limit,
     ).catch(() => {});
     if (ctx) ctx.waitUntil(milestoneWrite);
     else await milestoneWrite;
@@ -422,15 +651,50 @@ async function relayChat(
     approxBytes: sanitized.body.length,
   });
 
+  // A paid request is charged for what it actually returns, and the size of a
+  // response is only known once it has all gone past. The counter sits in the
+  // stream and adds up byte lengths; it never reads, copies or holds a chunk,
+  // so the response still reaches the user unbuffered and still encrypted.
+  let body = upstream.body;
+  if (byteReservation && upstream.ok && body) {
+    const counter = countingStream();
+    body = body.pipeThrough(counter.stream);
+    const settlement = counter.done
+      .then(outputBytes => settleCloudBytes(env, byteReservation, outputBytes))
+      .catch(() => {});
+    if (ctx) ctx.waitUntil(settlement);
+  } else if (freeReservation && upstream.ok && body) {
+    // The same counter, moving no counter of its own. A free request is still
+    // charged one request whatever it weighs; this only writes the weight down,
+    // so the calibration ratio can be checked against Venice's token totals
+    // without having to sell a plan first and verify the arithmetic later.
+    const counter = countingStream();
+    body = body.pipeThrough(counter.stream);
+    const measurement = counter.done
+      .then(outputBytes => recordMeasuredBytes(
+        env,
+        freeReservation.ledgerId,
+        inputBytes,
+        outputBytes,
+      ))
+      .catch(() => {});
+    if (ctx) ctx.waitUntil(measurement);
+  }
+
   // Pass the stream straight through: no buffering, no inspection.
-  return new Response(upstream.body, {
+  return new Response(body, {
     status: upstream.status,
     headers: {
       'Content-Type': upstream.headers.get('content-type') ?? 'text/event-stream',
       'Cache-Control': 'no-store',
-      'X-Alice-Cloud-Requests-Remaining': String(
-        upstream.ok ? reservation.remaining : reservation.remaining + 1,
-      ),
+      ...(freeReservation
+        ? {
+          'X-Alice-Cloud-Requests-Remaining': String(
+            upstream.ok ? freeReservation.remaining : freeReservation.remaining + 1,
+          ),
+        }
+        : {}),
+      'X-Alice-Plan': plan,
       'X-Alice-Request-Id': idempotencyKey,
       ...cors,
     },
@@ -452,11 +716,11 @@ async function accountRoute(
   if (url.pathname === '/auth/email/verify' && request.method === 'POST') {
     return json(await verifyEmailLogin(request, env), 200, cors);
   }
+  if (url.pathname === '/auth/username/vocabulary' && request.method === 'GET') {
+    return json(await usernameVocabulary(request, env), 200, cors);
+  }
   if (url.pathname === '/auth/username/suggestions' && request.method === 'POST') {
     return json(await suggestUsernames(request, env), 200, cors);
-  }
-  if (url.pathname === '/auth/password/register' && request.method === 'POST') {
-    return json(await registerPasswordAccount(request, env), 200, cors);
   }
   if (url.pathname === '/auth/password/login' && request.method === 'POST') {
     return json(await loginWithPassword(request, env), 200, cors);
@@ -495,6 +759,20 @@ async function accountRoute(
   }
   if (url.pathname === '/account/events' && request.method === 'POST') {
     return json(await recordProductEvents(request, env), 200, cors);
+  }
+  if (url.pathname === '/billing/plans' && request.method === 'GET') {
+    // Public: a price list is of no use behind a login, and someone deciding
+    // whether to buy has not signed in yet.
+    return json(await getPlanQuotes(request, env), 200, cors);
+  }
+  if (url.pathname === '/billing' && request.method === 'GET') {
+    return json(await getCurrentBilling(request, env), 200, cors);
+  }
+  if (url.pathname === '/billing/checkout' && request.method === 'POST') {
+    return json(await createCheckout(request, env), 200, cors);
+  }
+  if (url.pathname === '/account/email/preferences' && request.method === 'PUT') {
+    return json(await updateEmailPreferences(request, env), 200, cors);
   }
   return null;
 }
@@ -539,6 +817,9 @@ async function adminRoute(
   }
   if (path === '/events' && request.method === 'GET') {
     return json(await adminListEvents(request, env), 200, cors);
+  }
+  if (path === '/test-wallet-faucet' && request.method === 'GET') {
+    return json(await adminTestWalletFaucet(request, env), 200, cors);
   }
   if (path === '/access-denials' && request.method === 'GET') {
     return json(await adminListAccessDenials(request, env), 200, cors);
@@ -685,7 +966,59 @@ export default {
       return json(await lookupEntities(request, env), 200, cors);
     }
 
-    if (url.pathname.startsWith('/auth/') || url.pathname.startsWith('/account')) {
+    // BTCPay's callback. It carries no session and no CORS origin: it is
+    // authenticated by the HMAC signature BTCPay puts on the body, and by
+    // nothing else. Placed before the account block so it never inherits the
+    // session handling that applies there.
+    if (url.pathname === '/billing/webhook/btcpay' && request.method === 'POST') {
+      if (!env.ACCOUNT_DB || !env.BTCPAY_WEBHOOK_SECRET) {
+        return new Response('billing not configured', { status: 503 });
+      }
+      return handleBtcpayWebhook(request, env);
+    }
+
+    // An external uptime watcher calls this when its probe changes state. It
+    // only knows the probe moved; Alice asks BTCPay herself before deciding it
+    // is an outage, which is what keeps a restart from crying wolf. The secret
+    // is in the path because notification webhooks carry no custom headers.
+    if (url.pathname.startsWith('/ops/tunnel-alert/') && request.method === 'POST') {
+      return handleTunnelAlert(request, env, url.pathname.slice('/ops/tunnel-alert/'.length));
+    }
+
+    // Latest released app version, public and unauthenticated. The four
+    // surfaces version together and the Worker deploys with each release, so
+    // this constant IS the release number; every surface polls it to offer
+    // the update banner (packages/alice-ai/src/app-update.ts). Cacheable:
+    // nothing here is per-user.
+    if (url.pathname === '/app-version' && request.method === 'GET') {
+      return json({ version: APP_RELEASE_VERSION }, 200, {
+        ...cors,
+        'Cache-Control': 'public, max-age=300',
+      });
+    }
+
+    // Test wallet faucet: public and Venice-key-free, but it needs the
+    // rate-limit store and the IP hashing key, so it is guarded on those.
+    if (url.pathname === '/test-wallet/faucet' && request.method === 'POST') {
+      if (!env.ACCOUNT_DB || !env.AUTH_HMAC_KEY) {
+        return json(
+          { error: { code: 'faucet_not_configured', message: 'The test wallet faucet is not configured.' } },
+          500,
+          cors,
+        );
+      }
+      try {
+        return json(await claimTestWalletFaucet(request, env), 200, cors);
+      } catch (error) {
+        return accountErrorResponse(error, cors, env, 'auth');
+      }
+    }
+
+    if (
+      url.pathname.startsWith('/auth/')
+      || url.pathname.startsWith('/account')
+      || url.pathname.startsWith('/billing')
+    ) {
       if (!env.ACCOUNT_DB || !env.AUTH_HMAC_KEY) {
         return json(
           { error: { code: 'account_not_configured', message: 'Alice accounts are not configured.' } },
@@ -725,7 +1058,9 @@ export default {
             // no font-src, 'default-src none' blocked them outright and the
             // page rendered with the fallback OS font instead of Alice's.
             "font-src data:",
-            "connect-src 'self'",
+            // GitHub's public API is the one external call: the download
+            // counters of the released APKs, read-only and unauthenticated.
+            "connect-src 'self' https://api.github.com",
             "frame-ancestors 'none'",
             "form-action 'none'",
             "base-uri 'none'",
@@ -764,7 +1099,19 @@ export default {
 
     if (url.pathname === '/api/v1/tee/attestation' && request.method === 'GET') {
       try {
-        await authenticate(request, env);
+        const user = await authenticate(request, env);
+        // Same ceiling as the chat route, separate bucket. This door does not
+        // bill, but it goes upstream wearing Alice's key: a session hammering
+        // it makes Venice's rate limiting the key's problem instead of the
+        // session's. One attestation precedes each chat call, so a budget the
+        // chat route can never exhaust costs honest traffic nothing.
+        await rateLimit(
+          env,
+          await hmac(env, `attestation:${user.userId}`),
+          'attestation',
+          CHAT_REQUESTS_PER_HOUR * 2,
+          Date.now(),
+        );
         return relayAttestation(request, env, cors);
       } catch (error) {
         return accountErrorResponse(error, cors, env, 'venice');
@@ -785,5 +1132,18 @@ export default {
     ctx: ExecutionContext,
   ): Promise<void> {
     ctx.waitUntil(cleanupExpiredAccountData(env));
+    ctx.waitUntil(cleanupBillingData(env));
+    // Bitcoin cannot direct-debit, so an expiring plan is a decision the user
+    // has to make. These are the only two mails Alice sends unprompted, and
+    // only to an address the account holder added for exactly this.
+    ctx.waitUntil(sendExpiryReminders(env).then(() => {}).catch(() => {}));
+    // The only place the satoshi price is allowed to move. Doing it here and
+    // not in the request path is what keeps a quote from ticking while
+    // somebody is reading it.
+    ctx.waitUntil(refreshSatPrice(env).catch(() => {}));
+    // The payment host is a separate service. Nothing else notices when it
+    // stops answering: the app keeps working and only the checkout fails,
+    // silently, on the one screen where money was about to move.
+    ctx.waitUntil(checkAndAlert(env, 'cron').then(() => {}).catch(() => {}));
   },
 };

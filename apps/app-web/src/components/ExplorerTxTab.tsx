@@ -180,8 +180,8 @@ export function ExplorerTxTab({
       )}
 
       {state.kind === 'error' && (
-        <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid #e06060', borderRadius: 2 }}>
-          <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: '#e06060' }}>
+        <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+          <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>
             COULD NOT LOAD
           </span>
           <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>

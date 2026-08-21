@@ -62,6 +62,33 @@ describe('composeAskAlice', () => {
     assert.equal(c.decision.class, 'A');
     assert.equal(c.userMessage, 'what is a utxo?');
   });
+
+  it('carries the page note in the de-identified block, even without signals', () => {
+    const c = composeAskAlice({
+      signals: [],
+      question: 'what am I looking at?',
+      pageNote: 'The user is on the receive screen of their test wallet.',
+    });
+    assert.ok(c.userMessage.includes('The user is on the receive screen'));
+    // The note is identity-free by contract, so the class stays A.
+    assert.equal(c.decision.class, 'A');
+  });
+
+  it('drops the page note when identified mode already describes the page', () => {
+    const c = composeAskAlice({
+      signals: [],
+      question: 'walk me through this page',
+      prefs: { cloudConsent: true, identifiedConsent: true },
+      pageNote: 'The user is on the receive screen of their test wallet.',
+      fullContext: {
+        description: 'Receive screen. Current receive address: tb1qexampleaddr.',
+        subjects: [{ kind: 'address', value: 'tb1qexampleaddr' }],
+      },
+    });
+    assert.ok(c.userMessage.includes('tb1qexampleaddr'));
+    assert.ok(!c.userMessage.includes('The user is on the receive screen of their test wallet.'));
+    assert.equal(c.decision.class, 'D');
+  });
 });
 
 describe('splitAskAliceMessage', () => {

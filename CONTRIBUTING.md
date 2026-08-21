@@ -22,10 +22,24 @@ your contribution.
 
 ## Development Checks
 
-Before opening a pull request, run:
+Before opening a pull request, run both checks CI runs:
 
 ```bash
 npm test
+```
+
+```bash
+npm run check:npm-audit
+```
+
+Type-checking runs per workspace, and `npm test` does not catch type errors
+(tests run on the TypeScript sources with type-stripping). When touching a
+shared package (`packages/*`), also type-check its consumers, the mobile app
+has the strictest view and catches what the package's own check misses:
+
+```bash
+npx tsc --noEmit -p packages/alice-ai
+npx tsc --noEmit -p apps/wallet-mobile
 ```
 
 When changing Alice prompts or instruction handling, also run:
@@ -44,7 +58,7 @@ cd apps/wallet-mobile && npm run check:ai-boundary
 
 When reporting a bug, include:
 
-- platform: Web, PWA, Android, iOS, or Desktop;
+- platform: Alice App (web or Desktop), Alice Wallet (web, PWA or Android);
 - app version or commit;
 - expected behavior;
 - actual behavior;

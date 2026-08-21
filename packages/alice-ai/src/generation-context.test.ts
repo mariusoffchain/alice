@@ -11,7 +11,7 @@ test('keeps the user message raw and inserts transient RAG as a system turn', ()
       { role: 'assistant', content: 'Bitcoin is a monetary network.' },
       { role: 'user', content: rawQuestion },
     ],
-    { ragContext: 'Ark est un protocole Bitcoin.', localContext: null },
+    { ragContext: 'Ark est un protocole Bitcoin.', localContext: null, learnContext: null },
     'The user is new to Ark.',
   );
 
@@ -24,7 +24,7 @@ test('keeps the user message raw and inserts transient RAG as a system turn', ()
 
 test('does not persist internal context into later raw history', () => {
   const raw = [{ role: 'user' as const, content: 'Pourquoi ?' }];
-  composeGenerationHistory(raw, { ragContext: 'private note', localContext: 'summary' }, 'beginner');
+  composeGenerationHistory(raw, { ragContext: 'private note', localContext: 'summary', learnContext: null }, 'beginner');
   assert.deepEqual(raw, [{ role: 'user', content: 'Pourquoi ?' }]);
 });
 
@@ -33,7 +33,7 @@ test('the outbound system turn receives a derived teaching instruction, never th
   const profile = updatePedagogicalProfile(createPedagogicalProfile(), question, new Date(2026, 7, 7));
   const result = composeGenerationHistory(
     [{ role: 'user', content: question }],
-    { ragContext: null, localContext: null },
+    { ragContext: null, localContext: null, learnContext: null },
     pedagogicalContext(profile, question),
   );
 
@@ -59,7 +59,7 @@ const MIXED_SESSION = [
 test('an autonomous E2EE question drops every completed earlier turn', () => {
   const result = composeGenerationHistory(
     MIXED_SESSION,
-    { ragContext: null, localContext: null },
+    { ragContext: null, localContext: null, learnContext: null },
     '',
     true,
   );
@@ -76,7 +76,7 @@ test('a contextual E2EE follow-up keeps only the last completed exchange in an e
   ];
   const result = composeGenerationHistory(
     followUp,
-    { ragContext: null, localContext: null },
+    { ragContext: null, localContext: null, learnContext: null },
     '',
     true,
     '',
@@ -97,7 +97,7 @@ test('a contextual E2EE follow-up keeps only the last completed exchange in an e
 test('keeps the ordinary history when the backend can preserve assistant turns', () => {
   const result = composeGenerationHistory(
     MIXED_SESSION,
-    { ragContext: 'Une seed phrase controle les fonds.', localContext: null },
+    { ragContext: 'Une seed phrase controle les fonds.', localContext: null, learnContext: null },
     '',
     false,
   );
@@ -109,7 +109,7 @@ test('keeps the ordinary history when the backend can preserve assistant turns',
 test('does not invent private conversation context on the first question', () => {
   const result = composeGenerationHistory(
     [{ role: 'user' as const, content: 'What is Bitcoin?' }],
-    { ragContext: 'Bitcoin is a monetary network.', localContext: null },
+    { ragContext: 'Bitcoin is a monetary network.', localContext: null, learnContext: null },
     '',
     true,
   );

@@ -86,27 +86,39 @@ async function createAccount(
   email = 'Marius+test@Example.com',
   headers: Record<string, string> = {},
 ) {
+  // The deliberate path, same as the app: an anonymous session that chooses
+  // to link this email. Bootstrapping through bare /auth/email/verify would
+  // test a door that no longer exists, since signing in stopped creating the
+  // account it could not find.
+  const anonymous = await worker.fetch(jsonRequest('/auth/anonymous', {}, headers), env);
+  assert.equal(anonymous.status, 200);
+  const anonSession = await anonymous.json() as { access_token: string };
+  const authed = { ...headers, authorization: `Bearer ${anonSession.access_token}` };
+
   const started = await worker.fetch(
-    jsonRequest('/auth/email/start', { email }, headers),
+    jsonRequest('/account/identities/email/start', { email }, authed),
     env,
   );
   assert.equal(started.status, 200);
   assert.match(sentCode, /^\d{6}$/);
 
-  const verified = await worker.fetch(
-    jsonRequest('/auth/email/verify', { email, code: sentCode }, headers),
+  const linked = await worker.fetch(
+    jsonRequest('/account/identities/email/verify', { email, code: sentCode }, authed),
     env,
   );
-  assert.equal(verified.status, 200);
-  return verified.json() as Promise<{
-    access_token: string;
-    refresh_token: string;
+  assert.equal(linked.status, 200);
+  const { account } = await linked.json() as {
     account: {
       user_id: string;
       cloud_requests_remaining: number;
       email_masked: string;
     };
-  }>;
+  };
+  return {
+    access_token: anonSession.access_token,
+    refresh_token: (anonSession as { refresh_token?: string }).refresh_token ?? '',
+    account,
+  };
 }
 
 async function startAndSignNostr(
@@ -162,6 +174,38 @@ async function startAndSignNostr(
       },
     },
   };
+}
+
+/**
+ * An account with a username and a password, built the way the apps build one:
+ * an address first, proved by a code, then a name and a password added to that
+ * account. There is no route that mints a password-only account any more,
+ * because there is no account without a reachable address any more.
+ */
+async function createNamedAccount(options: {
+  email: string;
+  prefix: string;
+  suffix: string;
+  username?: string;
+  display_name?: string;
+  password: string;
+  installId?: string;
+}) {
+  const headers = options.installId
+    ? { 'x-alice-install-id': options.installId }
+    : {};
+  const created = await createAccount(options.email, headers);
+  const response = await worker.fetch(
+    jsonRequest('/account/password', {
+      password: options.password,
+      prefix: options.prefix,
+      suffix: options.suffix,
+      username: options.username,
+      display_name: options.display_name,
+    }, { authorization: `Bearer ${created.access_token}` }, 'PUT'),
+    env,
+  );
+  return { response, access_token: created.access_token };
 }
 
 describe('email account', () => {
@@ -224,10 +268,54 @@ describe('email account', () => {
     assert.equal(row?.count, 0);
   });
 
+  it('writes down where the account can be reached, encrypted', async () => {
+    // The address is captured on every code login, not only at creation, which
+    // is what repairs accounts made back when Alice stored nothing but the
+    // one-way lookup: their owner types the address to sign in anyway.
+    env.ACCOUNT_EMAIL_KEY = 'account-email-key-for-tests-0123456789';
+    const created = await createAccount('reachable@example.com');
+
+    const row = await db.prepare(
+      'SELECT email_ciphertext, email_masked, verified_at FROM account_emails WHERE user_id = ?',
+    ).bind(created.account.user_id).first<{
+      email_ciphertext: string;
+      email_masked: string;
+      verified_at: number | null;
+    }>();
+    assert.ok(row);
+    assert.equal(row!.email_masked, 're******@example.com');
+    assert.ok(row!.verified_at !== null, 'a code login proves the address');
+    assert.ok(!row!.email_ciphertext.includes('reachable'));
+    assert.ok(!row!.email_ciphertext.includes('example.com'));
+
+    const snapshot = await getAccountSnapshot(env, created.account.user_id);
+    assert.equal(snapshot.email_reachable, true);
+    // Product mail starts on: a handful of messages a year about what the app
+    // can now do, no longer hidden behind a switch nobody moved.
+    assert.equal(snapshot.product_updates, true);
+  });
+
+  it('stores no address at all when there is no key to protect it', async () => {
+    // Writing addresses in the clear because a secret is missing would be the
+    // worst of both worlds: the property Alice gave up, without the protection
+    // she gave it up for.
+    delete env.ACCOUNT_EMAIL_KEY;
+    delete env.BILLING_EMAIL_KEY;
+    const created = await createAccount('unprotected@example.com');
+    const row = await db.prepare('SELECT user_id FROM account_emails WHERE user_id = ?')
+      .bind(created.account.user_id).first();
+    assert.equal(row, null);
+    assert.equal((await getAccountSnapshot(env, created.account.user_id)).email_reachable, false);
+  });
+
   it('creates one opaque account after verification and starts at 21 requests', async () => {
     const first = await createAccount();
     assert.notEqual(first.account.user_id, 'marius+test@example.com');
-    assert.match(first.account.user_id, /^[0-9a-f-]{36}$/);
+    // Creation now graduates the installation's anonymous user rather than
+    // minting a fresh uuid, so the id keeps the anonymous derivation shape.
+    // What matters is what it never contains: the email, or anything
+    // derivable from it.
+    assert.match(first.account.user_id, /^(anon_[A-Za-z0-9_-]{43}|[0-9a-f-]{36})$/);
     assert.equal(first.account.cloud_requests_remaining, 21);
     assert.equal(first.account.email_masked, 'ma******@example.com');
 
@@ -366,9 +454,91 @@ describe('email account', () => {
 
   it('returns the same user id when the same email signs in again', async () => {
     const first = await createAccount('same@example.com');
-    const second = await createAccount('SAME@example.com');
+    // Signing in again is a sign-in, not a second creation: creating with an
+    // already-linked email answers 409 by design. The address has no
+    // password yet, so the code alone still opens it.
+    const started = await worker.fetch(
+      jsonRequest('/auth/email/start', { email: 'SAME@example.com' }),
+      env,
+    );
+    assert.equal(started.status, 200);
+    const verified = await worker.fetch(
+      jsonRequest('/auth/email/verify', { email: 'SAME@example.com', code: sentCode }),
+      env,
+    );
+    assert.equal(verified.status, 200);
+    const second = await verified.json() as { account: { user_id: string; cloud_requests_remaining: number } };
     assert.equal(second.account.user_id, first.account.user_id);
     assert.equal(second.account.cloud_requests_remaining, 21);
+  });
+
+  it('refuses to sign in an email no account uses, and creates nothing', async () => {
+    const before = await db.prepare('SELECT COUNT(*) AS count FROM users').first<{ count: number }>();
+    const started = await worker.fetch(
+      jsonRequest('/auth/email/start', { email: 'stranger@example.com' }),
+      env,
+    );
+    assert.equal(started.status, 200);
+    const verified = await worker.fetch(
+      jsonRequest('/auth/email/verify', { email: 'stranger@example.com', code: sentCode }),
+      env,
+    );
+    assert.equal(verified.status, 404);
+    assert.equal(((await verified.json()) as any).error.code, 'account_not_found');
+    const after = await db.prepare('SELECT COUNT(*) AS count FROM users').first<{ count: number }>();
+    assert.equal(after?.count, before?.count);
+  });
+
+  it('demands the password once one exists, and lets the code reset it', async () => {
+    const created = await createAccount('guarded@example.com');
+    const set = await worker.fetch(
+      jsonRequest('/account/password', {
+        password: 'first-password-of-15-chars',
+        prefix: 'guard',
+        suffix: 'cheshire',
+        username: 'guard.cheshire#2048',
+      }, { authorization: `Bearer ${created.access_token}` }, 'PUT'),
+      env,
+    );
+    assert.equal(set.status, 200);
+
+    // A bare code is no longer a key to a passworded account.
+    await worker.fetch(jsonRequest('/auth/email/start', { email: 'guarded@example.com' }), env);
+    const bare = await worker.fetch(
+      jsonRequest('/auth/email/verify', { email: 'guarded@example.com', code: sentCode }),
+      env,
+    );
+    assert.equal(bare.status, 403);
+    assert.equal(((await bare.json()) as any).error.code, 'password_required');
+
+    // The same code with a new password is the reset, and it signs in.
+    const reset = await worker.fetch(
+      jsonRequest('/auth/email/verify', {
+        email: 'guarded@example.com',
+        code: sentCode,
+        new_password: 'second-password-of-15plus',
+      }),
+      env,
+    );
+    assert.equal(reset.status, 200);
+
+    // The old password died with the reset; the new one works.
+    const oldLogin = await worker.fetch(
+      jsonRequest('/auth/password/login', {
+        identifier: 'guarded@example.com',
+        password: 'first-password-of-15-chars',
+      }),
+      env,
+    );
+    assert.equal(oldLogin.status, 401);
+    const newLogin = await worker.fetch(
+      jsonRequest('/auth/password/login', {
+        identifier: 'guarded@example.com',
+        password: 'second-password-of-15plus',
+      }),
+      env,
+    );
+    assert.equal(newLogin.status, 200);
   });
 
   it('grants 21 requests only once per installation across different accounts', async () => {
@@ -411,9 +581,15 @@ describe('email account', () => {
     const first = await createAccount('one-user@example.com', {
       'x-alice-install-id': 'install-one-user-00000000001',
     });
-    const second = await createAccount('one-user@example.com', {
-      'x-alice-install-id': 'install-one-user-00000000002',
-    });
+    // A second device signs in; it does not create the account a second time.
+    const secondInstall = { 'x-alice-install-id': 'install-one-user-00000000002' };
+    await worker.fetch(jsonRequest('/auth/email/start', { email: 'one-user@example.com' }, secondInstall), env);
+    const verified = await worker.fetch(
+      jsonRequest('/auth/email/verify', { email: 'one-user@example.com', code: sentCode }, secondInstall),
+      env,
+    );
+    assert.equal(verified.status, 200);
+    const second = await verified.json() as { account: { user_id: string; cloud_requests_remaining: number } };
 
     assert.equal(second.account.user_id, first.account.user_id);
     assert.equal(second.account.cloud_requests_remaining, 21);
@@ -424,6 +600,8 @@ describe('email account', () => {
   });
 
   it('does not grant free requests without an installation identifier', async () => {
+    // The account has to exist before it can sign in from anywhere.
+    await createAccount('no-install@example.com', { 'x-alice-install-id': 'no-install-bootstrap-0001' });
     const start = await worker.fetch(new Request('https://proxy.test/auth/email/start', {
       method: 'POST',
       headers: {
@@ -442,10 +620,15 @@ describe('email account', () => {
       body: JSON.stringify({ email: 'no-install@example.com', code: sentCode }),
     }), env);
     assert.equal(verified.status, 200);
-    assert.equal((await verified.json() as any).account.cloud_requests_remaining, 0);
+    // Whatever the account already holds, a sign-in that names no
+    // installation must not add a fresh grant on top.
+    const grants = await db.prepare('SELECT COUNT(*) AS count FROM free_grants')
+      .first<{ count: number }>();
+    assert.equal(grants?.count, 1);
   });
 
   it('rejects a wrong or replayed code', async () => {
+    await createAccount('code@example.com');
     await worker.fetch(jsonRequest('/auth/email/start', { email: 'code@example.com' }), env);
     const code = sentCode;
     const wrong = await worker.fetch(
@@ -498,15 +681,21 @@ describe('email account', () => {
     for (let index = 0; index < 5; index += 1) {
       accounts.push(await createAccount(`daily-${index}@example.com`));
     }
+    // The sixth creation from the same IP dies where creation now happens:
+    // at the moment the anonymous user would take its first identity.
+    const anon6 = await worker.fetch(jsonRequest('/auth/anonymous', {}), env);
+    assert.equal(anon6.status, 200);
+    const sixthSession = await anon6.json() as { access_token: string };
+    const authed6 = { authorization: `Bearer ${sixthSession.access_token}` };
     await worker.fetch(
-      jsonRequest('/auth/email/start', { email: 'daily-6@example.com' }),
+      jsonRequest('/account/identities/email/start', { email: 'daily-6@example.com' }, authed6),
       env,
     );
     const sixth = await worker.fetch(
-      jsonRequest('/auth/email/verify', {
+      jsonRequest('/account/identities/email/verify', {
         email: 'daily-6@example.com',
         code: sentCode,
-      }),
+      }, authed6),
       env,
     );
     assert.equal(sixth.status, 429);
@@ -555,6 +744,51 @@ describe('email account', () => {
 });
 
 describe('username and password account', () => {
+  it('hands out the parts before a name exists', async () => {
+    // The picker opens before anyone has typed. If the words and the number
+    // only arrived with a name, the dropdown would sit dead and the number
+    // would show dots, which is how it shipped broken once.
+    const response = await worker.fetch(
+      new Request('https://proxy.test/auth/username/vocabulary', {
+        headers: { 'cf-connecting-ip': '203.0.113.8' },
+      }),
+      env,
+    );
+    assert.equal(response.status, 200);
+    const result = await response.json() as any;
+    assert.ok(result.suffixes.length >= 10, 'expected the whole vocabulary');
+    assert.match(result.discriminator, /^[0-9]{4}$/);
+  });
+
+  it('returns every middle word once, in a stable order, when asked for all', async () => {
+    // The picker shows the middle word as a list to scroll, so it needs the
+    // whole vocabulary with one set of digits each, and in an order that does
+    // not reshuffle underneath the person reading it.
+    const response = await worker.fetch(
+      jsonRequest('/auth/username/suggestions', { prefix: 'Satoshi', all: true }),
+      env,
+    );
+    assert.equal(response.status, 200);
+    const result = await response.json() as any;
+    assert.ok(result.suggestions.length >= 10, 'expected the full suffix list');
+    const suffixes = result.suggestions.map((item: any) => item.suffix);
+    assert.equal(new Set(suffixes).size, suffixes.length, 'no suffix twice');
+    // One number for the whole list. The digits are decided before the middle
+    // word is chosen, and a number that changed with the choice would look
+    // like part of the choice.
+    const digits = result.suggestions.map((item: any) => item.username.split('#')[1]);
+    assert.equal(new Set(digits).size, 1, `expected one shared number, got ${digits}`);
+    // Stable: two calls agree on the order, whatever digits they carry.
+    const again = await worker.fetch(
+      jsonRequest('/auth/username/suggestions', { prefix: 'Satoshi', all: true }),
+      env,
+    );
+    assert.deepEqual(
+      ((await again.json()) as any).suggestions.map((item: any) => item.suffix),
+      suffixes,
+    );
+  });
+
   it('offers 5 distinct Alice-style usernames with server-chosen discriminants', async () => {
     const response = await worker.fetch(
       jsonRequest('/auth/username/suggestions', {
@@ -573,19 +807,17 @@ describe('username and password account', () => {
     }
   });
 
-  it('creates a pseudonymous account and reopens it with its username', async () => {
-    const createdResponse = await worker.fetch(
-      jsonRequest('/auth/password/register', {
-        prefix: 'Satoshi',
-        suffix: 'cheshire',
-        username: 'satoshi.cheshire#2048',
-        display_name: 'Satoshi',
-        password: 'correct horse battery staple',
-      }),
-      env,
-    );
-    assert.equal(createdResponse.status, 200);
-    const created = await createdResponse.json() as any;
+  it('takes a username and a password, and reopens with the username', async () => {
+    const { response } = await createNamedAccount({
+      email: 'satoshi@example.com',
+      prefix: 'Satoshi',
+      suffix: 'cheshire',
+      username: 'satoshi.cheshire#2048',
+      display_name: 'Satoshi',
+      password: 'correct horse battery staple',
+    });
+    assert.equal(response.status, 200);
+    const created = await response.json() as any;
     assert.equal(created.account.username, 'satoshi.cheshire#2048');
     assert.equal(created.account.display_name, 'Satoshi');
     assert.equal(created.account.has_password, true);
@@ -606,15 +838,13 @@ describe('username and password account', () => {
   });
 
   it('rejects selected digits that do not match the chosen prefix and suffix', async () => {
-    const response = await worker.fetch(
-      jsonRequest('/auth/password/register', {
-        prefix: 'Satoshi',
-        suffix: 'cheshire',
-        username: 'satoshi.hatter#2048',
-        password: 'correct horse battery staple',
-      }),
-      env,
-    );
+    const { response } = await createNamedAccount({
+      email: 'mismatch@example.com',
+      prefix: 'Satoshi',
+      suffix: 'cheshire',
+      username: 'satoshi.hatter#2048',
+      password: 'correct horse battery staple',
+    });
     assert.equal(response.status, 400);
     assert.equal((await response.json() as any).error.code, 'invalid_username');
   });
@@ -650,15 +880,14 @@ describe('username and password account', () => {
   });
 
   it('returns the same generic error for an unknown username and a wrong password', async () => {
-    const createdResponse = await worker.fetch(
-      jsonRequest('/auth/password/register', {
-        prefix: 'Marius',
-        suffix: 'frabjous',
-        password: 'another long memorable password',
-      }, { 'x-alice-install-id': 'generic-error-install-000001' }),
-      env,
-    );
-    const created = await createdResponse.json() as any;
+    const { response } = await createNamedAccount({
+      email: 'generic-error@example.com',
+      prefix: 'Marius',
+      suffix: 'frabjous',
+      password: 'another long memorable password',
+      installId: 'generic-error-install-000001',
+    });
+    const created = await response.json() as any;
     const responses = [];
     for (const [identifier, password] of [
       [created.account.username, 'this password is incorrect'],
@@ -676,20 +905,19 @@ describe('username and password account', () => {
   });
 
   it('changes display name independently and rotates username with a new discriminator', async () => {
-    const createdResponse = await worker.fetch(
-      jsonRequest('/auth/password/register', {
-        prefix: 'Profile',
-        suffix: 'dreamer',
-        display_name: 'Profile',
-        password: 'profile password long enough',
-      }, { 'x-alice-install-id': 'profile-change-install-000001' }),
-      env,
-    );
-    const created = await createdResponse.json() as any;
+    const { response, access_token } = await createNamedAccount({
+      email: 'profile-change@example.com',
+      prefix: 'Profile',
+      suffix: 'dreamer',
+      display_name: 'Profile',
+      password: 'profile password long enough',
+      installId: 'profile-change-install-000001',
+    });
+    const created = await response.json() as any;
     const displayResponse = await worker.fetch(
       jsonRequest('/account/profile', {
         display_name: 'New Display',
-      }, { authorization: `Bearer ${created.access_token}` }, 'PUT'),
+      }, { authorization: `Bearer ${access_token}` }, 'PUT'),
       env,
     );
     assert.equal(displayResponse.status, 200);
@@ -702,7 +930,7 @@ describe('username and password account', () => {
         display_name: 'New Display',
         prefix: 'Profile',
         suffix: 'goldenkey',
-      }, { authorization: `Bearer ${created.access_token}` }, 'PUT'),
+      }, { authorization: `Bearer ${access_token}` }, 'PUT'),
       env,
     );
     assert.equal(usernameResponse.status, 200);
@@ -718,7 +946,7 @@ describe('username and password account', () => {
       jsonRequest('/account/profile', {
         prefix: 'Profile',
         suffix: 'cheshire',
-      }, { authorization: `Bearer ${created.access_token}` }, 'PUT'),
+      }, { authorization: `Bearer ${access_token}` }, 'PUT'),
       env,
     );
     assert.equal(secondChange.status, 429);
@@ -737,6 +965,8 @@ describe('username and password account', () => {
 
 describe('free cloud quota', () => {
   it('charges an idempotency key only once', async () => {
+    // The honest retry: a request that never delivered, sent again with its
+    // own id. It must not be charged a second time, and it must go through.
     const created = await createAccount('idempotent@example.com');
     const requestKey = 'request-idempotent-000001';
     const first = await reserveFreeRequest(env, created.account.user_id, requestKey);
@@ -745,6 +975,28 @@ describe('free cloud quota', () => {
     assert.equal(first.duplicate, false);
     assert.equal(second.remaining, 20);
     assert.equal(second.duplicate, true);
+  });
+
+  it('refuses a request id whose answer was already delivered', async () => {
+    // The dishonest replay, and the reason this test exists. The counters
+    // stood still on a duplicate, which is right, and the caller went upstream
+    // anyway, which was not: one id sent forever bought an unlimited number of
+    // Venice calls on a twenty-one request allowance. Confirming the row is
+    // what marks "this one was answered", so that is what a second call must
+    // now hit.
+    const created = await createAccount('replay@example.com');
+    const requestKey = 'request-replay-0000001';
+    const first = await reserveFreeRequest(env, created.account.user_id, requestKey);
+    await confirmFreeRequest(env, first.ledgerId);
+
+    await assert.rejects(
+      () => reserveFreeRequest(env, created.account.user_id, requestKey),
+      (error: any) => error.code === 'request_id_replayed' && error.status === 409,
+    );
+
+    // And the refusal costs the account nothing: one request spent, not two.
+    const snapshot = await getAccountSnapshot(env, created.account.user_id);
+    assert.equal(snapshot.cloud_requests_used, 1);
   });
 
   it('allows 21 confirmed requests and refuses the 22nd', async () => {

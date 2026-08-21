@@ -14,8 +14,8 @@ import { ExplorerXpubTab } from '@/components/ExplorerXpubTab';
 import { ARKADE_ACCENT_SOFT, ExplorerArkadeAddressTab } from '@/components/ExplorerArkade';
 import { ExplorerBlocks } from '@/components/ExplorerBlocks';
 import { ExplorerIntroModal, wasIntroDismissed } from '@/components/ExplorerIntroModal';
-import { ExplorerAskAlice } from '@/components/ExplorerAskAlice';
-import { ExplorerAskFab } from '@/components/ExplorerAskFab';
+import { AskAliceDock } from '@/components/AskAliceDock';
+import { AskAliceFab } from '@/components/AskAliceFab';
 import { MempoolProvider } from '@/lib/explorer/mempool';
 import { CachingProvider } from '@/lib/explorer/caching-provider';
 import { FailoverProvider } from '@/lib/explorer/failover-provider';
@@ -25,18 +25,17 @@ import { effectiveBaseUrl, isUsingCustomNode } from '@/lib/explorer/node-config'
 import type { PrivacySignal } from '@/lib/explorer/signals';
 import type { FullContext } from '@/lib/explorer/ask-alice';
 import { addTab, closeTab, makeTab, overviewTab, type Tab } from '@/lib/explorer/tabs';
-import { loadTabs, saveTabs } from '@/lib/explorer/tab-storage';
+import { consumePendingOpen, loadTabs, saveTabs } from '@/lib/explorer/tab-storage';
 import { getSessionTabs, saveSessionTabs } from '@/lib/explorer/session-links';
 import { DEFAULT_NETWORK_ID, getNetwork } from '@/lib/explorer/networks';
+import { getDefaultNetworkId } from '@/lib/explorer/prefs';
+import { ASK_WIDTH_DEFAULT, clampAskWidth, loadAskWidth, saveAskWidth } from '@/lib/ask-width';
 import { looksLikeArkadeAddress } from '@/lib/explorer/arkade';
 import { settlementRegistry } from '@/lib/explorer/arkade-onchain';
 import { useArkadeSettlements } from '@/lib/explorer/use-arkade-settlements';
 import type { RibbonFocus } from '@/lib/explorer/types';
 
 const ASK_OPEN_KEY = 'alice.explorer.ask-open';
-const ASK_WIDTH_KEY = 'alice.explorer.ask-width';
-const ASK_WIDTH_MIN = 320;
-const ASK_WIDTH_MAX = 680;
 
 // Register the Explorer fiche corpus into Alice's RAG once, so any Ask-Alice
 // turn can retrieve and cite it. Idempotent across remounts.
@@ -57,13 +56,16 @@ function ExplorerWorkspace() {
   // projected block while unconfirmed), kept per tab so switching tabs restores
   // the right spotlight without a refetch.
   const [focusByTab, setFocusByTab] = useState<Record<string, RibbonFocus | null>>({});
+  // Arrival note from a Learn anchor: a dismissible strip naming what the
+  // visitor is looking at and where they come from, with a way back.
+  const [arrival, setArrival] = useState<{ label: string; origin: string } | null>(null);
   // The welcome dialog shows on every mount of the section until the user asks
   // not to see it again; decided after hydration since it reads localStorage.
   const [showIntro, setShowIntro] = useState(false);
   // The Ask-Alice sidebar is persistent: docked on the right, it survives tab
   // and page changes; whether it is open survives leaving the section too.
   const [askOpen, setAskOpen] = useState(false);
-  const [askWidth, setAskWidth] = useState(420);
+  const [askWidth, setAskWidth] = useState(ASK_WIDTH_DEFAULT);
   // Privacy signals published by each tab once analysed, so the sidebar always
   // proposes the ACTIVE page's de-identified context as attachments.
   const [signalsByTab, setSignalsByTab] = useState<Record<string, PrivacySignal[]>>({});
@@ -75,22 +77,43 @@ function ExplorerWorkspace() {
   // restores them. recording: the active session belongs to this exploration,
   // keep its snapshot fresh. pendingRecord: a message went out before the
   // provider created the session; adopt the id as soon as it appears.
-  const { activeSessionId } = useChat();
+  const { activeSessionId, messages: chatMessages, clearMessages } = useChat();
   const recordingRef = useRef(false);
   const pendingRecordRef = useRef(false);
   const lastSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // StrictMode mounts twice in dev: without this guard the second pass would
+    // consume the one-shot deep-link key again and overwrite the tab it just
+    // opened.
+    if (hydrated.current) return;
     ensureFichePack();
     const stored = loadTabs();
-    if (stored) { setTabs(stored.tabs); setActiveId(stored.activeId); }
+    // A deep link from another surface (a Learn anchor, a Playground
+    // transaction) opens its subject on top of whatever was restored.
+    const pending = consumePendingOpen();
+    if (pending) {
+      const base = stored ? stored.tabs : [overviewTab(getDefaultNetworkId())];
+      const tab = makeTab(pending.kind, pending.query, pending.networkId ?? getDefaultNetworkId());
+      setTabs([...base, tab]);
+      setActiveId(tab.id);
+      // A note means the link came with words for a human: the arrival banner
+      // names the subject and where the visitor came from.
+      if (pending.note) setArrival(pending.note);
+    } else if (stored) {
+      setTabs(stored.tabs);
+      setActiveId(stored.activeId);
+    } else {
+      // No session to restore, so honour the preferred starting network. Applied
+      // here rather than in useState: the first client render has to match the
+      // server's, which knows nothing of localStorage.
+      const preferred = getDefaultNetworkId();
+      if (preferred !== DEFAULT_NETWORK_ID) setTabs([overviewTab(preferred)]);
+    }
     hydrated.current = true;
     setShowIntro(!wasIntroDismissed());
     try { setAskOpen(window.localStorage.getItem(ASK_OPEN_KEY) === 'true'); } catch { /* default closed */ }
-    try {
-      const w = parseInt(window.localStorage.getItem(ASK_WIDTH_KEY) ?? '', 10);
-      if (Number.isFinite(w)) setAskWidth(Math.min(ASK_WIDTH_MAX, Math.max(ASK_WIDTH_MIN, w)));
-    } catch { /* default width */ }
+    setAskWidth(loadAskWidth());
   }, []);
 
   useEffect(() => {
@@ -100,7 +123,7 @@ function ExplorerWorkspace() {
 
   useEffect(() => {
     if (!hydrated.current) return;
-    try { window.localStorage.setItem(ASK_WIDTH_KEY, String(askWidth)); } catch { /* best effort */ }
+    saveAskWidth(askWidth);
   }, [askWidth]);
 
   // Drag the sidebar's left edge to resize it (desktop only).
@@ -109,7 +132,7 @@ function ExplorerWorkspace() {
     const startX = e.clientX;
     const startW = askWidth;
     const move = (ev: PointerEvent) => {
-      setAskWidth(Math.min(ASK_WIDTH_MAX, Math.max(ASK_WIDTH_MIN, startW + (startX - ev.clientX))));
+      setAskWidth(clampAskWidth(startW + (startX - ev.clientX)));
     };
     const up = () => {
       window.removeEventListener('pointermove', move);
@@ -217,29 +240,53 @@ function ExplorerWorkspace() {
   // opens mainnet tabs, and from a testnet tab opens testnet tabs. One nuance:
   // a known settlement opened from the Arkade view is an ON-CHAIN transaction,
   // so it opens as a Bitcoin tab; violet stays for the off-chain subjects.
-  function openTx(txid: string) {
-    const networkId = getNetwork(activeNetworkId).kind === 'arkade' && settlementRegistry.has(txid)
-      ? DEFAULT_NETWORK_ID
-      : activeNetworkId;
+  // Opening a subject swaps the Ask-Alice attachment, and a new attachment
+  // starts a new discussion (the previous one is archived in history). Only
+  // for user-opened subjects: session restores and tab switches keep their
+  // thread, and re-opening the subject already on screen changes nothing.
+  function freshAskConversation(kind: Tab['kind'], query: string) {
+    if (!askOpen) return;
+    if (active.kind === kind && active.query === query) return;
+    if (chatMessages.some(m => m.role === 'user')) clearMessages();
+  }
+
+  // The optional network pins a subject to the chain it belongs to. The
+  // curated Home examples are all mainnet objects: opened on whatever chain
+  // the selector happened to show, they answered "transaction not found" on
+  // Mutinynet, and the same wrong answer on every other test network. A
+  // subject that knows its chain names it; everything else keeps following
+  // the selector.
+  function openTx(txid: string, onNetworkId?: string) {
+    const networkId = onNetworkId
+      ?? (getNetwork(activeNetworkId).kind === 'arkade' && settlementRegistry.has(txid)
+        ? DEFAULT_NETWORK_ID
+        : activeNetworkId);
+    freshAskConversation('tx', txid);
     const tab = makeTab('tx', txid, networkId);
     setTabs(prev => addTab(prev, tab, activeId));
     setActiveId(tab.id);
   }
 
-  function openBlock(heightOrHash: string) {
-    const tab = makeTab('block', heightOrHash, activeNetworkId);
+  function openBlock(heightOrHash: string, onNetworkId?: string) {
+    freshAskConversation('block', heightOrHash);
+    const tab = makeTab('block', heightOrHash, onNetworkId ?? activeNetworkId);
     setTabs(prev => addTab(prev, tab, activeId));
     setActiveId(tab.id);
   }
 
-  function openAddress(address: string) {
-    const tab = makeTab('address', address, activeNetworkId);
+  function openAddress(address: string, onNetworkId?: string) {
+    freshAskConversation('address', address);
+    const tab = makeTab('address', address, onNetworkId ?? activeNetworkId);
     setTabs(prev => addTab(prev, tab, activeId));
     setActiveId(tab.id);
   }
 
-  function openXpub(input: string, label?: string) {
-    const tab = makeTab('xpub', input, activeNetworkId);
+  function openXpub(input: string, label?: string, onNetworkId?: string) {
+    freshAskConversation('xpub', input);
+    // A saved wallet is bound to the chain it was saved on. Opened on the
+    // selector's chain instead, a Mutinynet wallet viewed from Bitcoin would
+    // scan the wrong network and read as emptied.
+    const tab = makeTab('xpub', input, onNetworkId ?? activeNetworkId);
     if (label) tab.label = label;
     setTabs(prev => addTab(prev, tab, activeId));
     setActiveId(tab.id);
@@ -407,6 +454,45 @@ function ExplorerWorkspace() {
         onSelectNetwork={selectNetwork}
       />
 
+      {arrival && (
+        <div
+          className="flex items-center shrink-0"
+          style={{
+            gap: 14,
+            margin: '10px 12px 0',
+            padding: '10px 14px',
+            minHeight: 44,
+            border: '1px solid var(--alice-primary)',
+            borderRadius: 2,
+            background: 'var(--alice-bg-soft)',
+          }}
+        >
+          <span className="font-pixel shrink-0" style={{ fontSize: 7, color: 'var(--alice-primary)' }}>
+            {arrival.origin.toUpperCase()}
+          </span>
+          <span className="font-numbers min-w-0 truncate" style={{ fontSize: 13, color: 'var(--alice-text)' }}>
+            {arrival.label}
+          </span>
+          <button
+            type="button"
+            onClick={() => { setArrival(null); window.history.back(); }}
+            className="font-pixel cursor-pointer shrink-0 ml-auto"
+            style={{ fontSize: 7, padding: '6px 10px', border: '1px solid var(--alice-primary)', borderRadius: 2, background: 'transparent', color: 'var(--alice-primary)' }}
+          >
+            {arrival.origin.toLowerCase().includes('chat') ? '← BACK TO CHAT' : '← BACK TO COURSE'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setArrival(null)}
+            aria-label="Dismiss"
+            className="cursor-pointer shrink-0 bg-transparent border-none"
+            style={{ color: 'var(--alice-muted)', fontSize: 14, lineHeight: '14px' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div ref={scrollAreaRef} className="flex-1 overflow-y-auto">
         {active.kind === 'overview' && (
           <div className="max-w-3xl mx-auto flex flex-col gap-6 px-5 pt-6 pb-8">
@@ -507,7 +593,7 @@ function ExplorerWorkspace() {
               style={{ width: 5, cursor: 'col-resize' }}
               aria-hidden="true"
             />
-            <ExplorerAskAlice
+            <AskAliceDock
               signals={signalsByTab[active.id] ?? []}
               fullContext={fullByTab[active.id] ?? null}
               contextId={active.id}
@@ -528,7 +614,7 @@ function ExplorerWorkspace() {
           </div>
         </>
       ) : (
-        <ExplorerAskFab onOpen={() => setAskOpen(true)} />
+        <AskAliceFab onOpen={() => setAskOpen(true)} />
       )}
     </div>
   );
@@ -564,7 +650,7 @@ export function ExplorerPanel() {
               className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
               aria-label="Open menu"
             >
-              <SvgIcon svg={SIDEBAR_ICON_SVG} size={18} color="var(--alice-text)" />
+              <SvgIcon svg={SIDEBAR_ICON_SVG} size={18} color="var(--alice-primary)" />
             </button>
           </div>
           <div className="flex min-w-0 items-center justify-center">

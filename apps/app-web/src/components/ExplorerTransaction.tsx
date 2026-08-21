@@ -21,12 +21,12 @@ function shortAddr(addr: string): string {
 }
 
 function Chip({ label, tone = 'muted' }: { label: string; tone?: 'muted' | 'warn' | 'ok' }) {
-  const color = tone === 'warn' ? '#e0a060' : tone === 'ok' ? 'var(--alice-primary)' : 'var(--alice-muted)';
+  const color = tone === 'warn' ? 'var(--alice-warning)' : tone === 'ok' ? 'var(--alice-primary)' : 'var(--alice-muted)';
   return (
     <span
       className="font-pixel tracking-widest"
       style={{
-        fontSize: 7,
+        fontSize: 10,
         padding: '4px 7px',
         border: `1px solid ${color}`,
         borderRadius: 2,
@@ -84,7 +84,7 @@ function IoRow({ io, onOpenAddress }: { io: NormalizedInput | NormalizedOutput; 
           </span>
         )}
         {addr && io.scriptType && (
-          <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>
+          <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
             {io.scriptType.toUpperCase()}
           </span>
         )}
@@ -104,7 +104,7 @@ function IoColumn({ title, count, children }: { title: string; count: number; ch
   return (
     <div className="flex-1 min-w-0" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
       <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
           {title}
         </span>
         <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
@@ -181,7 +181,7 @@ export function ExplorerTransaction({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>
+      <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
         {label.toUpperCase()}
       </span>
       <span className="font-numbers" style={{ fontSize: 13, color: 'var(--alice-text)' }}>

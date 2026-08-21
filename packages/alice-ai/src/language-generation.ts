@@ -46,7 +46,6 @@ export class WrongResponseLanguageError extends Error {
 export async function generateLanguageChecked(input: {
   backend: AIBackend;
   history: Message[];
-  deep: boolean;
   allowContinuation: boolean;
   targetLanguage: SupportedLanguage;
   requestId?: string;
@@ -76,7 +75,6 @@ export async function generateLanguageChecked(input: {
     const result = await generateWithContinuation(
       input.backend,
       input.history,
-      input.deep,
       input.allowContinuation,
       streamVisible,
       {

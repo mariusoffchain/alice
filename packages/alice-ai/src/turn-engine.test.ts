@@ -16,6 +16,7 @@ function services(): TurnPreparationServices & { queries: string[]; remembered: 
       return {
         ragContext: `Knowledge for ${query}`,
         localContext: null,
+        learnContext: null,
         diagnostics: [{ id: 'test-chunk' }],
       };
     },
@@ -91,7 +92,7 @@ test('personal acknowledgements are localized without a model call', async () =>
   assert.equal(prepared.directResponse, "Compris. J'en tiendrai compte.");
 });
 
-test('stored personal memory is injected only into Local AI', async () => {
+test('stored personal memory is injected into every backend', async () => {
   const memory = {
     ...createAliceMemory(),
     items: [{
@@ -102,7 +103,7 @@ test('stored personal memory is injected only into Local AI', async () => {
       updatedDay: '2026-08-10',
     }],
   };
-  const prepare = async (backendType: 'local' | 'cloud') => {
+  const prepare = async (backendType: 'local' | 'cloud' | 'custom') => {
     const fixture = services();
     fixture.getMemory = async () => memory;
     fixture.memoryContext = value => `LOCAL MEMORY: ${value.items.map(item => item.text).join(', ')}`;
@@ -116,11 +117,19 @@ test('stored personal memory is injected only into Local AI', async () => {
 
   const local = await prepare('local');
   const cloud = await prepare('cloud');
+  const custom = await prepare('custom');
   const localContext = local.history.map(message => message.content).join('\n');
   const cloudContext = cloud.history.map(message => message.content).join('\n');
+  const customContext = custom.history.map(message => message.content).join('\n');
 
+  // Both backends now. Memory used to ride on the local model only while the
+  // capture instruction still went to the cloud: collected there, never
+  // reused there. The cloud path is end-to-end encrypted to the enclave, so
+  // showing the memory back adds nothing a cloud conversation had not
+  // already accepted.
   assert.match(localContext, /LOCAL MEMORY: Prefers concise answers/);
-  assert.doesNotMatch(cloudContext, /LOCAL MEMORY|Prefers concise answers/);
+  assert.match(cloudContext, /LOCAL MEMORY: Prefers concise answers/);
+  assert.match(customContext, /LOCAL MEMORY: Prefers concise answers/);
 });
 
 test('a question about the user uses local memory without RAG or pedagogical context', async () => {

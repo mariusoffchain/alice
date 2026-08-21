@@ -41,7 +41,7 @@ export default function ResetWalletScreen() {
     && (pinLength === null || pin.length === pinLength);
 
   async function getResetRisk(): Promise<ResetRisk> {
-    const payments = await getPaymentHistory().catch(() => []);
+    const payments = await getPaymentHistory();
     return {
       unsafeSwapCount: payments.filter(payment => payment.status === 'pending' || payment.status === 'refundable').length,
     };
@@ -50,7 +50,11 @@ export default function ResetWalletScreen() {
   async function requestReset() {
     if (!ready || resetting) return;
     setError(null);
-    setRisk(await getResetRisk());
+    try {
+      setRisk(await getResetRisk());
+    } catch {
+      setError('Alice could not verify the current swap status. Reset remains blocked. Check your connection and try again.');
+    }
   }
 
   async function resetWallet() {
@@ -63,7 +67,7 @@ export default function ResetWalletScreen() {
         setPin('');
         return;
       }
-      await clearWallet({ allowUnsafePendingSwaps: (risk?.unsafeSwapCount ?? 0) > 0 });
+      await clearWallet();
       unlockSession();
       router.replace('/onboarding');
     } catch (cause) {
@@ -81,25 +85,25 @@ export default function ResetWalletScreen() {
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <Text style={s.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={s.headerTitle}>RESET WALLET</Text>
+        <Text style={[s.headerTitle, { color: colors.danger }]}>RESET WALLET</Text>
         <View style={{ width: 36 }} />
       </View>
 
       <KeyboardAvoidingView style={s.kav} behavior="padding">
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
-        <Text style={s.warning}>THIS CANNOT BE UNDONE</Text>
+        <Text style={[s.warning, { color: colors.danger }]}>THIS CANNOT BE UNDONE</Text>
         <Text style={s.description}>
           Resetting Alice removes this wallet from this device. You will return to the initial setup screen.
         </Text>
 
-        <View style={s.lossCard}>
-          <Text style={s.lossTitle}>WHAT WILL BE DELETED</Text>
+        <View style={[s.lossCard, { borderColor: colors.danger }]}>
+          <Text style={[s.lossTitle, { color: colors.danger }]}>WHAT WILL BE DELETED</Text>
           <Text style={s.lossItem}>• Recovery phrase stored on this device</Text>
           <Text style={s.lossItem}>• Arkade wallet data and local history</Text>
           <Text style={s.lossItem}>• Backup status, PIN and biometric lock</Text>
         </View>
 
-        <Text style={s.recoveryWarning}>
+        <Text style={[s.recoveryWarning, { color: colors.danger }]}>
           Your funds can only be recovered with your recovery phrase. If you have not written it down, you may permanently lose access to them.
         </Text>
         <Text style={s.swapWarning}>
@@ -138,7 +142,7 @@ export default function ResetWalletScreen() {
           </>
         )}
 
-        {error && <Text style={s.error}>{error}</Text>}
+        {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
 
         <TouchableOpacity style={[s.resetBtn, (!ready || resetting) && s.disabled]} onPress={() => void requestReset()} disabled={!ready || resetting}>
           <Text style={s.resetText}>{resetting ? 'RESETTING...' : 'PERMANENTLY RESET WALLET'}</Text>
@@ -151,11 +155,11 @@ export default function ResetWalletScreen() {
 
       <Modal visible={risk !== null} transparent animationType="fade" onRequestClose={() => setRisk(null)}>
         <View style={s.modalBackdrop}>
-          <View style={s.modal}>
-            <Text style={s.modalTitle}>FINAL RESET CHECK</Text>
+          <View style={[s.modal, { borderColor: colors.danger }]}>
+            <Text style={[s.modalTitle, { color: colors.danger }]}>FINAL RESET CHECK</Text>
             {risk && risk.unsafeSwapCount > 0 ? (
               <Text style={s.modalBody}>
-                Alice found {risk.unsafeSwapCount} swap payment{risk.unsafeSwapCount === 1 ? '' : 's'} still pending or refundable. Resetting anyway will delete local recovery data for {risk.unsafeSwapCount === 1 ? 'that swap' : 'those swaps'} from this device.
+                Alice found {risk.unsafeSwapCount} swap payment{risk.unsafeSwapCount === 1 ? '' : 's'} still pending or refundable. Reset is blocked to preserve the local recovery data for {risk.unsafeSwapCount === 1 ? 'that swap' : 'those swaps'}.
               </Text>
             ) : (
               <Text style={s.modalBody}>
@@ -166,9 +170,15 @@ export default function ResetWalletScreen() {
               <TouchableOpacity style={s.modalCancelBtn} onPress={() => setRisk(null)} disabled={resetting}>
                 <Text style={s.modalCancelText}>CANCEL</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.modalResetBtn, resetting && s.disabled]} onPress={() => void resetWallet()} disabled={resetting}>
-                <Text style={s.modalResetText}>{risk && risk.unsafeSwapCount > 0 ? 'RESET ANYWAY' : 'YES, RESET'}</Text>
-              </TouchableOpacity>
+              {risk && risk.unsafeSwapCount > 0 ? (
+                <TouchableOpacity style={[s.modalResetBtn, { backgroundColor: colors.danger, borderColor: colors.dangerInk }]} onPress={() => router.replace('/history')}>
+                  <Text style={s.modalResetText}>VIEW HISTORY</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={[s.modalResetBtn, resetting && s.disabled]} onPress={() => void resetWallet()} disabled={resetting}>
+                  <Text style={s.modalResetText}>YES, RESET</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -184,12 +194,12 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     backBtn: { ...pixel, width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardBg },
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
-    headerTitle: { fontFamily: typography.pixel, fontSize: 10, color: '#c84f4f', letterSpacing: 2 },
+    headerTitle: { fontFamily: typography.pixel, fontSize: 12, color: '#c84f4f', letterSpacing: 2 },
     body: { alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.xxxl },
     warning: { fontFamily: typography.pixel, fontSize: 12, lineHeight: 20, color: '#c84f4f', letterSpacing: 2, textAlign: 'center' },
     description: { maxWidth: 520, marginTop: spacing.lg, fontFamily: typography.numbers, fontSize: 16, lineHeight: 23, color: colors.muted, textAlign: 'center' },
     lossCard: { ...pixel, width: '100%', maxWidth: 520, marginTop: spacing.xl, padding: spacing.lg, backgroundColor: colors.cardBg, borderColor: '#e06060' },
-    lossTitle: { marginBottom: spacing.md, fontFamily: typography.pixel, fontSize: 8, color: '#c84f4f', letterSpacing: 1 },
+    lossTitle: { marginBottom: spacing.md, fontFamily: typography.pixel, fontSize: 12, color: '#c84f4f', letterSpacing: 1 },
     lossItem: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 15, lineHeight: 21, color: colors.primaryDark },
     recoveryWarning: { maxWidth: 520, marginTop: spacing.xl, fontFamily: typography.numbers, fontSize: 16, lineHeight: 23, color: '#c84f4f', textAlign: 'center' },
     swapWarning: { maxWidth: 520, marginTop: spacing.lg, fontFamily: typography.numbers, fontSize: 15, lineHeight: 21, color: colors.muted, textAlign: 'center' },
@@ -198,24 +208,24 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primaryDark },
     checkmark: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary },
     checkText: { flex: 1, fontFamily: typography.numbers, fontSize: 15, lineHeight: 21, color: colors.primaryDark },
-    inputLabel: { width: '100%', maxWidth: 420, marginTop: spacing.xl, fontFamily: typography.pixel, fontSize: 7, lineHeight: 15, color: colors.muted, letterSpacing: 1 },
-    input: { ...pixel, width: '100%', maxWidth: 420, height: 58, marginTop: spacing.sm, paddingVertical: 0, paddingHorizontal: spacing.lg, backgroundColor: colors.cardBg, fontFamily: typography.pixel, fontSize: 11, color: colors.primaryDark, textAlign: 'center', textAlignVertical: 'center', includeFontPadding: true },
+    inputLabel: { width: '100%', maxWidth: 420, marginTop: spacing.xl, fontFamily: typography.pixel, fontSize: 12, lineHeight: 15, color: colors.muted, letterSpacing: 1 },
+    input: { ...pixel, width: '100%', maxWidth: 420, height: 58, marginTop: spacing.sm, paddingVertical: 0, paddingHorizontal: spacing.lg, backgroundColor: colors.cardBg, fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, textAlign: 'center', textAlignVertical: 'center', includeFontPadding: true },
     pinInputWrap: { maxWidth: 420, marginTop: spacing.sm },
     pinInput: { fontSize: 16, letterSpacing: 8 },
     resetBtn: { ...pixel, width: '100%', maxWidth: 420, marginTop: spacing.xxl, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: '#c84f4f', borderColor: '#8f3030' },
-    resetText: { fontFamily: typography.pixel, fontSize: 7, color: '#ffffff', letterSpacing: 1 },
+    resetText: { fontFamily: typography.pixel, fontSize: 12, color: '#ffffff', letterSpacing: 1 },
     cancelBtn: { marginTop: spacing.lg, padding: spacing.md },
-    cancelText: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 1 },
+    cancelText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
     error: { maxWidth: 520, marginTop: spacing.lg, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: '#e06060', textAlign: 'center' },
     disabled: { opacity: 0.35 },
     modalBackdrop: { flex: 1, padding: spacing.xl, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.72)' },
     modal: { ...pixel, width: '100%', maxWidth: 460, padding: spacing.xl, backgroundColor: colors.cardBg, borderColor: '#c84f4f' },
-    modalTitle: { fontFamily: typography.pixel, fontSize: 9, lineHeight: 18, color: '#c84f4f', letterSpacing: 1, textAlign: 'center' },
+    modalTitle: { fontFamily: typography.pixel, fontSize: 12, lineHeight: 18, color: '#c84f4f', letterSpacing: 1, textAlign: 'center' },
     modalBody: { marginTop: spacing.lg, fontFamily: typography.numbers, fontSize: 16, lineHeight: 23, color: colors.primaryDark, textAlign: 'center' },
     modalActions: { marginTop: spacing.xl, gap: spacing.md },
     modalCancelBtn: { ...pixel, paddingVertical: spacing.md, alignItems: 'center', backgroundColor: colors.background },
-    modalCancelText: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 1 },
+    modalCancelText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
     modalResetBtn: { ...pixel, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: '#c84f4f', borderColor: '#8f3030' },
-    modalResetText: { fontFamily: typography.pixel, fontSize: 7, color: '#ffffff', letterSpacing: 1 },
+    modalResetText: { fontFamily: typography.pixel, fontSize: 12, color: '#ffffff', letterSpacing: 1 },
   });
 }

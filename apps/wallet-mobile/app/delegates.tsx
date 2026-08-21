@@ -98,7 +98,7 @@ export default function DelegatesScreen() {
             <View style={s.section}>
               <View style={s.row}>
                 <Text style={s.rowLabel}>STATUS</Text>
-                <Text style={[s.rowValue, status.delegateEnabled && s.good]}>
+                <Text style={[s.rowValue, status.delegateEnabled && [s.good, { color: colors.success }]]}>
                   {status.delegateEnabled ? 'ACTIVE' : 'INACTIVE'}
                 </Text>
               </View>
@@ -132,7 +132,7 @@ export default function DelegatesScreen() {
             <Text style={s.busyText}>RECONNECTING WALLET...</Text>
           </View>
         )}
-        {error && <Text style={s.error}>{error}</Text>}
+        {error && <Text style={[s.error, { color: colors.danger, backgroundColor: colors.dangerSoft, borderColor: colors.danger }]}>{error}</Text>}
       </ScrollView>
     </SafeAreaView>
   );
@@ -159,7 +159,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     headerSpacer: { width: 36 },
     title: {
       fontFamily: typography.pixel,
-      fontSize: 11,
+      fontSize: 12,
       color: colors.primaryDark,
       letterSpacing: 2,
       textAlign: 'center',
@@ -182,7 +182,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     settingCopy: { flex: 1, gap: spacing.sm },
     settingTitle: {
       fontFamily: typography.pixel,
-      fontSize: 8,
+      fontSize: 12,
       color: colors.primaryDark,
       letterSpacing: 1,
       lineHeight: 15,
@@ -223,13 +223,13 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     rowLast: { borderBottomWidth: 0 },
     rowLabel: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.muted,
       letterSpacing: 1,
     },
     rowValue: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.primaryDark,
       textAlign: 'right',
     },
@@ -256,7 +256,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     busyText: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.muted,
       letterSpacing: 1,
     },

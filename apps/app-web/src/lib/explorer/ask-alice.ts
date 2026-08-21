@@ -37,7 +37,16 @@ export type AskAliceComposition = {
 };
 
 export function composeAskAlice(
-  input: { signals: readonly PrivacySignal[]; question: string; prefs?: AskAlicePrefs; fullContext?: FullContext },
+  input: {
+    signals: readonly PrivacySignal[];
+    question: string;
+    prefs?: AskAlicePrefs;
+    fullContext?: FullContext;
+    /** One identity-free sentence naming the page the user is on (a fixed
+        label from the surface, never built from user data). It rides in the
+        de-identified block so Alice knows WHERE without knowing WHAT. */
+    pageNote?: string;
+  },
   deps: { detectForbidden?: (text: string) => boolean } = {},
 ): AskAliceComposition {
   const question = input.question.trim();
@@ -68,8 +77,9 @@ export function composeAskAlice(
   // projection would only duplicate it in weaker form, so it stays out.
   if (input.fullContext && !decision.blocked) {
     parts.push(`${IDENTIFIED_BLOCK_MARKER}\n${input.fullContext.description}`);
-  } else if (signalText) {
-    parts.push(`${DEIDENTIFIED_BLOCK_MARKER}\n${signalText}`);
+  } else {
+    const deidentified = [input.pageNote, signalText].filter(Boolean).join('\n');
+    if (deidentified) parts.push(`${DEIDENTIFIED_BLOCK_MARKER}\n${deidentified}`);
   }
   const userMessage = parts.join('\n\n');
 

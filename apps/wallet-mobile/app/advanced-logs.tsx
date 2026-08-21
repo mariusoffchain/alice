@@ -31,7 +31,7 @@ export default function AdvancedLogsScreen() {
       `Date: ${new Date().toISOString()}`,
       `Entries: ${logs.length}`,
       '',
-      ...logs.map(log => `${new Date(log.createdAt).toISOString()} [${log.level}] ${log.message}${log.detail ? ` — ${log.detail}` : ''}`),
+      ...logs.map(log => `${new Date(log.createdAt).toISOString()} [${log.level}] ${log.message}${log.detail ? ` - ${log.detail}` : ''}`),
     ].join('\n');
   }
 
@@ -67,7 +67,7 @@ export default function AdvancedLogsScreen() {
         renderItem={({ item }) => (
           <View style={s.logCard}>
             <View style={s.logHeader}>
-              <Text style={[s.level, item.level === 'error' && s.errorLevel]}>{item.level.toUpperCase()}</Text>
+              <Text style={[s.level, item.level === 'error' && [s.errorLevel, { color: colors.danger }]]}>{item.level.toUpperCase()}</Text>
               <Text style={s.date}>{new Date(item.createdAt).toLocaleString()}</Text>
             </View>
             <Text style={s.message}>{item.message}</Text>
@@ -92,21 +92,21 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     backBtn: { ...pixel, width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardBg },
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
-    title: { fontFamily: typography.pixel, fontSize: 11, color: colors.primaryDark, letterSpacing: 3 },
+    title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 3 },
     notice: { marginHorizontal: spacing.xl, marginTop: spacing.md, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: colors.muted, textAlign: 'center' },
     list: { padding: spacing.lg, paddingBottom: spacing.xxl, flexGrow: 1 },
-    empty: { marginTop: spacing.xxxl, fontFamily: typography.pixel, fontSize: 7, color: colors.muted, textAlign: 'center' },
+    empty: { marginTop: spacing.xxxl, fontFamily: typography.pixel, fontSize: 12, color: colors.muted, textAlign: 'center' },
     logCard: { ...pixel, marginBottom: spacing.md, padding: spacing.md, backgroundColor: colors.cardBg },
     logHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-    level: { fontFamily: typography.pixel, fontSize: 6, color: colors.primary },
+    level: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary },
     errorLevel: { color: '#e06060' },
-    date: { fontFamily: typography.numbers, fontSize: 11, color: colors.muted },
+    date: { fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
     message: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 14, color: colors.primaryDark },
-    detail: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 12, color: colors.muted },
+    detail: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
     actions: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, flexDirection: 'row', gap: spacing.md },
     primaryBtn: { ...pixel, flex: 1, paddingVertical: spacing.md, alignItems: 'center', backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    primaryText: { fontFamily: typography.pixel, fontSize: 6, color: colors.onPrimary },
+    primaryText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary },
     clearBtn: { ...pixel, flex: 1, paddingVertical: spacing.md, alignItems: 'center', backgroundColor: colors.cardBg },
-    clearText: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted },
+    clearText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
   });
 }

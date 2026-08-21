@@ -171,7 +171,7 @@ export function ExplorerBlockTreemap({
         // label below where it will stay, so nothing shifts when it lands.
         <>
           <Skeleton width={300} height={300} style={{ maxWidth: '100%' }} />
-          <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>BLOCK MAP</span>
+          <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>BLOCK MAP</span>
         </>
       )}
       {status === 'error' && (
@@ -219,7 +219,7 @@ export function ExplorerBlockTreemap({
         {/* Label and the actual/expected toggle sit BELOW the map, so the map's
             top edge lines up with the block details panel beside it. */}
         <div className="flex items-center justify-between">
-          <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+          <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
             {view === 'expected' ? 'EXPECTED BLOCK' : 'BLOCK MAP'}
           </span>
           {canToggle && (
@@ -234,7 +234,7 @@ export function ExplorerBlockTreemap({
                 onClick={() => setView(v => (v === 'actual' ? 'expected' : 'actual'))}
                 className="font-pixel tracking-widest cursor-pointer"
                 style={{
-                  fontSize: 7, padding: '6px 12px', borderRadius: 2,
+                  fontSize: 10, padding: '6px 12px', borderRadius: 2,
                   border: '2px solid var(--alice-border)', backgroundColor: 'transparent',
                   color: 'var(--alice-primary)',
                 }}

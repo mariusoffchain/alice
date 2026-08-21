@@ -55,7 +55,7 @@ export default function OnboardingScreen() {
   }, [step]);
 
   // Started from PixelFill's onReady so the grid is mounted before progress
-  // moves — otherwise the natively driven fill runs ahead of first paint.
+  // moves, otherwise the natively driven fill runs ahead of first paint.
   const startReadyAnimation = () => {
     readyProgress.setValue(0);
     Animated.timing(readyProgress, {
@@ -135,9 +135,9 @@ export default function OnboardingScreen() {
               Your keys never leave your phone.
             </Text>
             {NETWORK === 'bitcoin' && (
-              <Text style={s.warning}>MAINNET BETA · REAL BITCOIN · START WITH SMALL AMOUNTS</Text>
+              <Text style={[s.warning, { color: colors.danger }]}>MAINNET BETA · REAL BITCOIN · START WITH SMALL AMOUNTS</Text>
             )}
-            {error && <Text style={s.error}>{error}</Text>}
+            {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
             <TouchableOpacity style={s.btn} onPress={() => void createWallet()}>
               <Text style={s.btnText}>CREATE WALLET</Text>
             </TouchableOpacity>
@@ -156,7 +156,7 @@ export default function OnboardingScreen() {
             <Text style={s.subtitle}>Restore an existing wallet</Text>
             <Text style={s.desc}>Enter your 12- or 24-word English BIP39 recovery phrase in the correct order.</Text>
             {NETWORK === 'bitcoin' && (
-              <Text style={s.warning}>MAINNET BETA · REAL BITCOIN · START WITH SMALL AMOUNTS</Text>
+              <Text style={[s.warning, { color: colors.danger }]}>MAINNET BETA · REAL BITCOIN · START WITH SMALL AMOUNTS</Text>
             )}
             <TextInput
               style={[s.seedInput, Platform.OS === 'web' && ({ outlineStyle: 'none' } as any)]}
@@ -170,8 +170,8 @@ export default function OnboardingScreen() {
               autoComplete="off"
               importantForAutofill="no"
             />
-            <Text style={s.warning}>NEVER PASTE YOUR PHRASE INTO A WEBSITE YOU DO NOT TRUST</Text>
-            {error && <Text style={s.error}>{error}</Text>}
+            <Text style={[s.warning, { color: colors.danger }]}>NEVER PASTE YOUR PHRASE INTO A WEBSITE YOU DO NOT TRUST</Text>
+            {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
             <TouchableOpacity
               style={[s.btn, !importPhrase.trim() && s.disabled]}
               onPress={() => void importWallet()}
@@ -251,19 +251,19 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     body: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xxl, paddingVertical: spacing.xxxl },
     logo: { width: 72, height: 72, resizeMode: 'contain', marginBottom: spacing.xl },
     title: { fontFamily: typography.pixel, fontSize: 18, color: colors.primaryDark, letterSpacing: 4, textAlign: 'center' },
-    subtitle: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 1, marginTop: spacing.sm, textAlign: 'center' },
+    subtitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, marginTop: spacing.sm, textAlign: 'center' },
     desc: { maxWidth: 420, fontFamily: typography.numbers, fontSize: 16, color: colors.muted, textAlign: 'center', lineHeight: 24, marginTop: spacing.lg },
     error: { fontFamily: typography.numbers, fontSize: 14, color: '#e06060', textAlign: 'center', marginTop: spacing.sm },
-    warning: { maxWidth: 420, marginTop: spacing.md, fontFamily: typography.pixel, fontSize: 6, lineHeight: 13, color: '#e06060', textAlign: 'center' },
+    warning: { maxWidth: 420, marginTop: spacing.md, fontFamily: typography.pixel, fontSize: 12, lineHeight: 13, color: '#e06060', textAlign: 'center' },
     loader: { marginVertical: spacing.xl },
     btn: { ...pixel, marginTop: spacing.xxl, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.lg, paddingHorizontal: spacing.xxxl },
     disabled: { opacity: 0.4 },
-    btnText: { fontFamily: typography.pixel, fontSize: 9, color: colors.onPrimary, letterSpacing: 2 },
+    btnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 2 },
     secondaryBtn: { ...pixel, marginTop: spacing.md, backgroundColor: colors.cardBg, paddingVertical: spacing.lg, paddingHorizontal: spacing.xxxl },
-    secondaryText: { fontFamily: typography.pixel, fontSize: 8, color: colors.primaryDark, letterSpacing: 1 },
+    secondaryText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
     seedInput: { ...pixel, width: '100%', maxWidth: 520, minHeight: 130, marginTop: spacing.xl, padding: spacing.lg, backgroundColor: colors.cardBg, fontFamily: typography.numbers, fontSize: 17, lineHeight: 25, color: colors.primaryDark, textAlignVertical: 'top' },
     backLink: { marginTop: spacing.xl, padding: spacing.sm },
-    backLinkText: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 1 },
+    backLinkText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
     readyOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 20, overflow: 'hidden' },
     readyComplete: { backgroundColor: colors.primary },
     readyContent: { flex: 1, justifyContent: 'space-between', paddingBottom: spacing.xxxl },
@@ -273,6 +273,6 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     readyBubbleText: { fontFamily: typography.numbers, fontSize: 18, lineHeight: 26, color: colors.primary, textAlign: 'center' },
     readyCursor: { fontFamily: typography.numbers, fontSize: 18, color: colors.primary },
     readyBtn: { ...pixel, backgroundColor: colors.onPrimary, marginHorizontal: spacing.xxl, paddingVertical: spacing.lg, alignItems: 'center' },
-    readyBtnText: { fontFamily: typography.pixel, fontSize: 9, color: colors.primary, letterSpacing: 2 },
+    readyBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary, letterSpacing: 2 },
   });
 }

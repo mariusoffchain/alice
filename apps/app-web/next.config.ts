@@ -49,6 +49,13 @@ const nextConfig: NextConfig = {
     // shipping a key. Only the proxy URL is public.
     EXPO_PUBLIC_VENICE_PROXY_URL: process.env.EXPO_PUBLIC_VENICE_PROXY_URL ?? '',
     EXPO_PUBLIC_VENICE_PCCS_URL: process.env.EXPO_PUBLIC_VENICE_PCCS_URL ?? '',
+    // The build's own version, for client-info headers and the update banner
+    // (a build that does not know its version can never see a newer one).
+    // The monorepo root package.json is the shared release number.
+    EXPO_PUBLIC_ALICE_APP_VERSION:
+      process.env.EXPO_PUBLIC_ALICE_APP_VERSION
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      ?? (require('../../package.json') as { version: string }).version,
     EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED:
       process.env.EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED ?? 'true',
   },

@@ -11,8 +11,9 @@ import {
 import { Amount } from '@/components/AmountDisplay';
 import { extractWalletInput } from '@/lib/explorer/wallet-import';
 import {
-  addWallet, loadWallets, removeWallet, updateSnapshot, type SavedKind, type SavedWallet,
+  addWallet, loadWallets, removeWallet, syncPlaygroundCard, updateSnapshot, type SavedKind, type SavedWallet,
 } from '@/lib/explorer/wallet-store';
+import { getPlaygroundAccountXpub } from '@/lib/playground';
 import { ExplorerQrScanner, decodeQrFromFile, qrDecodingSupported } from '@/components/ExplorerQrScanner';
 import { Analyzing, Badge, EmptyState, Skeleton } from '@/components/ExplorerUI';
 
@@ -71,50 +72,55 @@ function Sparkline({ values, height = 28 }: { values: number[]; height?: number 
 }
 
 function WalletCard({
-  wallet, scanning, onOpen, onRefresh, onRemove,
+  wallet, scanning, onOpen, onRemove,
 }: {
   wallet: SavedWallet;
   scanning: boolean;
   onOpen: () => void;
-  onRefresh: () => void;
   onRemove: () => void;
 }) {
   const snap = wallet.snapshot;
   const meta = snap && (wallet.kind === 'address' ? `${snap.txTotal} tx` : `${snap.usedCount} addr`);
   return (
+    // The whole card is the door. It used to be three clickable islands
+    // (title, balance, sparkline) with dead gaps between them, and a click in
+    // a gap read as a broken click. A div with button semantics rather than a
+    // <button>, because a button cannot legally contain the remove button.
     <div
-      className="rh-card flex flex-col gap-2 px-4 py-4"
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(); } }}
+      aria-label={`Open ${wallet.label}`}
+      className="rh-card flex flex-col gap-2 px-4 py-4 cursor-pointer"
       style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)', minHeight: 200 }}
     >
       <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={onOpen}
-          className="flex items-center gap-2 min-w-0 cursor-pointer bg-transparent text-left"
+        <span
+          className="flex items-center gap-2 min-w-0 text-left"
         >
           <span className="font-numbers truncate" style={{ fontSize: 15, color: 'var(--alice-primary)' }} title={wallet.label}>
             {wallet.label}
           </span>
-          <Badge tone="neutral">{wallet.kind === 'address' ? 'ADDR' : 'WALLET'}</Badge>
-        </button>
-        {/* Secondary actions: revealed on hover / focus / touch (item 7). */}
+          {/* Only the exception gets a badge. The section is already titled
+              WALLETS, so stamping WALLET on each card said nothing; ADDR on a
+              watched single address is the one distinction worth ink. */}
+          {wallet.kind === 'address' && <Badge tone="neutral">ADDR</Badge>}
+        </span>
+        {/* Secondary actions: revealed on hover / focus / touch (item 7).
+            No rescan button any more: the cards keep themselves fresh, and a
+            button that does what the page already does is homework. The
+            scanning state still shows in the footer line. */}
         <div className="rh-hover-actions flex items-center gap-1 shrink-0">
+          {scanning && (
+            <span className="font-pixel" style={{ fontSize: 10, color: 'var(--alice-muted)' }} aria-label={`Scanning ${wallet.label}`}>…</span>
+          )}
           <button
             type="button"
-            onClick={onRefresh}
-            aria-label={`Rescan ${wallet.label}`}
-            className="rh-touch font-pixel tracking-widest cursor-pointer bg-transparent inline-flex items-center justify-center"
-            style={{ fontSize: 8, padding: '4px 7px', border: '1px solid var(--alice-border)', borderRadius: 2, color: 'var(--alice-muted)' }}
-            title="Rescan"
-          >
-            {scanning ? '…' : '⟳'}
-          </button>
-          <button
-            type="button"
-            onClick={onRemove}
+            onClick={event => { event.stopPropagation(); onRemove(); }}
             aria-label={`Remove ${wallet.label}`}
             className="rh-touch font-pixel tracking-widest cursor-pointer bg-transparent inline-flex items-center justify-center"
-            style={{ fontSize: 8, padding: '4px 8px', border: '1px solid var(--alice-border)', borderRadius: 2, color: 'var(--alice-muted)' }}
+            style={{ fontSize: 10, padding: '4px 8px', border: '1px solid var(--alice-border)', borderRadius: 2, color: 'var(--alice-muted)' }}
             title="Remove"
           >
             ×
@@ -124,30 +130,30 @@ function WalletCard({
       {/* Balance: big and primary, in the user's unit (click it to cycle
           ₿ / sats / BTC / fiat, wallet-style). Skeleton while first scan runs. */}
       {snap ? (
-        <button type="button" onClick={onOpen} className="flex flex-col items-start gap-1 cursor-pointer bg-transparent text-left">
+        <span className="flex flex-col items-start gap-1 text-left">
           <Amount sats={snap.balanceSats} style={{ fontSize: 24, color: 'var(--alice-text)' }} />
           <span className="font-numbers" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{meta} · scanned {agoLabel(snap.scannedAt)}</span>
-        </button>
+        </span>
       ) : scanning ? (
         <div className="flex flex-col gap-1">
           <Skeleton width="55%" height={24} />
           <Analyzing label="scanning this wallet on-chain…" />
         </div>
       ) : (
-        <span className="font-numbers" style={{ fontSize: 24, color: 'var(--alice-muted)' }}>—</span>
+        <span className="font-numbers" style={{ fontSize: 24, color: 'var(--alice-muted)' }}>-</span>
       )}
       {/* Balance over time fills the middle of the card; the last on-chain
           movement anchors the bottom. */}
       {snap?.sparkline && snap.sparkline.length >= 2 ? (
-        <button type="button" onClick={onOpen} aria-label="Open balance over time" className="cursor-pointer bg-transparent w-full flex-1" title="Balance over time" style={{ minHeight: 44 }}>
+        <span className="w-full flex-1" title="Balance over time" style={{ minHeight: 44, display: 'block' }}>
           <Sparkline values={snap.sparkline} height={44} />
-        </button>
+        </span>
       ) : (
         <div className="flex-1" />
       )}
       {snap?.lastMovementAt && (
         <div className="flex items-baseline gap-2">
-          <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>LAST MOVE</span>
+          <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>LAST MOVE</span>
           <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>{agoLabel(snap.lastMovementAt * 1000)}</span>
           {snap.lastMovementSats !== undefined && (
             <span className="ml-auto">
@@ -172,7 +178,7 @@ export function ExplorerWalletCards({
 }: {
   activeNetworkId: string;
   getProvider: (networkId: string) => ChainDataProvider;
-  onOpenXpub: (input: string, label: string, walletId: string) => void;
+  onOpenXpub: (input: string, label: string, networkId: string) => void;
   onOpenAddress: (address: string) => void;
 }) {
   const [wallets, setWallets] = useState<SavedWallet[]>([]);
@@ -196,7 +202,14 @@ export function ExplorerWalletCards({
     return () => { controller.abort(); abortRef.current = null; };
   }, []);
 
-  useEffect(() => { setWallets(loadWallets()); }, []);
+  useEffect(() => {
+    setWallets(loadWallets());
+    // The practice wallet's own card: reconciled on every visit, so it
+    // appears when the wallet exists and leaves when it is deleted.
+    void getPlaygroundAccountXpub()
+      .then(xpub => setWallets(syncPlaygroundCard(xpub)))
+      .catch(() => {});
+  }, []);
 
   const scan = useCallback(async (wallet: SavedWallet) => {
     const signal = abortRef.current?.signal;
@@ -301,6 +314,28 @@ export function ExplorerWalletCards({
     return () => { cancelled = true; };
   }, [wallets, scan]);
 
+  // Keep the numbers honest without a button. A snapshot older than the
+  // interval is rescanned, sequentially, and only while the tab is actually
+  // being looked at: a hidden tab polling an Esplora API is cost without a
+  // reader. The manual rescan button this replaces asked the person to do,
+  // on a schedule, what a page can do for itself.
+  useEffect(() => {
+    const STALE_MS = 3 * 60 * 1000;
+    let cancelled = false;
+    const refreshStale = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const stale = loadWallets().filter(w =>
+        w.snapshot && Date.now() - w.snapshot.scannedAt > STALE_MS);
+      for (const w of stale) {
+        if (cancelled) return;
+        await scan(w);
+      }
+    };
+    void refreshStale();
+    const interval = setInterval(() => { void refreshStale(); }, STALE_MS);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [scan]);
+
   async function handleAdd() {
     setError('');
     const trimmed = input.trim();
@@ -372,13 +407,13 @@ export function ExplorerWalletCards({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="font-pixel tracking-widest" style={{ fontSize: 8, color: 'var(--alice-muted)' }}>WALLETS</span>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>WALLETS</span>
         <button
           type="button"
           onClick={() => { setAdding(a => !a); setError(''); }}
           aria-expanded={adding}
           className="rh-touch font-pixel tracking-widest cursor-pointer bg-transparent inline-flex items-center"
-          style={{ fontSize: 7, padding: '6px 12px', border: '2px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)' }}
+          style={{ fontSize: 10, padding: '6px 12px', border: '2px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)' }}
         >
           {adding ? 'CANCEL' : '+ ADD'}
         </button>
@@ -407,7 +442,7 @@ export function ExplorerWalletCards({
               type="button"
               onClick={() => fileRef.current?.click()}
               className="font-pixel tracking-widest cursor-pointer bg-transparent"
-              style={{ fontSize: 7, padding: '7px 12px', border: '2px solid var(--alice-border)', borderRadius: 2, color: 'var(--alice-primary)' }}
+              style={{ fontSize: 10, padding: '7px 12px', border: '2px solid var(--alice-border)', borderRadius: 2, color: 'var(--alice-primary)' }}
             >
               IMPORT FILE
             </button>
@@ -416,7 +451,7 @@ export function ExplorerWalletCards({
               onClick={() => { setError(''); setScanningQr(true); }}
               disabled={!qrDecodingSupported()}
               className="font-pixel tracking-widest cursor-pointer bg-transparent disabled:cursor-not-allowed"
-              style={{ fontSize: 7, padding: '7px 12px', border: '2px solid var(--alice-border)', borderRadius: 2, color: 'var(--alice-primary)', opacity: qrDecodingSupported() ? 1 : 0.4 }}
+              style={{ fontSize: 10, padding: '7px 12px', border: '2px solid var(--alice-border)', borderRadius: 2, color: 'var(--alice-primary)', opacity: qrDecodingSupported() ? 1 : 0.4 }}
               title={qrDecodingSupported() ? 'Scan a QR with the camera' : 'QR scanning is not supported by this browser'}
             >
               SCAN QR
@@ -430,12 +465,12 @@ export function ExplorerWalletCards({
             className="font-numbers outline-none w-full"
             style={{ fontSize: 13, padding: '8px 12px', backgroundColor: 'var(--alice-bg)', border: '2px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary-dark)', boxSizing: 'border-box' }}
           />
-          {error && <p className="font-numbers m-0" style={{ fontSize: 12, color: '#e06060' }}>{error}</p>}
+          {error && <p className="font-numbers m-0" style={{ fontSize: 12, color: 'var(--alice-danger)' }}>{error}</p>}
           <button
             type="button"
             onClick={() => void handleAdd()}
             className="font-pixel tracking-widest self-start cursor-pointer"
-            style={{ fontSize: 7, padding: '8px 16px', borderRadius: 2, border: '2px solid var(--alice-primary)', backgroundColor: 'var(--alice-primary)', color: 'var(--alice-on-primary)' }}
+            style={{ fontSize: 10, padding: '8px 16px', borderRadius: 2, border: '2px solid var(--alice-primary)', backgroundColor: 'var(--alice-primary)', color: 'var(--alice-on-primary)' }}
           >
             ADD
           </button>
@@ -466,8 +501,7 @@ export function ExplorerWalletCards({
               key={w.id}
               wallet={w}
               scanning={scanning.has(w.id)}
-              onOpen={() => (w.kind === 'address' ? onOpenAddress(w.input) : onOpenXpub(w.input, w.label, w.id))}
-              onRefresh={() => scan(w)}
+              onOpen={() => (w.kind === 'address' ? onOpenAddress(w.input) : onOpenXpub(w.input, w.label, w.networkId))}
               onRemove={() => handleRemove(w.id)}
             />
           ))}

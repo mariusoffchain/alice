@@ -23,7 +23,7 @@ export default function PrivacyPage() {
       <a
         href="/"
         className="font-pixel"
-        style={{ color: 'var(--alice-muted)', fontSize: 8, textDecoration: 'none' }}
+        style={{ color: 'var(--alice-muted)', fontSize: 10, textDecoration: 'none' }}
       >
         BACK TO ALICE
       </a>
@@ -54,7 +54,22 @@ export default function PrivacyPage() {
           <li>Your email address is processed to deliver a one-time login code.</li>
           <li>
             A masked email label and an opaque HMAC lookup are stored with your
-            account.
+            account. The lookup is what signs you in, and it cannot be reversed
+            into an address.
+          </li>
+          <li>
+            Your email address is also stored, encrypted, so that Alice can warn
+            you before a paid plan runs out. Bitcoin payments cannot renew a
+            plan on their own, so without a way to reach you a plan would simply
+            lapse in silence. The encryption protects the address if the
+            database or a backup leaks. It does not hide it from Alice, whose
+            server decrypts it to send. An alias is a perfectly good address to
+            use.
+          </li>
+          <li>
+            Alice writes to you unasked only about a plan that is about to end,
+            three days before and on the day. Anything else is off unless you
+            turn it on in your account.
           </li>
           <li>
             Alice stores your chosen display name, unique username and a salted,
@@ -128,8 +143,8 @@ export default function PrivacyPage() {
             account integrity and resolve quota disputes.
           </li>
           <li>
-            The stable email lookup and masked label remain until the account is
-            deleted.
+            The stable email lookup, the masked label and the encrypted address
+            remain until the account is deleted, and are removed with it.
           </li>
           <li>
             The hashed installation grant may be retained after account deletion

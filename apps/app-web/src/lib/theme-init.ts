@@ -23,6 +23,20 @@ export function initThemeFromStorage() {
   root.style.setProperty('--alice-on-primary', colors.onPrimary);
   root.style.setProperty('--alice-chat-bg', colors.primary);
   root.style.setProperty('--alice-chat-ink', colors.onPrimary);
+  root.style.setProperty('--alice-danger', colors.danger);
+  root.style.setProperty('--alice-danger-soft', colors.dangerSoft);
+  root.style.setProperty('--alice-danger-ink', colors.dangerInk);
+  root.style.setProperty('--alice-success', colors.success);
+  root.style.setProperty('--alice-warning', colors.warning);
+  root.style.setProperty('--alice-warning-soft', colors.warningSoft);
+  root.style.setProperty('--alice-warning-ink', colors.warningInk);
+  root.style.setProperty('--alice-info', colors.info);
+  // PlanB Learn artwork is keyed to transparency at ingestion; this pair of
+  // filters flips drawings to match the mode they were not drawn for
+  // (dark-on-light art inverted in dark mode, light-on-dark art in light
+  // mode), hues preserved.
+  root.style.setProperty('--alice-media-invert', mode === 'dark' ? 'invert(1) hue-rotate(180deg)' : 'none');
+  root.style.setProperty('--alice-media-invert-light', mode === 'dark' ? 'none' : 'invert(1) hue-rotate(180deg)');
 
   const [r, g, b] = [
     parseInt(colors.onPrimary.slice(1, 3), 16),

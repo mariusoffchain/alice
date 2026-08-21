@@ -1,30 +1,31 @@
 // Home FAQ. Answers the common objections and feeds a FAQPage schema, which
 // helps AI answer engines (Google AI Overviews, ChatGPT, Perplexity) cite Alice.
 
-const FAQS: { q: string; a: string }[] = [
+const FAQS: { q: string; a: string; link?: { label: string; href: string } }[] = [
   {
     q: 'Is Alice really private?',
     a: 'Yes. Run Alice fully Local and nothing leaves your device. Or use Private Cloud, where your messages are encrypted end-to-end to confidential hardware, not logged, not training data. You can check exactly how on the trust page.',
   },
   {
     q: 'Can Alice spend or move my Bitcoin?',
-    a: 'No. Alice is self-custodial: your keys stay on your device and the AI never holds them. The wallet code, not the model, validates and signs, so a prompt can never move your funds.',
+    a: 'No. Alice is self-custodial: your keys stay on your device and the AI never holds them. The AI and the wallet are separate code, by construction: inside the app, the Playground is its own wallet with nothing shared with the model, and Alice Wallet on mobile keeps that same separation for your real Bitcoin. The wallet, not the model, validates and signs, so a prompt can never move your funds.',
   },
   {
     q: 'Do you track me?',
-    a: 'No. No cookies, no ad trackers, no fingerprinting, no selling data. At most, cookieless aggregate page-view counts, nothing that identifies you.',
+    a: 'No. No cookies, no ad trackers, no fingerprinting, no selling data. Private Cloud messages are end-to-end encrypted, so we cannot read them or count tokens exactly: we only see the volume of encrypted bytes passing through, which is how usage is estimated. At most, cookieless aggregate page-view counts elsewhere, nothing that identifies you.',
   },
   {
     q: 'Is it free?',
-    a: 'Yes, the app is free and self-custodial. You bring your own keys. Alice is in private beta today.',
+    a: 'Yes, the app is free and self-custodial, and Alice Local answers without limits. A plan buys exactly one thing: capacity on the larger Private Cloud model hosted in the cloud, nothing else. Alice is in public beta today.',
   },
   {
     q: 'Is Alice on mainnet?',
-    a: 'Yes. Alice is in private beta on Bitcoin mainnet, for small amounts only while the product is validated. Full end-to-end verification of Private Cloud is still pending, and the beta stays closed until it lands.',
+    a: 'Real funds are only possible today in Alice Wallet on mobile, through the Arkade protocol, and it is still in beta: keep amounts small while it is validated. The Playground inside Alice App only ever uses Mutinynet test coins, nothing there is real money. Private Cloud’s own end-to-end verification is also still being completed, and the trust page says exactly what is proven today.',
   },
   {
     q: 'What is Mutinynet?',
-    a: 'A Bitcoin test network. Alice also ships a Mutinynet build with test coins, so you can practice sending and receiving safely before touching real sats.',
+    a: 'A Bitcoin test network, run independently of Alice. Alice also ships a Mutinynet build with test coins, so you can practice sending and receiving safely before touching real sats.',
+    link: { label: 'mutinynet.com', href: 'https://mutinynet.com' },
   },
   {
     q: 'Is Alice open source?',
@@ -54,7 +55,22 @@ export function Faq() {
         {FAQS.map((f) => (
           <div key={f.q} className="py-5">
             <dt className="text-lg font-semibold text-[var(--alice-heading)]">{f.q}</dt>
-            <dd className="mt-2 leading-relaxed text-[var(--alice-text)]">{f.a}</dd>
+            <dd className="mt-2 leading-relaxed text-[var(--alice-text)]">
+              {f.a}
+              {f.link && (
+                <>
+                  {' '}
+                  <a
+                    href={f.link.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[var(--alice-primary)] hover:underline"
+                  >
+                    {f.link.label} →
+                  </a>
+                </>
+              )}
+            </dd>
           </div>
         ))}
       </dl>

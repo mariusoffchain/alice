@@ -8,14 +8,14 @@
 //     collateral through Alice's own PCCS relay instead of Phala directly.
 //
 // This module is the only place that imports @phala/dcap-qvl. The library is
-// Apache-2.0 and pure JS (no WASM), so it loads on web, Tauri and — pending a
-// real device test — React Native.
+// Apache-2.0 and pure JS (no WASM), so it loads on web, Tauri and, pending a
+// real device test, React Native.
 
 import { VeniceE2EEError } from './venice-e2ee-crypto.ts';
 import { type VerifiedTdReport, tdFieldToHex } from './venice-attestation-verify.ts';
 
 /**
- * TCB statuses accepted for the beta. Only `UpToDate` — anything else
+ * TCB statuses accepted for the beta. Only `UpToDate`, anything else
  * (OutOfDate, Revoked, ConfigurationNeeded, SWHardeningNeeded, …) is refused
  * until a specific status is justified, documented and reviewed.
  */
@@ -40,7 +40,7 @@ function fieldHex(data: Record<string, unknown>, ...names: string[]): string {
 
 /**
  * Convert a @phala/dcap-qvl verified report into the reduced shape the rest of
- * the chain consumes. TDX only — an SGX or unknown report type is refused,
+ * the chain consumes. TDX only, an SGX or unknown report type is refused,
  * because the measurement and report_data semantics differ.
  */
 export function extractTdReport(verified: DcapVerifiedReport): VerifiedTdReport {
@@ -84,7 +84,7 @@ export type CollateralFetcher = (pccsUrl: string, quote: Uint8Array) => Promise<
 export type QuoteVerifier = (quote: Uint8Array, collateral: unknown) => DcapVerifiedReport | Promise<DcapVerifiedReport>;
 
 export type DcapOptions = {
-  /** PCCS origin for collateral — Alice's relay Worker, or a Phala/Intel PCCS. */
+  /** PCCS origin for collateral, Alice's relay Worker, or a Phala/Intel PCCS. */
   pccsUrl: string;
   getCollateral: CollateralFetcher;
   verify: QuoteVerifier;
@@ -104,7 +104,7 @@ function hexToBytesStrict(hex: string): Uint8Array {
 /**
  * Full DCAP path for one quote: fetch collateral, verify the signature/TCB
  * against Intel's trust chain, enforce the TCB policy, and return the reduced
- * TDX report. Fails closed — a collateral-fetch error (PCCS down) or a failed
+ * TDX report. Fails closed, a collateral-fetch error (PCCS down) or a failed
  * verification both throw, and no report is returned.
  */
 export async function verifyTdxQuote(quoteHex: string, options: DcapOptions): Promise<VerifiedTdReport> {

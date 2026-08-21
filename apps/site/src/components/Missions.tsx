@@ -32,7 +32,7 @@ export function Missions() {
     <section id="missions" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-16">
       {/* Slogan manifesto */}
       <div className="max-w-3xl">
-        <p className="font-pixel text-[10px] uppercase tracking-widest text-[var(--alice-primary)]">
+        <p className="font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-primary)]">
           Alice’s mission
         </p>
         <h2 className="mt-4 text-4xl font-semibold leading-[1.08] sm:text-5xl">
@@ -46,7 +46,7 @@ export function Missions() {
         <p className="mt-3 text-lg leading-relaxed text-[var(--alice-muted)]">
           Uncensorable and private like Bitcoin itself, private by design, never able
           to touch your keys, and Bitcoin-native to the core. She teaches, guides, and
-          helps you tighten your security, while the wallet checks everything on your
+          helps you tighten your security and privacy, while the wallet checks everything on your
           device. Need more power? Private Cloud is one tap away, still end-to-end
           encrypted.
         </p>

@@ -58,7 +58,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     state: {
       position: 'absolute',
       fontFamily: typography.pixel,
-      fontSize: 6,
+      fontSize: 12,
       letterSpacing: 0,
     },
     stateOn: { left: 7, color: colors.primaryDark },
@@ -71,7 +71,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
       paddingTop: 7,
       textAlign: 'center',
       fontFamily: typography.pixel,
-      fontSize: 8,
+      fontSize: 12,
       lineHeight: 9,
       letterSpacing: 0,
     },

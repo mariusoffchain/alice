@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -157,7 +157,14 @@ export default function SecurityScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      <View style={s.body}>
+      {/* Scrollable, and taps keep going through to the buttons while the
+          keyboard is up: the change-PIN mode stacks three PIN fields, which
+          no longer fit once a small phone raises its keyboard. */}
+      <ScrollView
+        contentContainerStyle={s.body}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {mode === 'loading' && <Text style={s.description}>LOADING...</Text>}
 
         {mode === 'create' && (
@@ -200,8 +207,8 @@ export default function SecurityScreen() {
             <TouchableOpacity style={s.secondaryBtn} onPress={() => resetFields('change')}>
               <Text style={s.secondaryText}>CHANGE PIN</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={s.dangerBtn} onPress={() => resetFields('disable')}>
-              <Text style={s.dangerText}>DISABLE APP LOCK</Text>
+            <TouchableOpacity style={[s.dangerBtn, { backgroundColor: colors.dangerSoft, borderColor: colors.danger }]} onPress={() => resetFields('disable')}>
+              <Text style={[s.dangerText, { color: colors.danger }]}>DISABLE APP LOCK</Text>
             </TouchableOpacity>
           </>
         )}
@@ -226,16 +233,16 @@ export default function SecurityScreen() {
             <Text style={s.title}>DISABLE APP LOCK?</Text>
             <Text style={s.description}>Anyone with access to this device will be able to open Alice.</Text>
             <PinInput value={currentPin} onChange={setCurrentPin} onInput={() => setError(null)} placeholder="current password" length={currentPinLength} />
-            <TouchableOpacity style={s.dangerBtn} onPress={() => void disableLock()}>
-              <Text style={s.dangerText}>CONFIRM DISABLE</Text>
+            <TouchableOpacity style={[s.dangerBtn, { backgroundColor: colors.dangerSoft, borderColor: colors.danger }]} onPress={() => void disableLock()}>
+              <Text style={[s.dangerText, { color: colors.danger }]}>CONFIRM DISABLE</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.backLink} onPress={() => resetFields('manage')}><Text style={s.backLinkText}>CANCEL</Text></TouchableOpacity>
           </>
         )}
 
-        {error && <Text style={s.error}>{error}</Text>}
-        {success && <Text style={s.success}>{success}</Text>}
-      </View>
+        {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
+        {success && <Text style={[s.success, { color: colors.success }]}>{success}</Text>}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -246,28 +253,28 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', ...pixel, backgroundColor: colors.cardBg },
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
-    headerTitle: { fontFamily: typography.pixel, fontSize: 11, color: colors.primaryDark, letterSpacing: 2 },
-    body: { flex: 1, alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxxl },
+    headerTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 2 },
+    body: { flexGrow: 1, alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxxl, paddingBottom: spacing.xxl },
     title: { fontFamily: typography.pixel, fontSize: 12, lineHeight: 20, color: colors.primaryDark, letterSpacing: 2, textAlign: 'center' },
     description: { maxWidth: 480, marginTop: spacing.lg, marginBottom: spacing.lg, fontFamily: typography.numbers, fontSize: 16, lineHeight: 23, color: colors.muted, textAlign: 'center' },
     primaryBtn: { ...pixel, marginTop: spacing.xxl, width: '100%', maxWidth: 420, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    primaryText: { fontFamily: typography.pixel, fontSize: 8, color: colors.onPrimary, letterSpacing: 1 },
+    primaryText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
     secondaryBtn: { ...pixel, marginTop: spacing.xxl, width: '100%', maxWidth: 420, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.cardBg },
-    secondaryText: { fontFamily: typography.pixel, fontSize: 8, color: colors.primaryDark, letterSpacing: 1 },
+    secondaryText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
     dangerBtn: { ...pixel, marginTop: spacing.md, width: '100%', maxWidth: 420, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: '#fff1f1', borderColor: '#e06060' },
-    dangerText: { fontFamily: typography.pixel, fontSize: 7, color: '#c84f4f', letterSpacing: 1 },
+    dangerText: { fontFamily: typography.pixel, fontSize: 12, color: '#c84f4f', letterSpacing: 1 },
     disabled: { opacity: 0.4 },
     settingRow: { ...pixel, width: '100%', maxWidth: 420, marginTop: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, backgroundColor: colors.cardBg },
     settingCopy: { flex: 1, gap: spacing.sm },
-    settingTitle: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark, letterSpacing: 1 },
+    settingTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
     settingDescription: { fontFamily: typography.numbers, fontSize: 14, color: colors.muted },
     choiceRow: { width: '100%', maxWidth: 420, flexDirection: 'row', gap: spacing.sm, justifyContent: 'center' },
     choiceBtn: { ...pixel, flex: 1, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.cardBg },
     choiceBtnActive: { backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    choiceText: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark, letterSpacing: 1 },
+    choiceText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
     choiceTextActive: { color: colors.onPrimary },
     backLink: { marginTop: spacing.lg, padding: spacing.sm },
-    backLinkText: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 1 },
+    backLinkText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
     error: { marginTop: spacing.lg, fontFamily: typography.numbers, fontSize: 14, color: '#e06060', textAlign: 'center' },
     success: { marginTop: spacing.lg, fontFamily: typography.numbers, fontSize: 14, color: '#2ea043', textAlign: 'center' },
   });

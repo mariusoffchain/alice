@@ -46,7 +46,7 @@ export function SessionList({ onClose }: SessionListProps) {
       <div className="flex-1 flex items-center justify-center px-5">
         <p
           className="font-pixel tracking-widest"
-          style={{ fontSize: 8, color: 'var(--alice-text)' }}
+          style={{ fontSize: 10, color: 'var(--alice-text)' }}
         >
           NO PAST CONVERSATIONS
         </p>
@@ -89,7 +89,7 @@ export function SessionList({ onClose }: SessionListProps) {
                   <span
                     className="font-pixel tracking-widest"
                     title="Opens in Explorer with its tabs"
-                    style={{ fontSize: 6, marginLeft: 8, padding: '2px 5px', border: '1px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)', verticalAlign: 'middle' }}
+                    style={{ fontSize: 10, marginLeft: 8, padding: '2px 5px', border: '1px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)', verticalAlign: 'middle' }}
                   >
                     EXPLORER
                   </span>
@@ -97,7 +97,7 @@ export function SessionList({ onClose }: SessionListProps) {
               </p>
               <p
                 className="font-pixel tracking-widest m-0 mt-1"
-                style={{ fontSize: 6, color: 'var(--alice-text)', opacity: 0.6 }}
+                style={{ fontSize: 10, color: 'var(--alice-text)', opacity: 0.6 }}
               >
                 {new Date(session.updatedAt).toLocaleDateString()} &middot;{' '}
                 {session.messageCount} message{session.messageCount !== 1 ? 's' : ''}
@@ -121,14 +121,14 @@ export function SessionList({ onClose }: SessionListProps) {
               sessions.length,
             ))}
             className="font-pixel tracking-widest block mx-auto my-4 px-3 py-2 cursor-pointer bg-transparent border-none"
-            style={{ fontSize: 6, color: 'var(--alice-text)', opacity: 0.65 }}
+            style={{ fontSize: 10, color: 'var(--alice-text)', opacity: 0.65 }}
           >
             LOAD {Math.min(SESSION_PAGE_SIZE, sessions.length - visibleCount)} MORE
           </button>
         ) : sessions.length > SESSION_PAGE_SIZE ? (
           <p
             className="font-pixel tracking-widest text-center my-4"
-            style={{ fontSize: 6, color: 'var(--alice-text)', opacity: 0.5 }}
+            style={{ fontSize: 10, color: 'var(--alice-text)', opacity: 0.5 }}
           >
             {Math.min(visibleCount, sessions.length)} OF {sessions.length}
           </p>
@@ -155,7 +155,7 @@ export function SessionList({ onClose }: SessionListProps) {
           >
             <h3
               className="font-pixel tracking-widest m-0"
-              style={{ fontSize: 9, color: 'var(--alice-primary-dark)' }}
+              style={{ fontSize: 10, color: 'var(--alice-primary-dark)' }}
             >
               DELETE CONVERSATION
             </h3>
@@ -170,7 +170,7 @@ export function SessionList({ onClose }: SessionListProps) {
                 onClick={() => setPendingDelete(null)}
                 className="font-pixel tracking-widest flex-1 cursor-pointer"
                 style={{
-                  fontSize: 7,
+                  fontSize: 10,
                   padding: '10px 12px',
                   border: '2px solid var(--alice-border)',
                   borderRadius: 2,
@@ -184,11 +184,11 @@ export function SessionList({ onClose }: SessionListProps) {
                 onClick={() => void confirmDelete()}
                 className="font-pixel tracking-widest flex-1 cursor-pointer"
                 style={{
-                  fontSize: 7,
+                  fontSize: 10,
                   padding: '10px 12px',
-                  border: '2px solid #e06060',
+                  border: '2px solid var(--alice-danger)',
                   borderRadius: 2,
-                  backgroundColor: '#e06060',
+                  backgroundColor: 'var(--alice-danger)',
                   color: '#ffffff',
                 }}
               >

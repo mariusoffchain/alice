@@ -56,8 +56,7 @@ test('reciprocalRankFusion favors a chunk ranked well in both lists', () => {
 
   const fused = reciprocalRankFusion([lexical, semantic]);
 
-  // 'a' is #2 lexical / #1 semantic, 'b' is #1 lexical / #2 semantic —
-  // close, but 'a' benefiting from the better semantic rank should not
+  // 'a' is #2 lexical / #1 semantic, 'b' is #1 lexical / #2 semantic, // close, but 'a' benefiting from the better semantic rank should not
   // rank behind chunks appearing in only one list.
   assert.ok(fused[0].id === 'a' || fused[0].id === 'b');
   assert.ok(fused.map(f => f.id).indexOf('a') <= 1);

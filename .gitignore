@@ -74,3 +74,6 @@ assets/settings-icon-mono.svg
 expo-env.d.ts
 # @end expo-cli
 .vercel
+
+# Cache local du modele semantique (retelechargeable, epingle dans prepare-semantic-model.mjs)
+scripts/data/semantic-model/

@@ -8,6 +8,8 @@ import {
   inferPedagogicalConcepts,
   isDefinitionQuestion,
   pedagogicalContext,
+  recordCourseCompletion,
+  recordCourseStudy,
   recordPedagogicalSignalInStorage,
   updatePedagogicalProfile,
   declaredFamiliarityInMessage,
@@ -147,3 +149,34 @@ test('clearing the profile removes both new and legacy storage', async () => {
   assert.equal(fixture.secure(), null);
   assert.equal(fixture.legacy(), null);
 });
+
+test('reading a chapter bumps the counters without touching familiarity', () => {
+    const profile = createPedagogicalProfile();
+    const next = recordCourseStudy(profile, ['sidechains']);
+    assert.equal(next.concepts['sidechains']?.signals, 1);
+    assert.equal(next.concepts['sidechains']?.explorationSignals, 1);
+    assert.equal(next.concepts['sidechains']?.declaredFamiliarity, null);
+  });
+
+test('finishing a beginner course reaches exploring, an advanced one familiar', () => {
+    const profile = createPedagogicalProfile();
+    const afterBeginner = recordCourseCompletion(profile, ['bitcoin-basics'], 'beginner');
+    assert.equal(afterBeginner.concepts['bitcoin-basics']?.declaredFamiliarity, 'exploring');
+    const afterAdvanced = recordCourseCompletion(profile, ['bitcoin-cryptography'], 'advanced');
+    assert.equal(afterAdvanced.concepts['bitcoin-cryptography']?.declaredFamiliarity, 'familiar');
+  });
+
+test('never downgrades: a familiar concept survives a later beginner course', () => {
+    // Someone who worked through the advanced material and then skims the
+    // beginner course out of curiosity has not become a beginner again.
+    const profile = createPedagogicalProfile();
+    const familiar = recordCourseCompletion(profile, ['privacy'], 'advanced');
+    const revisited = recordCourseCompletion(familiar, ['privacy'], 'beginner');
+    assert.equal(revisited.concepts['privacy']?.declaredFamiliarity, 'familiar');
+  });
+
+test('sidechains is a first-class concept the message inference can reach', () => {
+    // Liquid questions used to be filed under covenants, which is a different
+    // idea. The split is only real if inference routes them to the new home.
+    assert.deepEqual(inferPedagogicalConcepts('How does a peg-out work on Liquid?'), ['sidechains']);
+  });

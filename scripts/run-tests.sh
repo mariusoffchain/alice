@@ -7,6 +7,7 @@ REGULAR_LIST="$(mktemp)"
 trap 'rm -f "$LIST" "$REGULAR_LIST"' EXIT
 
 cd "$ROOT"
+node scripts/check-release-version.mjs
 {
   find packages -type f -name '*.test.ts' -print0
   find apps/venice-proxy-worker/src -type f -name '*.test.ts' -print0

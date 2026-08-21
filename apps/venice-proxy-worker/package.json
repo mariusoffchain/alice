@@ -1,6 +1,6 @@
 {
   "name": "@alice-wallet/venice-proxy-worker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "AGPL-3.0-or-later",
   "private": true,
   "type": "module",
@@ -9,13 +9,14 @@
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply alice-accounts --local",
     "db:migrate:remote": "wrangler d1 migrations apply alice-accounts --remote",
-    "types": "wrangler types --env-interface CloudflareEnv",
-    "typecheck": "tsc -p tsconfig.json"
+    "types": "wrangler types --env-interface CloudflareEnv --env-file wrangler-types.vars",
+    "typecheck": "wrangler types --env-interface CloudflareEnv --env-file wrangler-types.vars --check && tsc --noEmit --incremental false -p tsconfig.json"
   },
   "devDependencies": {
     "wrangler": "^4"
   },
   "dependencies": {
-    "@noble/hashes": "^2.2.0"
+    "@noble/hashes": "^2.2.0",
+    "@alice-wallet/practice-wallet": "*"
   }
 }

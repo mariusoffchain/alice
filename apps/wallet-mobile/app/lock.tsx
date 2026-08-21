@@ -108,7 +108,7 @@ export default function LockScreen() {
             <Text style={s.biometricText}>USE FACE ID / FINGERPRINT</Text>
           </TouchableOpacity>
         )}
-        {error && <Text style={s.error}>{cooldown > 0 ? `Too many attempts. Try again in ${cooldown} seconds.` : error}</Text>}
+        {error && <Text style={[s.error, { color: colors.danger }]}>{cooldown > 0 ? `Too many attempts. Try again in ${cooldown} seconds.` : error}</Text>}
       </View>
     </SafeAreaView>
   );
@@ -119,13 +119,13 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     safe: { flex: 1, backgroundColor: colors.background },
     body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
     title: { fontFamily: typography.pixel, fontSize: 14, color: colors.primaryDark, letterSpacing: 3, textAlign: 'center' },
-    description: { marginTop: spacing.lg, fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 1, textAlign: 'center' },
+    description: { marginTop: spacing.lg, fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, textAlign: 'center' },
     pinInputWrap: { maxWidth: 320, marginTop: spacing.xxl },
     pinInput: { fontSize: 22, letterSpacing: 12 },
     primaryBtn: { ...pixel, width: '100%', maxWidth: 320, marginTop: spacing.xl, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    primaryText: { fontFamily: typography.pixel, fontSize: 8, color: colors.onPrimary, letterSpacing: 1 },
+    primaryText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
     biometricBtn: { marginTop: spacing.xl, padding: spacing.md },
-    biometricText: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark, letterSpacing: 1, textAlign: 'center' },
+    biometricText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1, textAlign: 'center' },
     disabled: { opacity: 0.4 },
     error: { maxWidth: 360, marginTop: spacing.lg, fontFamily: typography.numbers, fontSize: 14, color: '#e06060', textAlign: 'center' },
   });

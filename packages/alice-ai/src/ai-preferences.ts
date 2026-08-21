@@ -35,17 +35,13 @@ export const PRESETS: Record<AIPreset, PresetParams> = {
 
 // Cloud budgets are circuit breakers, not the thing that ends a normal answer:
 // they must be high enough that Alice finishes on her own. Raising them costs
-// nothing by itself — only generated tokens are billed — so the ceiling is set
+// nothing by itself, only generated tokens are billed, so the ceiling is set
 // well above what a well-behaved answer needs.
 export const CLOUD_PRESETS: Record<AIPreset, PresetParams> = {
   fast: { temperature: 0.3, maxTokens: 1024 },
   balanced: { temperature: 0.7, maxTokens: 4096 },
   deep: { temperature: 0.9, maxTokens: 8192 },
 };
-
-// A Deep answer is the whole point of the brain button, so it never inherits a
-// low reasoning preset: it gets at least this much room.
-export const CLOUD_DEEP_MIN_TOKENS = 8192;
 
 export const ALL_PRESETS: AIPreset[] = ['fast', 'balanced', 'deep'];
 
@@ -116,14 +112,11 @@ export type CloudModelEntry = {
   description: string;
 };
 
-// Cloud inference runs on Venice Private Cloud. Only the standard model is
-// user-selectable; Deep is a per-message toggle, not a catalog entry.
+// Cloud inference runs on Venice Private Cloud. The model is not user-selectable;
+// Light, Normal, and High are reasoning presets for the same catalog entry.
 export const CLOUD_MODELS: CloudModelEntry[] = [
   { id: 'alice-cloud', name: 'Private Cloud', veniceId: 'e2ee-gpt-oss-120b-p', description: 'Larger off-device model' },
 ];
-
-// Model used when a message is sent with the Deep toggle enabled.
-export const CLOUD_DEEP_MODEL = 'e2ee-glm-5-2-p';
 
 const PRESET_LOCAL_KEY = 'alice_ai_preset_local';
 const PRESET_CLOUD_KEY = 'alice_ai_preset_cloud';

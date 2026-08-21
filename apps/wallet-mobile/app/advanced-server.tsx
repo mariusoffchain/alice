@@ -71,7 +71,7 @@ export default function ServerSettingsScreen() {
             {services.map(service => (
               <View key={service.id} style={s.serviceRow}>
                 <Text style={s.serviceName}>{service.label}</Text>
-                <Text style={[s.serviceStatus, service.ok ? s.connected : s.failed]}>
+                <Text style={[s.serviceStatus, service.ok ? [s.connected, { color: colors.success }] : [s.failed, { color: colors.danger }]]}>
                   {service.ok ? 'OK' : service.detail}
                 </Text>
               </View>
@@ -82,9 +82,9 @@ export default function ServerSettingsScreen() {
           {status === 'checking' && <ActivityIndicator color={colors.primary} />}
           <Text style={[
             s.status,
-            status === 'connected' && s.connected,
-            status === 'degraded' && s.degraded,
-            status === 'error' && s.failed,
+            status === 'connected' && [s.connected, { color: colors.success }],
+            status === 'degraded' && [s.degraded, { color: colors.warning }],
+            status === 'error' && [s.failed, { color: colors.danger }],
           ]}>
             {status === 'idle'
               ? 'NOT CHECKED'
@@ -97,7 +97,7 @@ export default function ServerSettingsScreen() {
                     : '● SERVICES UNAVAILABLE'}
           </Text>
         </View>
-        {error && <Text style={[s.error, status === 'degraded' && s.degraded]}>{error}</Text>}
+        {error && <Text style={[s.error, status === 'degraded' && [s.degraded, { color: colors.warning }]]}>{error}</Text>}
         <TouchableOpacity style={s.primaryBtn} onPress={() => void checkConnection()} disabled={status === 'checking'}>
           <Text style={s.primaryText}>{status === 'error' ? 'RETRY' : 'CHECK CONNECTION'}</Text>
         </TouchableOpacity>
@@ -112,24 +112,24 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     backBtn: { ...pixel, width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardBg },
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
-    title: { fontFamily: typography.pixel, fontSize: 11, color: colors.primaryDark, letterSpacing: 3 },
+    title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 3 },
     body: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl, alignItems: 'center' },
     section: { ...pixel, width: '100%', maxWidth: 560, backgroundColor: colors.cardBg },
     row: { padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.dotted, gap: spacing.sm },
     rowLast: { borderBottomWidth: 0 },
-    rowLabel: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 1 },
+    rowLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
     rowValue: { fontFamily: typography.numbers, fontSize: 15, color: colors.primaryDark },
     statusRow: { marginTop: spacing.xl, minHeight: 24, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    status: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted },
+    status: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
     connected: { color: '#2ea043' },
     degraded: { color: '#d4a017' },
     failed: { color: '#e06060' },
     error: { marginTop: spacing.md, fontFamily: typography.numbers, fontSize: 14, color: '#e06060', textAlign: 'center' },
     serviceList: { ...pixel, width: '100%', maxWidth: 560, marginTop: spacing.lg, padding: spacing.md, backgroundColor: colors.cardBg },
     serviceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingVertical: spacing.sm },
-    serviceName: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark, letterSpacing: 1 },
+    serviceName: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
     serviceStatus: { flex: 1, textAlign: 'right', fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
     primaryBtn: { ...pixel, width: '100%', maxWidth: 360, marginTop: spacing.xl, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    primaryText: { fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary, letterSpacing: 1 },
+    primaryText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
   });
 }

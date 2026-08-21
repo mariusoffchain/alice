@@ -22,7 +22,7 @@ import type { NormalizedOutspend, NormalizedTransaction } from '@/lib/explorer/t
 const G0 = '#8bb8ff';
 const G1 = '#7b7bf0';
 const G2 = 'rgba(139, 184, 255, 0)';
-const FLAG = '#e0a060';
+const FLAG = 'var(--alice-warning)';
 const HOT = 'var(--alice-text)';
 
 type Side = 'input' | 'output';
@@ -248,7 +248,7 @@ export function ExplorerTxGraph({
               zIndex: 10,
             }}
           >
-            <p className="font-pixel tracking-widest m-0" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+            <p className="font-pixel tracking-widest m-0" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
               {active.kind === 'fee' ? 'FEE' : active.kind === 'input' ? 'INPUT' : 'OUTPUT'}
             </p>
             <p className="font-numbers m-0 break-all" style={{ fontSize: 12, color: 'var(--alice-text)' }}>
@@ -306,7 +306,7 @@ export function ExplorerTxGraph({
           onClick={() => setExpanded(v => !v)}
           className="font-pixel tracking-widest self-center cursor-pointer"
           style={{
-            fontSize: 7,
+            fontSize: 10,
             padding: '7px 14px',
             border: '2px solid var(--alice-border)',
             borderRadius: 2,

@@ -85,7 +85,7 @@ export function PixelFill({
   // each pixel's raw timing (no 0.97/0 clamp) so the band travels past both
   // screen edges and the top/bottom rows fade through it like every other row
   // instead of popping together at the clamp. The clamped grid stays untouched
-  // for fill/clear — the payment success animations depend on it.
+  // for fill/clear, the payment success animations depend on it.
   const nextGridKey = `${w}:${h}:${size}:${origin}:${wave ? 'wave' : 'edge'}`;
 
   if (gridKey.current !== nextGridKey && w > 0 && h > 0) {

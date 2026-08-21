@@ -75,7 +75,7 @@ function FeatureCard({ glyph, title, text }: { glyph: ReactNode; title: string; 
       style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
     >
       <div style={{ height: 32 }}>{glyph}</div>
-      <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-text)', marginTop: 4 }}>
+      <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-text)', marginTop: 4 }}>
         {title}
       </span>
       <p className="font-numbers m-0" style={{ fontSize: 12.5, lineHeight: '18px', color: 'var(--alice-muted)' }}>
@@ -118,14 +118,18 @@ function ExampleChip({ example, onOpen }: { example: ExploreExample; onOpen: () 
 function ExploreGroup({ title, items, onOpen }: {
   title: string;
   items: ExploreExample[];
-  onOpen: (kind: 'tx' | 'block' | 'address', value: string) => void;
+  onOpen: (kind: 'tx' | 'block' | 'address', value: string, networkId?: string) => void;
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="font-pixel tracking-widest" style={{ fontSize: 6, color: 'var(--alice-muted)' }}>{title}</span>
+      <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{title}</span>
       <div className="flex flex-wrap gap-2">
         {items.map((ex) => (
-          <ExampleChip key={ex.value} example={ex} onOpen={() => onOpen(ex.kind, ex.value)} />
+          // Every curated example is a mainnet object: the pizza, the genesis
+          // coinbase, the seizures all live on one chain and no other. Pinning
+          // it here is what lets someone browse Mutinynet and still tap
+          // "First BTC payment" without being told it does not exist.
+          <ExampleChip key={ex.value} example={ex} onOpen={() => onOpen(ex.kind, ex.value, 'mainnet')} />
         ))}
       </div>
     </div>
@@ -143,10 +147,10 @@ export function ExplorerOverviewTab({
 }: {
   activeNetworkId: string;
   getProvider: (networkId: string) => ChainDataProvider;
-  onOpenTx: (txid: string) => void;
-  onOpenBlock: (heightOrHash: string) => void;
-  onOpenAddress: (address: string) => void;
-  onOpenXpub: (input: string, label?: string) => void;
+  onOpenTx: (txid: string, networkId?: string) => void;
+  onOpenBlock: (heightOrHash: string, networkId?: string) => void;
+  onOpenAddress: (address: string, networkId?: string) => void;
+  onOpenXpub: (input: string, label?: string, networkId?: string) => void;
   /** Set on the Arkade network: the search also recognises ark1… addresses,
    *  and the curated Bitcoin history gives way to the live settlements feed
    *  and the ASP's parameters. */
@@ -175,11 +179,15 @@ export function ExplorerOverviewTab({
       : 'Not recognised as a transaction id, address, block or extended key.';
   }
 
-  function open(kind: 'tx' | 'block' | 'address' | 'xpub', value: string) {
-    if (kind === 'tx') onOpenTx(value);
-    else if (kind === 'block') onOpenBlock(value);
+  function open(
+    kind: 'tx' | 'block' | 'address' | 'xpub',
+    value: string,
+    networkId?: string,
+  ) {
+    if (kind === 'tx') onOpenTx(value, networkId);
+    else if (kind === 'block') onOpenBlock(value, networkId);
     else if (kind === 'xpub') onOpenXpub(value);
-    else onOpenAddress(value);
+    else onOpenAddress(value, networkId);
   }
 
   function submit() {
@@ -210,7 +218,7 @@ export function ExplorerOverviewTab({
               paddingRight: routable ? 96 : 12,
               color: 'var(--alice-text)',
               backgroundColor: 'var(--alice-bg)',
-              border: `1px solid ${showError ? '#e06060' : routable ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
+              border: `1px solid ${showError ? 'var(--alice-danger)' : routable ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
               borderRadius: 2,
             }}
           />
@@ -222,7 +230,7 @@ export function ExplorerOverviewTab({
                 right: 10,
                 top: '50%',
                 transform: 'translateY(-50%)',
-                fontSize: 6,
+                fontSize: 10,
                 padding: '4px 6px',
                 color: 'var(--alice-primary)',
                 border: '1px solid var(--alice-primary)',
@@ -237,7 +245,7 @@ export function ExplorerOverviewTab({
         <div className="flex items-center justify-between gap-3" style={{ minHeight: 20 }}>
           <span
             className="font-numbers"
-            style={{ fontSize: 12, color: showError ? '#e06060' : 'var(--alice-muted)', opacity: showError ? 1 : 0.6 }}
+            style={{ fontSize: 12, color: showError ? 'var(--alice-danger)' : 'var(--alice-muted)', opacity: showError ? 1 : 0.6 }}
           >
             {showError
               ? errorMessage()
@@ -251,7 +259,7 @@ export function ExplorerOverviewTab({
             onClick={submit}
             className="font-pixel tracking-widest cursor-pointer disabled:cursor-not-allowed"
             style={{
-              fontSize: 7,
+              fontSize: 10,
               padding: '10px 18px',
               border: `2px solid ${routable ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
               borderRadius: 2,
@@ -286,7 +294,7 @@ export function ExplorerOverviewTab({
         // Curated history: famous transactions, milestone blocks and notorious
         // addresses, so the first dive needs zero knowledge. Hover for the story.
         <div className="flex flex-col gap-4">
-          <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+          <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
             EXPLORE BITCOIN HISTORY
           </span>
           <ExploreGroup title="FAMOUS TRANSACTIONS" items={EXPLORE_TXS} onOpen={open} />
@@ -297,7 +305,7 @@ export function ExplorerOverviewTab({
 
       {/* What is down the hole: one card per explorer view. */}
       <div className="flex flex-col gap-3">
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
           WHAT YOU CAN EXPLORE
         </span>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -334,7 +342,7 @@ export function ExplorerOverviewTab({
           backgroundColor: 'var(--alice-bg-soft)',
         }}
       >
-        <span className="font-pixel tracking-widest" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+        <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
           DATA SOURCE
         </span>
         <p className="font-numbers m-0" style={{ fontSize: 12.5, lineHeight: '18px', color: 'var(--alice-muted)' }}>
