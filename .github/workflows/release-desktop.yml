@@ -61,8 +61,14 @@ jobs:
             fi
           fi
 
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.ref_name }}" != "main" ]]; then
-            echo "Le déclenchement manuel doit partir de main, pas de ${{ github.ref_name }}." >&2
+          # A manual run builds from main, or from the release branch whose
+          # name carries the very version being released: the draft release
+          # fills up during QA, before anything is merged or tagged.
+          release_branch="release/${expected_tag#v}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" \
+                && "${{ github.ref_name }}" != "main" \
+                && "${{ github.ref_name }}" != "$release_branch" ]]; then
+            echo "Le déclenchement manuel doit partir de main ou de $release_branch, pas de ${{ github.ref_name }}." >&2
             exit 1
           fi
 
