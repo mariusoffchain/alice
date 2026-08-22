@@ -503,7 +503,7 @@ export default function AISettingsScreen() {
                   );
                 })}
                 {installedModels.length === 0 && (
-                  <Text style={s.modelBadgeSecondary}>No model installed. Download one above.</Text>
+                  <Text style={[s.modelBadgeSecondary, { lineHeight: 18 }]}>No model installed.{'\n'}Download one above.</Text>
                 )}
               </View>
 
@@ -902,7 +902,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     modelCard: { paddingVertical: spacing.md },
     modelRowBorder: { borderTopWidth: 1, borderTopColor: colors.dotted },
     toast: { marginHorizontal: spacing.lg, marginTop: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, borderRadius: 2 },
-    toastText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, textAlign: 'center' },
+    toastText: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, textAlign: 'center' },
     modelInfo: { marginBottom: spacing.sm },
     modelNameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     modelName: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
@@ -910,11 +910,11 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     modelMeta: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
     modelBadge: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
 	    modelBadgeSecondary: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
-	    dropdownDescription: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, lineHeight: 12, marginTop: spacing.xs },
+	    dropdownDescription: { fontFamily: typography.numbers, fontSize: 13, color: colors.muted, lineHeight: 17, marginTop: spacing.xs },
 	    modelActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
 
 	    dropdownTrigger: { ...pixel, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, backgroundColor: colors.background },
-	    dropdownLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, marginBottom: spacing.xs },
+	    dropdownLabel: { fontFamily: typography.numbers, fontSize: 14, color: colors.muted, marginBottom: spacing.xs },
 	    dropdownChevron: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary, width: 24, textAlign: 'center' },
 	    dropdownMenu: { marginTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.dotted },
 	    dropdownOption: { paddingVertical: spacing.md, paddingHorizontal: spacing.sm },

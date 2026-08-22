@@ -429,7 +429,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     summary: { alignItems: 'center', paddingVertical: spacing.lg },
     summaryLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
     summaryAmount: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 27, color: colors.primaryDark },
-    summaryMeta: { marginTop: spacing.xs, fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
+    summaryMeta: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 14, color: colors.muted },
     statusBand: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.dotted, backgroundColor: colors.cardBg },
     statusTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     statusTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark },

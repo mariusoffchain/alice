@@ -26,7 +26,7 @@ export function SiteFooter() {
             Credits
           </a>
           <a href={APP_URL} className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
-            Open Alice
+            Open web app
           </a>
         </nav>
       </div>

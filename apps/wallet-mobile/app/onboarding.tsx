@@ -6,7 +6,7 @@ import { spacing, typography, type Colors, type Pixel } from '@alice-wallet/alic
 import { useTheme } from '@alice-wallet/alice-ui';
 import { PixelFill } from '@alice-wallet/alice-ui';
 import { AliceAvatar } from '@alice-wallet/alice-ui';
-import { initWallet, NETWORK, restoreWallet, saveMnemonic } from '@alice-wallet/wallet-core';
+import { forgetWalletForNewSeed, initWallet, NETWORK, restoreWallet, saveMnemonic } from '@alice-wallet/wallet-core';
 import { markBackupComplete, markOnboarded } from '../lib/onboarding';
 import { generateMnemonic, validateMnemonic } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english.js';
@@ -46,41 +46,52 @@ export default function OnboardingScreen() {
   const [typed, setTyped] = useState('');
   const [cursorOn, setCursorOn] = useState(true);
   const [bubbleWidth, setBubbleWidth] = useState(0);
-
-  useEffect(() => {
-    if (step !== 'ready') return;
-    setReadyComplete(false);
-    setTyped('');
-    readyProgress.setValue(0);
-  }, [step]);
+  const readyStartedRef = useRef(false);
 
   // Started from PixelFill's onReady so the grid is mounted before progress
   // moves, otherwise the natively driven fill runs ahead of first paint.
+  // Idempotent: the layout signal and the safety net below may both call it.
   const startReadyAnimation = () => {
+    if (readyStartedRef.current) return;
+    readyStartedRef.current = true;
     readyProgress.setValue(0);
     Animated.timing(readyProgress, {
       toValue: 1,
       duration: 900,
       easing: Easing.linear,
       useNativeDriver: true,
-    }).start(() => setReadyComplete(true));
+    }).start(({ finished }) => {
+      // An interrupted fill must not be reported as complete: that painted
+      // the screen blue with the welcome still at opacity zero.
+      if (finished) setReadyComplete(true);
+    });
   };
+
+  useEffect(() => {
+    if (step !== 'ready') return;
+    setReadyComplete(false);
+    setTyped('');
+    readyStartedRef.current = false;
+    // The progress value is NOT reset here: on Android the layout signal can
+    // land before this effect, and resetting a value mid-animation stops it.
+    // startReadyAnimation owns the reset. Safety net if onReady never fires.
+    const fallback = setTimeout(startReadyAnimation, 1_500);
+    return () => clearTimeout(fallback);
+  }, [step]);
 
   useEffect(() => {
     if (!readyComplete) return;
     let i = 0;
-    let advance: ReturnType<typeof setTimeout> | undefined;
     const charsPerTick = Platform.OS === 'web' ? 1 : 3;
     const interval = Platform.OS === 'web' ? 24 : 40;
     const id = setInterval(() => {
       i = Math.min(i + charsPerTick, READY_MESSAGE.length);
       setTyped(READY_MESSAGE.slice(0, i));
-      if (i >= READY_MESSAGE.length) {
-        clearInterval(id);
-        advance = setTimeout(() => router.replace('/?intro=pixel'), 10_000);
-      }
+      // No auto-advance: the Start button is the only way forward, so the
+      // screen never jumps to the wallet while someone is still reading.
+      if (i >= READY_MESSAGE.length) clearInterval(id);
     }, interval);
-    return () => { clearInterval(id); if (advance) clearTimeout(advance); };
+    return () => clearInterval(id);
   }, [readyComplete]);
 
   useEffect(() => {
@@ -89,19 +100,45 @@ export default function OnboardingScreen() {
     return () => clearInterval(id);
   }, [step]);
 
+  const initInFlightRef = useRef(false);
+  const [restoring, setRestoring] = useState(false);
+
   async function initializeWallet(mnemonic: string, failureStep: 'welcome' | 'import', alreadyBackedUp = false) {
+    // Single flight: a second tap while a recovery scans the network must
+    // not start a second initialisation over the first.
+    if (initInFlightRef.current) return;
+    initInFlightRef.current = true;
     setStep('creating');
+    setRestoring(alreadyBackedUp);
     setError(null);
     try {
+      // A previous attempt (an import whose recovery failed, a wallet tried
+      // and abandoned) may have left a backend and local databases behind.
+      // They belong to that other seed: drop them before this one is saved.
+      await forgetWalletForNewSeed();
       await saveMnemonic(mnemonic);
-      await markOnboarded();
-      if (alreadyBackedUp) await markBackupComplete();
-      await initWallet();
-      if (alreadyBackedUp) await restoreWallet();
+      if (alreadyBackedUp) {
+        // An import needs the Ark server: the balance lives there, not on
+        // the phone. The wallet only counts as onboarded once its recovery
+        // has really finished; until then a relaunch comes back here.
+        await initWallet();
+        await restoreWallet();
+        await markOnboarded();
+        await markBackupComplete();
+      } else {
+        // A new wallet is complete the moment its keys are saved: the
+        // welcome shows at once, like Arkade Wallet does. Connecting to the
+        // server starts in the background; the home screen already shows
+        // "connecting" or "offline" and refreshes on its own once it answers.
+        await markOnboarded();
+        void initWallet().catch(() => {});
+      }
       setStep('ready');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to save keys.');
       setStep(failureStep);
+    } finally {
+      initInFlightRef.current = false;
     }
   }
 
@@ -190,8 +227,11 @@ export default function OnboardingScreen() {
 
         {(step === 'creating' || step === 'ready') && (
           <>
-            <Text style={s.title}>CREATING</Text>
-            <Text style={s.subtitle}>Generating your keys...</Text>
+            <Text style={s.title}>{restoring ? 'RESTORING' : 'CREATING'}</Text>
+            <Text style={s.subtitle}>{restoring ? 'Scanning the network for your funds' : 'Generating your keys...'}</Text>
+            {restoring && (
+              <Text style={s.desc}>This can take a minute on a slow connection. Keep Alice open.</Text>
+            )}
             <ActivityIndicator size="large" color={colors.primary} style={s.loader} />
           </>
         )}
@@ -254,7 +294,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     subtitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, marginTop: spacing.sm, textAlign: 'center' },
     desc: { maxWidth: 420, fontFamily: typography.numbers, fontSize: 16, color: colors.muted, textAlign: 'center', lineHeight: 24, marginTop: spacing.lg },
     error: { fontFamily: typography.numbers, fontSize: 14, color: '#e06060', textAlign: 'center', marginTop: spacing.sm },
-    warning: { maxWidth: 420, marginTop: spacing.md, fontFamily: typography.pixel, fontSize: 12, lineHeight: 13, color: '#e06060', textAlign: 'center' },
+    warning: { maxWidth: 420, marginTop: spacing.md, fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: '#e06060', textAlign: 'center' },
     loader: { marginVertical: spacing.xl },
     btn: { ...pixel, marginTop: spacing.xxl, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.lg, paddingHorizontal: spacing.xxxl },
     disabled: { opacity: 0.4 },

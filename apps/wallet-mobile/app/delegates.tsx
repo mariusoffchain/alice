@@ -228,8 +228,8 @@ function makeStyles(colors: Colors, pixel: Pixel) {
       letterSpacing: 1,
     },
     rowValue: {
-      fontFamily: typography.pixel,
-      fontSize: 12,
+      fontFamily: typography.numbers,
+      fontSize: 15,
       color: colors.primaryDark,
       textAlign: 'right',
     },

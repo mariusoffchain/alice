@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import {
   AccountProvider,
   ChatProvider,
+  loadRagCorpus,
   restoreDownloadedPacks,
   checkForPackUpdates,
   KNOWLEDGE_PACK_CATALOG,
@@ -27,6 +28,9 @@ export function ChatProviderWrapper({
   const [storageCipher] = useState<ChatStorageCipher | undefined>(
     createTauriChatStorageCipher,
   );
+  // Desktop and web have the headroom to load the corpus right away, so the
+  // first question never waits for it.
+  useEffect(() => { void loadRagCorpus(); }, []);
 
   useEffect(() => {
     initThemeFromStorage();

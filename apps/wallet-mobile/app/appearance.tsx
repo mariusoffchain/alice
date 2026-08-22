@@ -134,5 +134,5 @@ const s = StyleSheet.create({
   wheelContainer: { alignItems: 'center', marginTop: spacing.xxxl, marginBottom: spacing.xl },
   labelRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.xl, marginBottom: spacing.md },
   label: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 2 },
-  hint: { fontFamily: typography.pixel, fontSize: 12, textAlign: 'center', lineHeight: 14, letterSpacing: 1 },
+  hint: { fontFamily: typography.numbers, fontSize: 14, textAlign: 'center', lineHeight: 19 },
 });

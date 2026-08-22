@@ -462,10 +462,10 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     actionBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
 
     updateBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.xl },
-    updateText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
+    updateText: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: colors.muted },
     refundBtn: { ...pixel, marginTop: spacing.lg, alignSelf: 'center', backgroundColor: '#d4a017', borderColor: '#8f6d0a', paddingVertical: spacing.md, paddingHorizontal: spacing.xl },
     refundBtnText: { fontFamily: typography.pixel, fontSize: 12, color: '#ffffff', letterSpacing: 1 },
-    refundNotice: { marginTop: spacing.lg, paddingHorizontal: spacing.lg, fontFamily: typography.pixel, fontSize: 12, lineHeight: 13, color: '#8f6d0a', textAlign: 'center' },
+    refundNotice: { marginTop: spacing.lg, paddingHorizontal: spacing.lg, fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: '#8f6d0a', textAlign: 'center' },
     actionError: { marginTop: spacing.md, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: '#e06060', textAlign: 'center' },
     disabled: { opacity: 0.4 },
   });

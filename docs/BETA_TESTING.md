@@ -76,6 +76,13 @@ APK forwarded by an unknown person.
 Desktop installers are attached to the `0.2.0` GitHub Release. The first beta
 can be distributed before trusted Apple and Windows certificates are available.
 
+## Updating Alice Wallet from 0.1.0
+
+0.2.0 ships under a new Android application id (`com.alicebtc.wallet`), so
+it installs as a separate app next to 0.1.0 rather than over it. Back up
+your recovery phrase from 0.1.0 first, install 0.2.0, import the phrase,
+check your balance, then uninstall 0.1.0.
+
 ## Installing Alice Desktop 0.2.0
 
 The GitHub Release contains a universal macOS DMG, a Windows MSI, a Linux
@@ -167,18 +174,18 @@ GitHub Release installation is.
    aapt dump badging path/to/downloaded.apk | head -1
    ```
 
-   The 0.2.0 build carries version code `13`. Rename the file with that code,
+   The 0.2.0 build carries version code `3`. Rename the file with that code,
    and make sure `ANDROID_APK_URL` in `apps/site/src/lib/site.ts` ends in the
    same `v13.apk`; if the two disagree, fix the URL, not the file name:
 
    ```bash
-   mv path/to/downloaded.apk Alice-Wallet-beta-0.2.0-v13.apk
+   mv path/to/downloaded.apk Alice-Wallet-beta-0.2.0-v3.apk
    ```
 
 4. Calculate and verify its SHA-256 digest:
 
    ```bash
-   shasum -a 256 Alice-Wallet-beta-0.2.0-v13.apk \
+   shasum -a 256 Alice-Wallet-beta-0.2.0-v3.apk \
      > SHA256SUMS-v0.2.0.txt
    shasum -a 256 -c SHA256SUMS-v0.2.0.txt
    ```
@@ -188,7 +195,7 @@ GitHub Release installation is.
 
    ```bash
    gh release upload v0.2.0 \
-     Alice-Wallet-beta-0.2.0-v13.apk \
+     Alice-Wallet-beta-0.2.0-v3.apk \
      SHA256SUMS-v0.2.0.txt \
      --clobber
    ```

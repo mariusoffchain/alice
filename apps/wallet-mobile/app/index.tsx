@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Keyboard, Platform, Animated, Easing, useWindowDimensions, Modal } from 'react-native';
+import * as Network from 'expo-network';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -50,6 +51,7 @@ import { WalletAmount } from '@alice-wallet/alice-ui';
 import { buildHomeRecentHistoryEntries, type HistoryEntry } from '@alice-wallet/wallet-core';
 // Alice opens as its own chat surface: the launch wave keeps the wallet accent
 // color, then the conversation settles into the dark palette for readability.
+const OFFLINE_MESSAGE = 'OFFLINE. YOUR WALLET IS READY, THE BALANCE REFRESHES ONCE CONNECTED.';
 const VTXO_WARNING_MS = 3 * 24 * 60 * 60 * 1_000;
 const LOCAL_WEB_MESSAGE = 'Local AI is not available in the web wallet. Install the Alice Wallet app to run models on this device.';
 const CHAT_TRANSITION_MS = 600;
@@ -257,9 +259,9 @@ function AssistantText({ content, color, animate }: { content: string; color: st
 
 function recentDescription(entry: HistoryEntry): string {
   const layer = entry.kind === 'transaction' ? entry.transaction.layer : entry.payment.layer;
-  if (layer === 'lightning') return 'LIGHTNING PAYMENT';
-  if (layer === 'onchain') return 'ON-CHAIN TRANSACTION';
-  return 'ARKADE TRANSACTION';
+  if (layer === 'lightning') return 'Lightning';
+  if (layer === 'onchain') return 'On-chain';
+  return 'Arkade';
 }
 
 export default function WalletScreen() {
@@ -325,6 +327,7 @@ export default function WalletScreen() {
   const latestRecentEntriesRef = useRef<HistoryEntry[]>([]);
   const latestExpiringVtxosRef = useRef(0);
   const walletRefreshInFlightRef = useRef(false);
+  const refreshQueuedRef = useRef(false);
 
   // Newest-first, for an inverted FlatList. The list renders bottom-to-top, so
   // the last message is anchored to the visual bottom and stays pinned above the
@@ -406,80 +409,82 @@ export default function WalletScreen() {
   // instead of forcing the keyboard open immediately after the animation.
 
   const refreshWallet = useCallback(() => {
-    if (walletRefreshInFlightRef.current || rebuildingIndex) return;
+    if (rebuildingIndex) return;
+    if (walletRefreshInFlightRef.current) {
+      // Asked while a pass is running (typically on regaining focus after a
+      // renewal): run once more when it ends rather than drop the request.
+      refreshQueuedRef.current = true;
+      return;
+    }
     walletRefreshInFlightRef.current = true;
-    getBalanceFormat().then(setBalFmt).catch(() => {});
-    getFiatCurrency().then(setCurrency).catch(() => {});
-    syncVtxosIfReady()
-      .catch(cause => {
-        console.warn('Unable to synchronize Arkade before refreshing the balance.', cause);
-      })
-      .then(() => getBalance())
-      .then(nextWallet => {
+    // One sequential pass and one snapshot write per cycle. Three parallel
+    // chains used to race each other, re-render the screen several times and
+    // write the same snapshot three times, enough to make a tap stutter.
+    void (async () => {
+      try {
+        // Offline is a state, not a failure to wait out: say so at once instead
+        // of letting the Ark connection time out while the balance sits blank.
+        // The wallet itself is usable; only the balance and history need the
+        // network.
+        const net = Platform.OS === 'web' ? null : await Network.getNetworkStateAsync().catch(() => null);
+        if (net?.isConnected === false) throw new Error(OFFLINE_MESSAGE);
+        await syncVtxosIfReady().catch(cause => {
+          console.warn('Unable to synchronize Arkade before refreshing the balance.', cause);
+        });
+        const nextWallet = await getBalance();
         setWalletError(null);
         latestWalletRef.current = nextWallet;
         setWallet(nextWallet);
-        void maintainVtxosIfReady().catch(cause => {
-          console.warn('Unable to complete automatic VTXO maintenance.', cause);
-        });
-        void saveHomeWalletSnapshot({
+
+        const [transactionsResult, paymentsResult] = await Promise.allSettled([getTransactionHistory(), getPaymentHistory()]);
+        const transactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : [];
+        const payments = paymentsResult.status === 'fulfilled' ? paymentsResult.value : [];
+        const entries = buildHomeRecentHistoryEntries(transactions, payments, 2);
+        latestRecentEntriesRef.current = entries;
+        setRecentEntries(entries);
+
+        const vtxos = await getVtxos().catch(() => null);
+        if (vtxos) {
+          const count = vtxos.filter(vtxo =>
+            (vtxo.state === 'preconfirmed' || vtxo.state === 'settled')
+            && vtxo.batchExpiry !== undefined
+            && vtxo.batchExpiry > Date.now()
+            && vtxo.batchExpiry - Date.now() <= VTXO_WARNING_MS
+          ).length;
+          latestExpiringVtxosRef.current = count;
+          setExpiringVtxos(count);
+        }
+
+        await saveHomeWalletSnapshot({
           wallet: nextWallet,
           recentEntries: latestRecentEntriesRef.current,
           expiringVtxos: latestExpiringVtxosRef.current,
           savedAt: Date.now(),
         }).catch(() => {});
-      })
-      .catch(error => {
+
+        // Maintenance is rate-limited to once every five minutes inside
+        // wallet-core; it runs after the screen has its fresh numbers.
+        void maintainVtxosIfReady().catch(cause => {
+          console.warn('Unable to complete automatic VTXO maintenance.', cause);
+        });
+      } catch (error) {
         const msg = error instanceof Error ? error.message : 'Wallet unavailable.';
         if (msg.includes('onboarding') || msg.includes('Complete wallet')) {
           router.replace('/onboarding');
           return;
         }
         setWalletError(msg);
-      })
-      .finally(() => {
+      } finally {
         walletRefreshInFlightRef.current = false;
-      });
-
-    Promise.allSettled([getTransactionHistory(), getPaymentHistory()])
-      .then(([transactionsResult, paymentsResult]) => {
-        const transactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : [];
-        const payments = paymentsResult.status === 'fulfilled' ? paymentsResult.value : [];
-        const entries = buildHomeRecentHistoryEntries(transactions, payments, 2);
-        latestRecentEntriesRef.current = entries;
-        setRecentEntries(entries);
-        if (latestWalletRef.current) {
-          void saveHomeWalletSnapshot({
-            wallet: latestWalletRef.current,
-            recentEntries: entries,
-            expiringVtxos: latestExpiringVtxosRef.current,
-            savedAt: Date.now(),
-          }).catch(() => {});
+        if (refreshQueuedRef.current) {
+          refreshQueuedRef.current = false;
+          refreshWalletRef.current?.();
         }
-      })
-      .catch(() => {});
-
-    getVtxos()
-      .then(vtxos => {
-        const count = vtxos.filter(vtxo =>
-          (vtxo.state === 'preconfirmed' || vtxo.state === 'settled')
-          && vtxo.batchExpiry !== undefined
-          && vtxo.batchExpiry > Date.now()
-          && vtxo.batchExpiry - Date.now() <= VTXO_WARNING_MS
-        ).length;
-        latestExpiringVtxosRef.current = count;
-        setExpiringVtxos(count);
-        if (latestWalletRef.current) {
-          void saveHomeWalletSnapshot({
-            wallet: latestWalletRef.current,
-            recentEntries: latestRecentEntriesRef.current,
-            expiringVtxos: count,
-            savedAt: Date.now(),
-          }).catch(() => {});
-        }
-      })
-      .catch(() => {});
+      }
+    })();
   }, [rebuildingIndex, router]);
+  const refreshWalletRef = useRef<(() => void) | null>(null);
+  refreshWalletRef.current = refreshWallet;
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -490,19 +495,28 @@ export default function WalletScreen() {
         const snapshot = await loadHomeWalletSnapshot();
         if (cancelled) return;
         if (!snapshot) return;
-        latestWalletRef.current = snapshot.wallet;
-        latestRecentEntriesRef.current = snapshot.recentEntries;
-        latestExpiringVtxosRef.current = snapshot.expiringVtxos;
-        setWallet(current => current ?? snapshot.wallet);
-        setRecentEntries(current => current.length ? current : snapshot.recentEntries);
-        setExpiringVtxos(snapshot.expiringVtxos);
+        // The snapshot only fills an empty screen. Once live numbers exist,
+        // a stale stored count (a VTXO renewed a minute ago) must not come
+        // back on top of them when the screen regains focus.
+        if (!latestWalletRef.current) {
+          latestWalletRef.current = snapshot.wallet;
+          latestRecentEntriesRef.current = snapshot.recentEntries;
+          latestExpiringVtxosRef.current = snapshot.expiringVtxos;
+          setWallet(snapshot.wallet);
+          setRecentEntries(current => current.length ? current : snapshot.recentEntries);
+          setExpiringVtxos(snapshot.expiringVtxos);
+        }
       } catch {
       } finally {
         if (!cancelled) refreshWallet();
       }
     })();
     isBackupComplete().then(setBackupComplete).catch(() => setBackupComplete(false));
-    pollRef.current = setInterval(refreshWallet, 10_000);
+    getBalanceFormat().then(setBalFmt).catch(() => {});
+    getFiatCurrency().then(setCurrency).catch(() => {});
+    // Thirty seconds: a received payment still shows within the time it takes
+    // to look up from the phone, and the JS thread is free far more often.
+    pollRef.current = setInterval(refreshWallet, 30_000);
     return () => {
       cancelled = true;
       if (pollRef.current) clearInterval(pollRef.current);
@@ -1211,14 +1225,16 @@ const s = StyleSheet.create({
   recentTransactions: { marginTop: spacing.md, paddingHorizontal: spacing.md },
   transactionRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   transactionDetails: { flex: 1, gap: 3 },
-  transactionType: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
-  transactionDate: { fontFamily: typography.numbers, fontSize: 13 },
+  transactionType: { fontFamily: typography.numbers, fontSize: 15, lineHeight: 19 },
+  transactionDate: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 16 },
   transactionAmount: { fontFamily: typography.numbers, fontSize: 16 },
 
   dashTrigger: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md },
-  dashIcon: { alignItems: 'center', justifyContent: 'center', gap: 4 },
+  // The pixel font's glyphs sit high in their box: nudge the bars down to
+  // the label's visual centre.
+  dashIcon: { alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 2 },
   dash: { width: 24, height: 2, borderRadius: 1 },
-  historyLabel: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
+  historyLabel: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, includeFontPadding: false },
 
   chatZone: { flex: 1, overflow: 'visible' },
   bottomAnchor: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: spacing.xl },
@@ -1281,7 +1297,7 @@ const s = StyleSheet.create({
   // own, and that is also what pins the last line above the keyboard.
   chatList: { width: '100%', maxWidth: 896, alignSelf: 'center', paddingTop: spacing.lg, paddingBottom: spacing.md, paddingHorizontal: spacing.lg, gap: spacing.md },
   systemRow: { alignItems: 'center', paddingVertical: spacing.xs },
-  systemText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, opacity: 0.7 },
+  systemText: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, opacity: 0.7 },
   msgRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
   msgRowUser: { flexDirection: 'row-reverse' },
   // Lifted a few px off the row's baseline so the icon sits level with the text

@@ -27,6 +27,7 @@ async function loadBundledRag(): Promise<any> {
 
 test('the active core stays bounded while secondary knowledge remains outside retrieval', async () => {
   const rag = await loadBundledRag();
+  await rag.loadRagCorpus();
   const chunks = rag.getAllChunks();
   // The bound guards the number of CONCEPTS the core carries: a French entry
   // and its English twin are one concept in two locales, and retrieval only
@@ -71,6 +72,7 @@ async function readSemanticIndex(basePath: string) {
 
 test('the web and native semantic indexes exactly match the active core corpus', async () => {
   const rag = await loadBundledRag();
+  await rag.loadRagCorpus();
   const chunks = rag.getAllChunks();
   const expectedIds = chunks.map((chunk: { id: string }) => chunk.id);
   const expectedCorpusHash = createHash('sha256').update(chunks.map((chunk: {

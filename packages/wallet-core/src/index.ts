@@ -66,6 +66,7 @@ export { quoteArkToLightningForProvider } from './swap-quote';
 export { getConfirmations } from './confirmations';
 export {
   type ExplorerLink,
+  resolveBitcoinExplorer,
   resolveTransactionExplorer,
   resolvePaymentExplorer,
   resolveArkadeExplorer,
@@ -102,6 +103,7 @@ export {
   SATORA_HEALTH_URL,
   SWAP_PROVIDER,
   type SwapProvider,
+  ALICE_APP_URL,
   ARKADE_EXPLORER,
   MEMPOOL_EXPLORER,
   WEB_DB_NAME,
@@ -128,7 +130,7 @@ export {
   type PaymentStatus,
 } from './payment-types';
 export { isRefundTestArmed, armRefundTest, disarmRefundTest, consumeRefundTest } from './refund-test';
-export { saveMnemonic, loadMnemonic, savePublicKey, loadPublicKey, clearWallet } from './storage';
+export { saveMnemonic, loadMnemonic, savePublicKey, loadPublicKey, clearWallet, forgetWalletForNewSeed } from './storage';
 export {
   type Balance,
   type TransactionStatus,

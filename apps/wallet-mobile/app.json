@@ -14,14 +14,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "media.offchain.wallet"
+      "bundleIdentifier": "com.alicebtc.wallet"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#0a0a0a"
       },
-      "package": "media.offchain.wallet",
+      "package": "com.alicebtc.wallet",
       "permissions": [
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",

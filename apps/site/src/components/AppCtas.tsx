@@ -11,7 +11,6 @@ import {
   DESKTOP_LINUX_DEB_URL,
   DESKTOP_MAC_URL,
   DESKTOP_RELEASE_URL,
-  DESKTOP_VERSION,
   DESKTOP_WINDOWS_URL,
   WALLET_URL,
 } from '@/lib/site';
@@ -47,11 +46,14 @@ export type PlatformItem = {
 // distributed. Items with no href render as "Coming soon".
 export const APP_PLATFORM_ITEMS: PlatformItem[] = [
   { icon: <GlobeIcon size={18} />, label: 'Web app', href: APP_URL },
-  { icon: <AppleGlyph size={18} />, label: `Mac ${DESKTOP_VERSION}`, href: DESKTOP_MAC_URL, notice: 'macos' },
-  { icon: <WindowsGlyph size={16} />, label: `Windows ${DESKTOP_VERSION}`, href: DESKTOP_WINDOWS_URL, notice: 'windows' },
+  { icon: <AppleGlyph size={18} />, label: 'Mac', href: DESKTOP_MAC_URL, notice: 'macos' },
+  { icon: <WindowsGlyph size={16} />, label: 'Windows', href: DESKTOP_WINDOWS_URL, notice: 'windows' },
+  // Desktop rows carry no version: every installer on the release page is the
+  // same version, and the app updates itself from there. The APK keeps its
+  // number because a sideloaded file is chosen by hand, with no update channel.
   // Linux raises no platform warning, so both packages link straight through.
-  { icon: <LinuxGlyph size={18} />, label: `Linux AppImage ${DESKTOP_VERSION}`, href: DESKTOP_LINUX_APPIMAGE_URL },
-  { icon: <LinuxGlyph size={18} />, label: `Linux Debian ${DESKTOP_VERSION}`, href: DESKTOP_LINUX_DEB_URL },
+  { icon: <LinuxGlyph size={18} />, label: 'Linux AppImage', href: DESKTOP_LINUX_APPIMAGE_URL },
+  { icon: <LinuxGlyph size={18} />, label: 'Linux Debian', href: DESKTOP_LINUX_DEB_URL },
   { icon: <DownloadIcon size={18} />, label: 'Release & checksum', href: DESKTOP_RELEASE_URL },
 ];
 
@@ -279,7 +281,7 @@ function PlatformSelector({
 export function OpenAliceButton({ size = 'md' }: { size?: Size }) {
   return (
     <a href={APP_URL} className={`cta cta-solid ${sizes[size]}`}>
-      Open Alice
+      Open web app
     </a>
   );
 }

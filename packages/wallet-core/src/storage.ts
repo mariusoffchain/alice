@@ -14,12 +14,20 @@ const ARK_TASK_QUEUE_KEYS = [
 const DIAGNOSTIC_LOG_KEY = 'alice_diagnostic_logs';
 
 export async function saveMnemonic(mnemonic: string): Promise<void> {
+  const { seedGeneration } = await import('./seed-generation');
   if (Platform.OS === 'web') {
     const { saveWebMnemonic } = await import('./web-vault');
-    return saveWebMnemonic(mnemonic);
+    await saveWebMnemonic(mnemonic);
+    seedGeneration.bump();
+    return;
   }
   await SecureStore.setItemAsync(MNEMONIC_KEY, mnemonic);
+  seedGeneration.bump();
 }
+
+// The home screen's cached balance and recent entries. Owned by the app, but
+// it belongs to one seed like everything else here, and it survived a reset.
+const HOME_SNAPSHOT_KEY = 'alice_wallet_home_snapshot_v1';
 
 export async function loadMnemonic(): Promise<string | null> {
   if (Platform.OS === 'web') {
@@ -37,6 +45,16 @@ export async function loadPublicKey(): Promise<string | null> {
   return AsyncStorage.getItem(PUBKEY_KEY);
 }
 
+/**
+ * Everything a previous seed left behind, short of the phrase itself, so a
+ * new phrase starts from nothing. The phrase is overwritten by the caller.
+ */
+export async function forgetWalletForNewSeed(): Promise<void> {
+  const { discardWalletForNewSeed } = await import('./ark');
+  await discardWalletForNewSeed();
+  await AsyncStorage.multiRemove([PUBKEY_KEY, BACKUP_COMPLETE_KEY, HOME_SNAPSHOT_KEY, ...ARK_TASK_QUEUE_KEYS]);
+}
+
 export async function clearWallet(): Promise<void> {
   const { clearWalletBackendData } = await import('./ark');
   const { clearAppLock } = await import('./app-lock');
@@ -47,9 +65,9 @@ export async function clearWallet(): Promise<void> {
   if (Platform.OS === 'web') {
     const { clearWebVault } = await import('./web-vault');
     await clearWebVault();
-    await AsyncStorage.multiRemove([PUBKEY_KEY, ONBOARDED_KEY, BACKUP_COMPLETE_KEY, DIAGNOSTIC_LOG_KEY, ...ARK_TASK_QUEUE_KEYS]);
+    await AsyncStorage.multiRemove([PUBKEY_KEY, ONBOARDED_KEY, BACKUP_COMPLETE_KEY, DIAGNOSTIC_LOG_KEY, HOME_SNAPSHOT_KEY, ...ARK_TASK_QUEUE_KEYS]);
     return;
   }
   await SecureStore.deleteItemAsync(MNEMONIC_KEY);
-  await AsyncStorage.multiRemove([PUBKEY_KEY, ONBOARDED_KEY, BACKUP_COMPLETE_KEY, DIAGNOSTIC_LOG_KEY, ...ARK_TASK_QUEUE_KEYS]);
+  await AsyncStorage.multiRemove([PUBKEY_KEY, ONBOARDED_KEY, BACKUP_COMPLETE_KEY, DIAGNOSTIC_LOG_KEY, HOME_SNAPSHOT_KEY, ...ARK_TASK_QUEUE_KEYS]);
 }

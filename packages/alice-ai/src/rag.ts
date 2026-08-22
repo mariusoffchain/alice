@@ -1406,12 +1406,21 @@ function mapGeneratedChunk(chunk: (typeof GeneratedCorpus)[number]): KnowledgeCh
 }
 
 /**
- * Resolves once the generated Obsidian corpus has been loaded and registered.
- * Retrieval works before that (static base only); registering the packs bumps
- * the registry revision, so the retrieval index rebuilds itself on next use.
- * Exported so tests (and any caller that must see the full corpus) can await it.
+ * Loads and registers the generated corpus once, on the first call, and hands
+ * back the same promise afterwards. Not started at module evaluation: parsing
+ * 2 000+ chunks holds the JS thread for a noticeable moment, and on a phone
+ * that moment used to land on the user's first taps after launch. Surfaces
+ * start it when they see fit (the web app at mount, the wallet after its
+ * first interactions) and every hybrid retrieval awaits it, so an early
+ * question simply pays the load once instead of answering from less.
  */
-export const ragCorpusReady: Promise<void> = (async () => {
+let corpusLoad: Promise<void> | null = null;
+export function loadRagCorpus(): Promise<void> {
+  corpusLoad ??= loadCorpusPacks().catch(() => { /* corpus unavailable: the static base still serves */ });
+  return corpusLoad;
+}
+
+async function loadCorpusPacks(): Promise<void> {
   const { GENERATED_OBSIDIAN_KNOWLEDGE_BASE } = await import('./generated/obsidian-rag');
   const generated = GENERATED_OBSIDIAN_KNOWLEDGE_BASE.map(mapGeneratedChunk);
   registerPack({
@@ -1446,7 +1455,7 @@ export const ragCorpusReady: Promise<void> = (async () => {
     enabledByDefault: false,
     chunks: generated.filter(chunk => chunk.status !== 'valide'),
   });
-})().catch(() => { /* corpus unavailable: the static base still serves */ });
+}
 
 const ADVANCED_LAYER_2_TERMS = ['ark', 'arkade', 'vtxo', 'vutxo', 'asp', 'lightning', 'layer 2', 'layer-2', 'l2'];
 
@@ -1643,6 +1652,7 @@ async function hybridSelectedChunks(
 }
 
 export async function retrieveContextHybrid(query: string, options?: RagRetrievalOptions): Promise<string | null> {
+  await loadRagCorpus();
   return (await retrieveContextHybridWithDiagnostics(query, options)).context;
 }
 
@@ -1650,6 +1660,7 @@ export async function retrieveContextHybridWithDiagnostics(
   query: string,
   options?: RagRetrievalOptions,
 ): Promise<{ context: string | null; diagnostics: RagChunkDiagnostic[] }> {
+  await loadRagCorpus();
   const selected = await hybridSelectedChunks(
     query,
     resolveContextChunkLimit(options),
@@ -1701,6 +1712,7 @@ export async function buildRagTurnContext(
   storageCipher?: ChatStorageCipher,
   options?: RagRetrievalOptions,
 ): Promise<RagTurnContext> {
+  await loadRagCorpus();
   // The Learn library is asked in parallel with retrieval: when a course
   // speaks to the question, its chapter rides along as extra context, on
   // every backend, the local model reads the same course the user could

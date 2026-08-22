@@ -25,7 +25,7 @@ import { effectiveBaseUrl, isUsingCustomNode } from '@/lib/explorer/node-config'
 import type { PrivacySignal } from '@/lib/explorer/signals';
 import type { FullContext } from '@/lib/explorer/ask-alice';
 import { addTab, closeTab, makeTab, overviewTab, type Tab } from '@/lib/explorer/tabs';
-import { consumePendingOpen, loadTabs, saveTabs } from '@/lib/explorer/tab-storage';
+import { consumePendingOpen, loadTabs, pendingOpenFromUrl, saveTabs } from '@/lib/explorer/tab-storage';
 import { getSessionTabs, saveSessionTabs } from '@/lib/explorer/session-links';
 import { DEFAULT_NETWORK_ID, getNetwork } from '@/lib/explorer/networks';
 import { getDefaultNetworkId } from '@/lib/explorer/prefs';
@@ -91,7 +91,12 @@ function ExplorerWorkspace() {
     const stored = loadTabs();
     // A deep link from another surface (a Learn anchor, a Playground
     // transaction) opens its subject on top of whatever was restored.
-    const pending = consumePendingOpen();
+    // A subject in the URL (a link from Alice Wallet) wins over a stored
+    // request, and is taken out of the address bar once read so a reload
+    // does not open it a second time.
+    const fromUrl = pendingOpenFromUrl(window.location.search);
+    if (fromUrl) window.history.replaceState(null, '', window.location.pathname);
+    const pending = fromUrl ?? consumePendingOpen();
     if (pending) {
       const base = stored ? stored.tabs : [overviewTab(getDefaultNetworkId())];
       const tab = makeTab(pending.kind, pending.query, pending.networkId ?? getDefaultNetworkId());
@@ -473,19 +478,23 @@ function ExplorerWorkspace() {
           <span className="font-numbers min-w-0 truncate" style={{ fontSize: 13, color: 'var(--alice-text)' }}>
             {arrival.label}
           </span>
-          <button
-            type="button"
-            onClick={() => { setArrival(null); window.history.back(); }}
-            className="font-pixel cursor-pointer shrink-0 ml-auto"
-            style={{ fontSize: 7, padding: '6px 10px', border: '1px solid var(--alice-primary)', borderRadius: 2, background: 'transparent', color: 'var(--alice-primary)' }}
-          >
-            {arrival.origin.toLowerCase().includes('chat') ? '← BACK TO CHAT' : '← BACK TO COURSE'}
-          </button>
+          {/* A visitor sent by Alice Wallet arrived by URL: this tab has no
+              page to go back to, so the only sensible action is to dismiss. */}
+          {!arrival.origin.toLowerCase().includes('wallet') && (
+            <button
+              type="button"
+              onClick={() => { setArrival(null); window.history.back(); }}
+              className="font-pixel cursor-pointer shrink-0 ml-auto"
+              style={{ fontSize: 7, padding: '6px 10px', border: '1px solid var(--alice-primary)', borderRadius: 2, background: 'transparent', color: 'var(--alice-primary)' }}
+            >
+              {arrival.origin.toLowerCase().includes('chat') ? '← BACK TO CHAT' : '← BACK TO COURSE'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setArrival(null)}
             aria-label="Dismiss"
-            className="cursor-pointer shrink-0 bg-transparent border-none"
+            className="cursor-pointer shrink-0 bg-transparent border-none ml-auto"
             style={{ color: 'var(--alice-muted)', fontSize: 14, lineHeight: '14px' }}
           >
             ×

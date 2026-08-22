@@ -51,7 +51,7 @@ import { WalletStateStorage } from './wallet-state-storage';
 import type { ReceiveAddressRecord } from './wallet-state-storage';
 import { freezeAwareWallet, getFrozenSpendableAmount, sendBitcoinRespectingFreeze } from './frozen-vtxos';
 import {
-  RECEIVE_RESTORE_GAP_LIMIT,
+  RECEIVE_RESTORE_GAP_LIMIT, RESTORE_FIRST_PASS_GAP_LIMIT,
   ReceiveAddressController,
 } from './receive-addresses';
 import {
@@ -306,7 +306,67 @@ export class ArkadeBackend implements WalletBackend {
   }
 
   async restore(): Promise<void> {
-    await this.requireConcreteWallet().restore({ gapLimit: RECEIVE_RESTORE_GAP_LIMIT });
+    // Two passes. The SDK scans N unused indexes in a row before stopping,
+    // probing every contract type at each over the network, ten indexes at
+    // a time: at 100 that is hundreds of requests and minutes on mobile
+    // data. Almost every wallet sits within the SDK's default window of 20,
+    // so that runs first; the deep window only runs when the quick one found
+    // nothing at all, which is exactly the wallet that may need it.
+    await this.scanWithRetries(RESTORE_FIRST_PASS_GAP_LIMIT);
+    if (!(await this.hasAnyActivity())) {
+      // Nothing at all within 20: this is the wallet that may need the deep
+      // window, and it has nothing to show yet, so the wait is worth it.
+      await this.scanWithRetries(RECEIVE_RESTORE_GAP_LIMIT);
+      return;
+    }
+    // Something was found: the wallet is usable now. The deep window still
+    // runs, in the background, so funds sitting beyond a gap of more than 20
+    // unused addresses are never missed; the scan is idempotent and only
+    // adds what it finds.
+    this.deepScanPromise ??= this.scanWithRetries(RECEIVE_RESTORE_GAP_LIMIT)
+      .catch(error => {
+        void addDiagnosticLog('warning', 'Deep recovery scan did not finish', error instanceof Error ? error.message : String(error)).catch(() => {});
+      })
+      .finally(() => { this.deepScanPromise = null; });
+  }
+
+  private deepScanPromise: Promise<void> | null = null;
+
+  private async hasAnyActivity(): Promise<boolean> {
+    const wallet = this.requireConcreteWallet();
+    const vtxos = await wallet.getVtxos({ withRecoverable: true, withUnrolled: true });
+    if (vtxos.length > 0) return true;
+    const history = await this.getTransactionHistory().catch(() => []);
+    return history.length > 0;
+  }
+
+  private async scanWithRetries(gapLimit: number): Promise<void> {
+    // A probe that fails (a timeout on mobile data is enough) counts as
+    // "nothing here", so the gap window can close before the real funds are
+    // reached; the SDK then reports the failed probes. The scan is
+    // idempotent, so failed probes simply mean: scan again, a few times.
+    const attempts = 3;
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        await this.requireConcreteWallet().restore({ gapLimit });
+        return;
+      } catch (error) {
+        lastError = error;
+        const message = error instanceof Error ? error.message : String(error);
+        if (!/discovery handlers? failed/i.test(message) || attempt === attempts) break;
+        void addDiagnosticLog('warning', 'Wallet recovery scan retrying', message).catch(() => {});
+        await new Promise(resolve => setTimeout(resolve, 1_500 * attempt));
+      }
+    }
+    const message = lastError instanceof Error ? lastError.message : String(lastError);
+    if (/discovery handlers? failed/i.test(message)) {
+      throw new Error(
+        `Recovery scanned the network but some lookups failed after ${attempts} attempts. Check the connection and try again: retrying is safe.`,
+        { cause: lastError },
+      );
+    }
+    throw lastError;
   }
 
   async getBoardingAddress(): Promise<string> {

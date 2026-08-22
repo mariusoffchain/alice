@@ -154,6 +154,7 @@ export {
   augmentQueryWithLocalData,
   buildRagTurnContext,
   isTechnicalRagQuery,
+  loadRagCorpus,
   type RagRetrievalOptions,
   type RagTurnContext,
   type RagChunkDiagnostic,

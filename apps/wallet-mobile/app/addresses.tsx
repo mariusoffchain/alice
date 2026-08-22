@@ -166,9 +166,7 @@ export default function AddressesScreen() {
               onPress={() => void reserveAndRotate(current)}
               disabled={busyAddress === current.address}
             >
-              {busyAddress === current.address
-                ? <ActivityIndicator size="small" color={colors.onPrimary} />
-                : <Ionicons name="add-circle-outline" size={17} color={colors.onPrimary} />}
+              {busyAddress === current.address && <ActivityIndicator size="small" color={colors.onPrimary} />}
               <Text style={s.generateText}>GENERATE NEW {network} ADDRESS</Text>
             </TouchableOpacity>
           </View>
@@ -367,7 +365,8 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     generateText: {
       fontFamily: typography.pixel,
-      fontSize: 12,
+      fontSize: 10,
+      lineHeight: 16,
       color: colors.onPrimary,
       textAlign: 'center',
     },

@@ -271,7 +271,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     choiceRow: { width: '100%', maxWidth: 420, flexDirection: 'row', gap: spacing.sm, justifyContent: 'center' },
     choiceBtn: { ...pixel, flex: 1, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.cardBg },
     choiceBtnActive: { backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    choiceText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
+    choiceText: { fontFamily: typography.pixel, fontSize: 10, lineHeight: 14, color: colors.primaryDark, letterSpacing: 1 },
     choiceTextActive: { color: colors.onPrimary },
     backLink: { marginTop: spacing.lg, padding: spacing.sm },
     backLinkText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },

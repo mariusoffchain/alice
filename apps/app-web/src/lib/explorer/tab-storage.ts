@@ -4,7 +4,7 @@
 // failure just falls back to a fresh single Home tab.
 
 import { DEFAULT_NETWORK_ID, getNetwork } from './networks.ts';
-import { overviewTab, type Tab, type TabKind } from './tabs.ts';
+import { overviewTab, shortLabel, type Tab, type TabKind } from './tabs.ts';
 
 const KEY = 'explorer.tabs.v1';
 const KINDS: TabKind[] = ['overview', 'tx', 'address', 'block', 'xpub'];
@@ -87,6 +87,35 @@ export function requestPendingOpen(
   } catch {
     // Best-effort; the Explorer just opens on Home.
   }
+}
+
+/**
+ * The same request, carried by the URL instead of storage: Alice Wallet links
+ * a transaction or an address as `/explorer?tx=<id>&network=<id>` (also
+ * `address=`, `block=`, `xpub=`), and nothing on the wallet side can write to
+ * this origin's localStorage. A network the registry no longer knows falls
+ * back to the visitor's default, like a stored request would.
+ */
+export function pendingOpenFromUrl(search: string): {
+  kind: Exclude<TabKind, 'overview'>;
+  query: string;
+  note?: PendingOpenNote;
+  networkId?: string;
+} | null {
+  const params = new URLSearchParams(search);
+  for (const kind of OPENABLE) {
+    const query = params.get(kind)?.trim();
+    if (!query) continue;
+    const network = params.get('network') ?? undefined;
+    const networkId = network && getNetwork(network).id === network ? network : undefined;
+    return {
+      kind: kind as Exclude<TabKind, 'overview'>,
+      query,
+      note: { label: shortLabel(kind, query), origin: 'Alice Wallet' },
+      networkId,
+    };
+  }
+  return null;
 }
 
 export function consumePendingOpen(): {

@@ -1,6 +1,5 @@
 import type { IWallet } from '@arkade-os/sdk';
 import { decodeInvoice } from '@arkade-os/boltz-swap';
-import { bech32 } from '@scure/base';
 import { Client } from '@satora/swap';
 import { ASP_URL, ESPLORA_URL, SATORA_URL } from './network-config.ts';
 import type { PaymentRail } from './payment-rail.ts';
@@ -17,7 +16,9 @@ import {
   toSatoraSwapRecord,
   type SatoraSwapSnapshot,
 } from './satora-payment-record.ts';
-import { quoteArkToLightningWithSatora } from './satora-quote.ts';
+import { absoluteBolt11Expiry, quoteArkToLightningWithSatora } from './satora-quote.ts';
+
+export { absoluteBolt11Expiry };
 import { deriveSatoraXprv } from './satora-key-derivation.ts';
 import {
   createAliceSatoraStorage,
@@ -79,7 +80,8 @@ export interface SatoraClientLike {
     lightningInvoice: string;
   }): Promise<CreateSwapResult>;
   createLightningToArkadeSwap(options: {
-    satsReceive: number;
+    // Amount the Arkade side receives; Satora adds its fees on the invoice.
+    targetAmountSats: number;
     targetAddress: string;
     invoiceDescription?: string;
   }): Promise<CreateReceiveSwapResult>;
@@ -117,30 +119,6 @@ type InvoiceDecoder = (invoice: string) => {
   amountSats: number;
   expiry: number;
 };
-
-function bolt11Timestamp(invoice: string): number {
-  const decoded = bech32.decode(
-    invoice.toLowerCase() as `${string}1${string}`,
-    5_000,
-  );
-  if (decoded.words.length < 7) {
-    throw new Error('Satora returned a Lightning invoice without a timestamp.');
-  }
-  return decoded.words.slice(0, 7).reduce(
-    (timestamp, word) => timestamp * 32 + word,
-    0,
-  );
-}
-
-export function absoluteBolt11Expiry(
-  invoice: string,
-  decodedExpiry: number,
-): number {
-  const timestamp = bolt11Timestamp(invoice);
-  return decodedExpiry >= timestamp
-    ? decodedExpiry
-    : timestamp + decodedExpiry;
-}
 
 function decodeSatoraInvoice(invoice: string): ReturnType<InvoiceDecoder> {
   const decoded = decodeInvoice(invoice);
@@ -296,7 +274,7 @@ export class SatoraPaymentRail implements PaymentRail {
         || targetAmountSats !== freshQuote.receiveAmountSats
       ) {
         throw new Error(
-          'The Satora swap does not match the confirmed payment details. No funds were sent.',
+          `Satora priced the swap differently from the quote you confirmed (${sourceAmountSats.toLocaleString('en-US')} sats to send instead of ${freshQuote.sendAmountSats.toLocaleString('en-US')}). No funds were sent. Try again for a fresh quote.`,
         );
       }
       if (!created.response.arkade_vhtlc_address.trim()) {
@@ -380,7 +358,7 @@ export class SatoraPaymentRail implements PaymentRail {
 
     const targetAddress = request.targetArkadeAddress ?? await this.wallet.getAddress();
     const created = await this.client.createLightningToArkadeSwap({
-      satsReceive: request.amountSats,
+      targetAmountSats: request.amountSats,
       targetAddress,
       invoiceDescription: request.description,
     });

@@ -41,8 +41,8 @@ import { BitcoinIcon } from '@alice-wallet/alice-ui';
 import { friendlyNetworkError } from '@alice-wallet/wallet-core';
 import { resolveLightningRequestToBolt11 } from '@alice-wallet/wallet-core';
 import {
-  MEMPOOL_EXPLORER,
   resolveArkadeExplorer,
+  resolveBitcoinExplorer,
   PAYMENT_NETWORK,
   SWAP_PROVIDER,
 } from '@alice-wallet/wallet-core';
@@ -98,6 +98,25 @@ function friendlySendError(
 
   if (dustLimitMatch) {
     return `DUST LIMIT = ${dustLimitMatch[1]} SATS.`;
+  }
+
+  // Satora explains its refusals in a JSON body that the SDK wraps verbatim.
+  // Those sentences go first: "invoice timeout too long" is about the
+  // invoice's lifetime, and the word "timeout" alone used to turn it into a
+  // false "server unreachable".
+  const satoraReason = raw.match(/\{"error":"([^"]+)"\}/)?.[1] ?? raw.match(/Satora refused the quote: (.+?)\. No funds/)?.[1];
+  if (satoraReason) {
+    const reason = satoraReason.toLowerCase();
+    if (reason.includes('invoice timeout too long') || reason.includes('expires within')) {
+      return 'SATORA ONLY PAYS LIGHTNING INVOICES THAT EXPIRE WITHIN 24 HOURS. ASK THE RECIPIENT FOR A SHORTER INVOICE. NO FUNDS WERE SENT.';
+    }
+    if (reason.includes('payment hash exists')) {
+      return 'THIS INVOICE ALREADY HAS A SATORA SWAP. AN INVOICE ISSUED BY SATORA CANNOT BE PAID THROUGH SATORA. NO FUNDS WERE SENT.';
+    }
+    return `SATORA: ${satoraReason.toUpperCase()}. NO FUNDS WERE SENT.`;
+  }
+  if (normalized.includes('only pays lightning invoices that expire within') || normalized.includes('priced the swap differently')) {
+    return raw.toUpperCase();
   }
 
   if (
@@ -200,6 +219,9 @@ export default function SendScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [nativeFallback, setNativeFallback] = useState<NativeFallback | null>(null);
   const [scanned, setScanned] = useState(false);
+  // The camera is one of the most expensive things this screen can mount,
+  // and most sends are pasted, not scanned: it starts only when asked.
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [sentPayment, setSentPayment] = useState<SentPayment | null>(null);
   const [addressCopied, setAddressCopied] = useState(false);
@@ -579,7 +601,7 @@ export default function SendScreen() {
     if (!sentPayment?.txid) return;
     const usesMempool = sentPayment.destination.layer === 'onchain' && !sentPayment.nativeExit;
     const link = usesMempool
-      ? { url: `${MEMPOOL_EXPLORER}/tx/${sentPayment.txid}`, direct: true }
+      ? resolveBitcoinExplorer(sentPayment.txid)
       : resolveArkadeExplorer(sentPayment.txid);
     if (!link) {
       setExplorerHint('NO PUBLIC EXPLORER IS CONFIGURED FOR THIS ARKADE TRANSACTION.');
@@ -632,7 +654,7 @@ export default function SendScreen() {
       <KeyboardAvoidingView style={s.kav} behavior="padding">
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
         <View style={s.field}>
-          <Text style={s.label}>SEND ON BITCOIN, LIGHTNING OR ARKADE</Text>
+          <Text style={s.introText}>Send on Bitcoin, Lightning or Arkade</Text>
           <TextInput
             style={[s.textInput, Platform.OS === 'web' && ({ outlineStyle: 'none' } as any)]}
             value={address}
@@ -652,6 +674,12 @@ export default function SendScreen() {
                 <Text style={s.scannedIcon}>✓</Text>
                 <Text style={s.scannedTitle}>QR SCANNED</Text>
                 <Text style={s.scannedText}>PAYMENT DETAILS FILLED BELOW</Text>
+              </View>
+            ) : !scannerOpen ? (
+              <View style={s.permissionPanel}>
+                <TouchableOpacity style={s.permissionBtn} onPress={() => setScannerOpen(true)}>
+                  <Text style={s.permissionBtnText}>OPEN SCANNER</Text>
+                </TouchableOpacity>
               </View>
             ) : permission?.granted ? (
               <>
@@ -674,7 +702,7 @@ export default function SendScreen() {
           </View>
           {scanError && <Text style={[s.scanError, { color: colors.danger }]}>{scanError}</Text>}
           {scanned && (
-            <TouchableOpacity style={s.rescanBtn} onPress={() => { setScanned(false); setScanError(null); }}>
+            <TouchableOpacity style={s.rescanBtn} onPress={() => { setScanned(false); setScanError(null); setScannerOpen(true); }}>
               <Text style={s.rescanText}>SCAN AGAIN</Text>
             </TouchableOpacity>
           )}
@@ -683,13 +711,6 @@ export default function SendScreen() {
         <View style={s.field}>
           <View style={s.amountLabelRow}>
             <Text style={s.label}>AMOUNT</Text>
-            <Text style={s.label}>(</Text>
-            {balanceFormat === 'symbol' ? (
-              <BitcoinIcon size={14} color={colors.muted} />
-            ) : (
-              <Text style={s.label}>{amountUnitLabel}</Text>
-            )}
-            <Text style={s.label}>)</Text>
           </View>
           <View style={s.amountRow}>
             <TextInput
@@ -724,10 +745,10 @@ export default function SendScreen() {
                   format={balanceFormat}
                   btcPrice={btcPrice}
                   currencySymbol={CURRENCY_SYMBOL[currency]}
-                  iconSize={14}
+                  iconSize={18}
                   iconColor={colors.muted}
                   textStyle={s.available}
-                  iconOffsetY={-2}
+                  iconOffsetY={0}
                   gap={2}
                 />
               </View>
@@ -740,10 +761,10 @@ export default function SendScreen() {
                   format={balanceFormat}
                   btcPrice={btcPrice}
                   currencySymbol={CURRENCY_SYMBOL[currency]}
-                  iconSize={14}
+                  iconSize={18}
                   iconColor={colors.muted}
                   textStyle={s.available}
-                  iconOffsetY={-2}
+                  iconOffsetY={0}
                   gap={2}
                 />
               </View>
@@ -990,7 +1011,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
   body: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.xl },
   errorCard: { ...pixel, backgroundColor: '#fff1f1', borderColor: '#e06060', padding: spacing.md, gap: spacing.sm },
   errorTitle: { fontFamily: typography.pixel, fontSize: 12, color: '#c84f4f', letterSpacing: 1 },
-  errorText: { fontFamily: typography.pixel, fontSize: 12, color: '#9e4141', lineHeight: 13 },
+  errorText: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: '#9e4141' },
   nativeFallbackBtn: { ...pixel, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.md, alignItems: 'center' },
   nativeFallbackText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
   field: { gap: spacing.sm },
@@ -1038,18 +1059,19 @@ function makeStyles(colors: Colors, pixel: Pixel) {
   scannedPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.lg },
   scannedIcon: { fontFamily: typography.pixel, fontSize: 24, color: colors.primaryDark },
   scannedTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 2 },
-  scannedText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, textAlign: 'center' },
+  scannedText: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: colors.muted, textAlign: 'center' },
   permissionPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xl },
-  permissionText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, lineHeight: 14, textAlign: 'center' },
+  permissionText: { fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.muted, textAlign: 'center' },
   permissionBtn: { ...pixel, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
   permissionBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
-  scanError: { fontFamily: typography.pixel, fontSize: 12, color: '#e06060', lineHeight: 12, textAlign: 'center' },
+  scanError: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: '#e06060', textAlign: 'center' },
   rescanBtn: { alignSelf: 'center', paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
   rescanText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
   sendBtn: { ...pixel, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.lg, alignItems: 'center' },
   disabled: { opacity: 0.4 },
   sendText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 2 },
-  hint: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, textAlign: 'center' },
+  hint: { fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.muted, textAlign: 'center' },
+  introText: { fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.muted, textAlign: 'center' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(48, 74, 112, 0.48)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   confirmCard: { ...pixel, width: '100%', maxWidth: 420, backgroundColor: colors.background, padding: spacing.xl, gap: spacing.lg },
   confirmTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 2, textAlign: 'center' },
@@ -1075,7 +1097,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
   successReceipt: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxxl },
   successEyebrow: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 3, textAlign: 'center' },
   safeToClose: { marginTop: spacing.md, marginBottom: spacing.sm, fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 2, textAlign: 'center' },
-  refundCloseNotice: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl, fontFamily: typography.pixel, fontSize: 12, lineHeight: 16, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
+  refundCloseNotice: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl, fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: colors.onPrimary, textAlign: 'center' },
   successAmount: { marginTop: spacing.xxl, fontFamily: typography.numbers, fontSize: 56, lineHeight: 62, color: colors.onPrimary, textAlign: 'center' },
   successAmountRow: { marginTop: spacing.xxl, justifyContent: 'center' },
   successUnit: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 3 },
@@ -1085,7 +1107,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
   successValue: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
   successAddress: { marginTop: spacing.sm, maxWidth: 460, fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.onPrimary, textAlign: 'center' },
   successLink: { alignItems: 'center', maxWidth: 460 },
-  successLinkHint: { marginTop: spacing.xs, fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
+  successLinkHint: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: colors.onPrimary, textAlign: 'center' },
   successBtn: { ...pixel, backgroundColor: colors.onPrimary, marginHorizontal: spacing.xxl, marginBottom: spacing.xxxl, paddingVertical: spacing.lg, alignItems: 'center' },
   successBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary, letterSpacing: 2 },
   });

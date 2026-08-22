@@ -77,6 +77,12 @@ export const MEMPOOL_EXPLORER =
     ? 'https://mempool.space'
     : 'https://mutinynet.com';
 
+// Alice App, where the Explorer lives. A transaction or an address seen in
+// the wallet opens there rather than on a third-party explorer, so the reader
+// stays inside the same product, with Alice at hand to explain what they see.
+export const ALICE_APP_URL =
+  (process.env.EXPO_PUBLIC_WEB_APP_URL ?? 'https://app.alicebtc.com').replace(/\/+$/, '');
+
 export const ARKADE_INFO_URL = `${ASP_URL}/v1/info`;
 export const BOLTZ_HEALTH_URL = `${BOLTZ_URL}/v2/swap/submarine`;
 export const SATORA_HEALTH_URL = SATORA_URL ? `${SATORA_URL}/health` : null;

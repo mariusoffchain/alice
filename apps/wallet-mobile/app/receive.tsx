@@ -25,7 +25,7 @@ import { CURRENCY_SYMBOL, getFiatCurrency, priceApiUrl, type FiatCurrency } from
 import { WalletAmount } from '@alice-wallet/alice-ui';
 import { BitcoinIcon } from '@alice-wallet/alice-ui';
 import { friendlyNetworkError, friendlySatoraLimitError } from '@alice-wallet/wallet-core';
-import { NETWORK, resolveTransactionExplorer } from '@alice-wallet/wallet-core';
+import { NETWORK, resolveArkadeExplorer, resolveTransactionExplorer } from '@alice-wallet/wallet-core';
 
 const POLL_INTERVAL = 5_000;
 
@@ -70,6 +70,10 @@ export default function ReceiveScreen() {
   const [initialBalance, setInitialBalance] = useState<number | null>(null);
   const [receivedAmount, setReceivedAmount] = useState<number | null>(null);
   const [receivedTx, setReceivedTx] = useState<Transaction | null>(null);
+  // The Arkade txid of the VTXO that paid us: known the moment the funds
+  // land, before the history has caught up, so the success screen can link
+  // to it at once for an Arkade or Lightning receive.
+  const [receivedArkTxid, setReceivedArkTxid] = useState<string | null>(null);
   const [explorerHint, setExplorerHint] = useState('OPEN EXPLORER');
   const [confirmCount, setConfirmCount] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -162,7 +166,7 @@ export default function ReceiveScreen() {
               receiveStartedAtRef.current,
             );
             if (received) {
-              await completeReceive(received.value);
+              await completeReceive(received.value, undefined, received.txid);
               return;
             }
           }
@@ -237,7 +241,9 @@ export default function ReceiveScreen() {
     const history = await getTransactionHistory();
     return history
       .filter(t => t.type === 'incoming')
-      .filter(t => t.createdAt >= receiveStartedAtRef.current)
+      // Ten minutes of slack: the payer may have sent before this screen was
+      // opened, and an Arkade timestamp comes from the server's clock.
+      .filter(t => t.createdAt >= receiveStartedAtRef.current - 10 * 60_000)
       .sort((a, b) => {
         const aExact = a.amount === received ? 1 : 0;
         const bExact = b.amount === received ? 1 : 0;
@@ -246,11 +252,12 @@ export default function ReceiveScreen() {
       })[0] ?? null;
   }
 
-  async function completeReceive(received: number, transaction?: Transaction) {
+  async function completeReceive(received: number, transaction?: Transaction, arkTxid?: string) {
     if (successShownRef.current || received <= 0) return;
     successShownRef.current = true;
     setReceivedAmount(received);
     if (transaction) setReceivedTx(transaction);
+    if (arkTxid) setReceivedArkTxid(arkTxid);
 
     if (pollRef.current) {
       clearInterval(pollRef.current);
@@ -326,11 +333,14 @@ export default function ReceiveScreen() {
   }
 
   async function openReceivedTransactionExplorer() {
-    if (!receivedTx) return;
-    const link = resolveTransactionExplorer(receivedTx);
+    const link = receivedTx
+      ? resolveTransactionExplorer(receivedTx)
+      : receivedArkTxid
+        ? resolveArkadeExplorer(receivedArkTxid)
+        : null;
     if (!link) return;
 
-    if (!link.direct) {
+    if (!link.direct && receivedTx) {
       await copyValue(primaryTxid(receivedTx));
       setExplorerHint('ID COPIED. SEARCH IN ARK EXPLORER');
     }
@@ -372,14 +382,9 @@ export default function ReceiveScreen() {
         {/* Amount input */}
         <View style={s.amountSection}>
           <View style={s.amountLabelRow}>
+            {/* The unit already sits inside the field; repeating it here only
+                made the label longer. */}
             <Text style={s.amountLabel}>{receiveMode === 'lightning' ? 'AMOUNT REQUIRED' : 'AMOUNT OPTIONAL'}</Text>
-            <Text style={s.amountLabel}>(</Text>
-            {balanceFormat === 'symbol' ? (
-              <BitcoinIcon size={14} color={colors.muted} />
-            ) : (
-              <Text style={s.amountLabel}>{amountUnitLabel}</Text>
-            )}
-            <Text style={s.amountLabel}>)</Text>
           </View>
           <View style={s.amountRow}>
             <View style={s.amountInputWrap}>
@@ -412,7 +417,9 @@ export default function ReceiveScreen() {
         {/* Waiting indicator, stays visible until the success overlay covers it */}
         {qrValue && !showSuccess && (
           <View style={s.waitingBanner}>
-            <ActivityIndicator size="small" color={colors.primary} style={{ transform: [{ scale: 0.5 }] }} />
+            {/* A scaled-down spinner keeps its full layout box, which pushed the
+                text off its baseline; size the spinner itself instead. */}
+            <ActivityIndicator size={14} color={colors.primary} />
             <Text style={s.waitingText}>{receivedAmount ? 'PAYMENT RECEIVED' : 'WAITING FOR PAYMENT...'}</Text>
           </View>
         )}
@@ -563,14 +570,14 @@ export default function ReceiveScreen() {
                 </>
               )}
 
-              {receivedTx?.id && (
+              {(receivedTx?.id || receivedArkTxid) && (
                 <>
                   <Text style={s.successLabel}>TRANSACTION</Text>
                   <TouchableOpacity
                     style={s.successLink}
                     onPress={() => void openReceivedTransactionExplorer()}
                   >
-                    <Text style={s.successAddress}>{primaryTxid(receivedTx)}</Text>
+                    <Text style={s.successAddress}>{receivedTx ? primaryTxid(receivedTx) : receivedArkTxid}</Text>
                     <Text style={s.successLinkHint}>{explorerHint}</Text>
                   </TouchableOpacity>
                 </>
@@ -609,7 +616,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
 
     amountSection: { width: '100%', maxWidth: 320, gap: spacing.xs },
     amountLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    amountLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 2 },
+    amountLabel: { fontFamily: typography.numbers, fontSize: 14, color: colors.muted },
     amountRow: { flexDirection: 'row', alignItems: 'center', minHeight: 56, ...pixel, backgroundColor: colors.cardBg, paddingHorizontal: spacing.md },
     amountInputWrap: { flex: 1, height: 44, justifyContent: 'center' },
     amountInput: {
@@ -630,8 +637,8 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     qrTapWrap: { alignItems: 'center' },
     qrContainer: { ...pixel, backgroundColor: '#ffffff', padding: spacing.sm },
     qrPlaceholder: { width: 220, height: 220, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.backgroundSoft },
-    qrHint: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
-    placeholderText: { padding: spacing.lg, fontFamily: typography.pixel, fontSize: 12, color: colors.muted, lineHeight: 16, textAlign: 'center' },
+    qrHint: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
+    placeholderText: { padding: spacing.lg, fontFamily: typography.numbers, fontSize: 14, color: colors.muted, lineHeight: 18, textAlign: 'center' },
     error: { fontFamily: typography.numbers, fontSize: 13, color: '#e06060', textAlign: 'center', paddingHorizontal: spacing.md },
     actions: { flexDirection: 'row', gap: spacing.lg },
     actionBtn: { ...pixel, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.md, paddingHorizontal: spacing.xxl },
@@ -644,7 +651,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     methodName: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
     methodAddress: { fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
     methodAction: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary, letterSpacing: 1 },
-    lightningMeta: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
+    lightningMeta: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
     hint: { fontFamily: typography.numbers, fontSize: 13, color: colors.muted, textAlign: 'center', lineHeight: 20, marginTop: spacing.md, paddingHorizontal: spacing.lg },
 
     // Success overlay

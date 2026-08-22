@@ -119,7 +119,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     safe: { flex: 1, backgroundColor: colors.background },
     body: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
     title: { fontFamily: typography.pixel, fontSize: 14, color: colors.primaryDark, letterSpacing: 3, textAlign: 'center' },
-    description: { marginTop: spacing.lg, fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, textAlign: 'center' },
+    description: { marginTop: spacing.lg, fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.muted, textAlign: 'center' },
     pinInputWrap: { maxWidth: 320, marginTop: spacing.xxl },
     pinInput: { fontSize: 22, letterSpacing: 12 },
     primaryBtn: { ...pixel, width: '100%', maxWidth: 320, marginTop: spacing.xl, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.primary, borderColor: colors.primaryDark },

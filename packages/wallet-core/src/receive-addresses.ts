@@ -6,6 +6,8 @@ import type {
 } from './wallet-state-storage';
 
 export const RECEIVE_RESTORE_GAP_LIMIT = 100;
+/** The SDK's own default: enough for almost every wallet, five times fewer lookups. */
+export const RESTORE_FIRST_PASS_GAP_LIMIT = 20;
 
 type RotatingWallet = Pick<
   Wallet,

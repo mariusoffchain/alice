@@ -1,7 +1,7 @@
 import { router, Stack, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Platform, StyleSheet, View } from 'react-native';
+import { AppState, InteractionManager, Platform, StyleSheet, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { AppUpdateNotices } from '../components/AppUpdateNotices';
 import { ThemeProvider, useTheme } from '@alice-wallet/alice-ui';
 import {
   AccountProvider,
+  loadRagCorpus,
   ChatProvider,
   flushProductEvents,
   preloadSemanticSearch,
@@ -105,9 +106,19 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Mobile semantic RAG downloads its model only on Wi-Fi and otherwise
-    // leaves chat on the immediate lexical fallback.
+    // leaves chat on the immediate lexical fallback. Neither the corpus nor
+    // the model is needed to show the wallet: both wait until the opening
+    // animations and the user's first taps are done, then a few seconds more,
+    // so the phone's first impression is the wallet, not a busy JS thread.
     if (!checked || Platform.OS === 'web') return;
-    void restoreDownloadedPacks().finally(() => preloadSemanticSearch());
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const task = InteractionManager.runAfterInteractions(() => {
+      timer = setTimeout(() => {
+        void loadRagCorpus();
+        void restoreDownloadedPacks().finally(() => preloadSemanticSearch());
+      }, 3_000);
+    });
+    return () => { task.cancel(); if (timer) clearTimeout(timer); };
   }, [checked]);
 
   useEffect(() => {

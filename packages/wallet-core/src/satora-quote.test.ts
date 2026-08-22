@@ -19,17 +19,13 @@ const REQUEST: ParsedPaymentRequest = {
 
 function quoteResponse(overrides: Record<string, unknown> = {}): Response {
   return Response.json({
-    exchange_rate: '1.0',
-    network_fee: 0,
-    gasless_network_fee: 0,
-    protocol_fee: 1,
+    source_amount_sats: 10_001,
+    target_amount_sats: 10_000,
+    protocol_fee_sats: 1,
+    network_fee_sats: 0,
     protocol_fee_rate: 0.0001,
-    min_amount: 1_000,
-    max_amount: 1_000_000,
-    source_amount: '10000',
-    target_amount: '10000',
-    net_source_amount: '10001',
-    net_target_amount: '10000',
+    min_amount_sats: 1_000,
+    max_amount_sats: 1_000_000,
     ...overrides,
   });
 }
@@ -49,10 +45,8 @@ test('Satora quote requests the exact Lightning target and maps the net source t
 
   const url = new URL(requestedUrl);
   assert.equal(requestedMethod, 'GET');
-  assert.equal(url.pathname, '/quote');
-  assert.equal(url.searchParams.get('source_chain'), 'Arkade');
-  assert.equal(url.searchParams.get('target_chain'), 'Lightning');
-  assert.equal(url.searchParams.get('target_amount'), '10000');
+  assert.equal(url.pathname, '/quote/lightning-send');
+  assert.equal(url.searchParams.get('lightning_invoice'), 'lntb-test-invoice');
   assert.equal(quote.provider, 'satora');
   assert.equal(quote.receiveAmountSats, 10_000);
   assert.equal(quote.sendAmountSats, 10_001);
@@ -64,7 +58,7 @@ test('Satora quote rejects a response that does not fully cover the invoice', as
   await assert.rejects(
     quoteArkToLightningWithSatora(REQUEST, undefined, {
       baseUrl: 'https://satora.test',
-      fetcher: async () => quoteResponse({ net_target_amount: '9999' }),
+      fetcher: async () => quoteResponse({ target_amount_sats: 9_999 }),
     }),
     /does not fully cover the Lightning invoice/,
   );
@@ -88,9 +82,8 @@ test('Satora quote enforces the provider limits before exposing confirmation det
       {
         baseUrl: 'https://satora.test',
         fetcher: async () => quoteResponse({
-          target_amount: '500',
-          net_target_amount: '500',
-          net_source_amount: '501',
+          target_amount_sats: 500,
+          source_amount_sats: 501,
         }),
       },
     ),
@@ -115,4 +108,17 @@ test('Satora quote refuses payment requests for the wrong configured network', a
     /not for Mutinynet/,
   );
   assert.equal(fetchCalled, false);
+});
+
+test('Satora quote surfaces the reason Satora gives for refusing', async () => {
+  await assert.rejects(
+    quoteArkToLightningWithSatora(REQUEST, undefined, {
+      baseUrl: 'https://satora.test',
+      fetcher: async () => Response.json(
+        { error: 'invoice timeout too long; use an invoice that expires within 24h' },
+        { status: 400 },
+      ),
+    }),
+    /Satora refused the quote: invoice timeout too long/,
+  );
 });

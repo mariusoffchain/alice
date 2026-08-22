@@ -11,7 +11,8 @@ import type {
   VtxoSyncResult,
 } from './wallet-backend';
 import { addDiagnosticLog } from './diagnostic-log';
-import { clearLocalWalletRepository } from './wallet-data';
+import { clearLocalSwapRepository, clearLocalWalletRepository } from './wallet-data';
+import { seedGeneration } from './seed-generation';
 import type {
   ParsedPaymentRequest,
   PaymentQuote,
@@ -90,6 +91,11 @@ function runMaintenance(
 }
 
 async function ensureBackend(): Promise<WalletBackend> {
+  // Second barrier behind onboarding's explicit discard: a backend built
+  // from a phrase that has since been replaced is never handed out.
+  if (backend && seedGeneration.stale()) {
+    await restartBackend();
+  }
   if (backend) {
     connectionStatus = 'connected';
     return backend;
@@ -98,6 +104,7 @@ async function ensureBackend(): Promise<WalletBackend> {
   if (!initPromise) {
     connectionStatus = 'connecting';
     lastError = null;
+    seedGeneration.bind();
     initPromise = (async () => {
       let failure: unknown = null;
       for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -108,7 +115,7 @@ async function ensureBackend(): Promise<WalletBackend> {
           const networkLabel = NETWORK === 'bitcoin' ? 'Bitcoin Mainnet' : 'Mutinynet';
           await withTimeout(
             nextBackend.init(),
-            30_000,
+            15_000,
             `Connection to ${networkLabel} timed out. Check your internet connection.`,
           );
           backend = nextBackend;
@@ -305,9 +312,26 @@ async function restartBackend(): Promise<void> {
   transactionHistoryPromise = null;
   transactionHistoryCache = null;
   lastMaintenanceStartedAt = 0;
+  seedGeneration.unbind();
   if (activeBackend) {
     await activeBackend.dispose();
   }
+}
+
+/**
+ * Forgets the wallet currently loaded in memory and on disk so that a
+ * different seed can be saved. Onboarding calls this before writing a new
+ * phrase: a backend already initialised with the previous seed (an import
+ * whose restore failed, then "Create wallet") would otherwise keep serving
+ * that previous wallet while the stored phrase, and the backup screen, say
+ * something else. No network call: this must work offline.
+ */
+export async function discardWalletForNewSeed(): Promise<void> {
+  await restartBackend();
+  await unregisterArkadeBackgroundSync().catch(() => {});
+  await closeArkadeBackgroundDatabase();
+  await clearLocalWalletRepository();
+  await clearLocalSwapRepository();
 }
 
 /**

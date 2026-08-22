@@ -63,6 +63,51 @@ entry covers the full span since `0.1.0`.
 
 - MAX sends everything, fees taken from the coins; each output is charged at
   its real size; reset is blocked while a swap is still recoverable.
+- Lightning swaps work again: Satora now requires its client to declare the
+  server API it was built for, and the SDK the wallet shipped with predated
+  that rule. Updated to the current SDK, so 0.1.0 users should update.
+- Paying a Lightning invoice quotes the exact routing fee for that invoice
+  (Satora's dedicated endpoint) instead of an average, so the amount you
+  confirm is the amount the swap charges: the recipient gets the invoice
+  amount, fees ride on top and are shown before sending. Satora's own
+  refusals are now shown as such ("invoices must expire within 24 hours",
+  "this invoice already has a swap") instead of a false "server unreachable",
+  and the wallet checks the invoice lifetime before asking.
+- Creating a wallet shows the welcome at once; connecting to the Ark server
+  happens in the background, as Arkade Wallet does, instead of holding the
+  screen until the server answers.
+- A new wallet is created offline. Its keys never needed the network; only
+  the balance does, and the home screen says "offline" at once instead of
+  waiting out a connection timeout, then fetches it once a connection exists.
+- Creating a wallet after an abandoned import now really creates a new
+  wallet. The app could keep serving the previously imported wallet while
+  the stored phrase, and the backup screen, already held the new one; every
+  new phrase now starts from nothing (backend, local index, swap records).
+- Recovery scans the SDK's default window of 20 unused addresses first,
+  shows the wallet as soon as something is found, and still runs the deep
+  window of 100 in the background (at once, and blocking, when nothing
+  turned up), so funds beyond a wider gap are never missed. It retries its
+  network scan when some lookups fail instead of stopping at "discovery
+  handlers failed", says so plainly if it still cannot finish, and the
+  screen says "restoring" rather than "generating keys" while it runs. An
+  imported wallet counts as onboarded only once its recovery finished. The welcome screen no longer jumps to the wallet on its
+  own; the Start button is the only way forward.
+- The welcome after key creation (Alice, her message, the Start button) now
+  actually appears on Android. A layout signal could stop the fill animation
+  mid-way and leave the screen blue with the welcome at opacity zero.
+- "View in explorer" opens Alice Explorer, Bitcoin or Arkade view, instead
+  of a third-party site. Alice Explorer accepts a subject in its URL for
+  that: `/explorer?tx=<id>&network=<mainnet|arkade|mutinynet>`, also
+  `address=`, `block=`, `xpub=`.
+- Secondary texts (receive hints, model descriptions, theme hints, address
+  buttons, coin-control counters) move to the body font, readable at a
+  glance; the pixel font is kept for titles and actions.
+- Less work on the JS thread, so taps answer faster: the home screen
+  refreshes in one sequential pass every 30 s instead of three racing chains
+  every 10 s, the history only polls while a transaction is still moving,
+  and the knowledge corpus (2 000+ chunks) loads after the first
+  interactions rather than at launch. The first question to Alice pays that
+  load once.
 
 ### Site
 
@@ -82,7 +127,20 @@ entry covers the full span since `0.1.0`.
 - The npm-audit gate carries four reviewed fast-uri advisories, all on the
   same prebuild-only chain.
 
+### Breaking for 0.1.0 testers: a new Android application id
+
+The wallet's Android identifier moves from the maintainer's company name to
+`com.alicebtc.wallet`. Android treats this as a different app: 0.2.0 does
+not install over 0.1.0. Write down your recovery phrase in 0.1.0, install
+0.2.0, import the phrase, then uninstall 0.1.0. Nothing on the server side
+depends on the identifier.
+
 ### Known limits, updated
+
+- Paying a Lightning invoice through Satora requires an invoice that expires
+  within 24 hours. Some wallets (Spark-based ones among them) issue longer
+  invoices by default; ask the recipient for a shorter one. An invoice issued
+  by Satora itself cannot be paid through Satora.
 
 - The `0.1.0` limit "semantic RAG validated on Android only" is superseded as
   described above; result quality remains validated on Android, the web

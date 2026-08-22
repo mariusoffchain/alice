@@ -188,9 +188,60 @@ const APP_SUGGESTIONS = [
   'What is self-custody?',
 ];
 
+// Questions the empty input "types" on its own, one character at a time, so a
+// visitor understands at a glance that this is a real input they can use, not
+// a picture of one. It stops the moment they focus or type, and it does not
+// run at all for people who asked their system for reduced motion.
+const TYPED_EXAMPLES = [
+  'What is self-custody?',
+  'Is my AI chat private?',
+  'How do I secure my Bitcoin?',
+  'What is the Ark protocol?',
+];
+const TYPE_MS = 55;
+const ERASE_MS = 22;
+const HOLD_MS = 1_800;
+const PAUSE_MS = 500;
+
+function useTypedPlaceholder(active: boolean): string {
+  const [text, setText] = useState('');
+  useEffect(() => {
+    if (!active) { setText(''); return; }
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let example = 0;
+    let length = 0;
+    let erasing = false;
+    const step = () => {
+      if (cancelled) return;
+      const target = TYPED_EXAMPLES[example];
+      if (!erasing) {
+        length += 1;
+        setText(target.slice(0, length) + '|');
+        if (length < target.length) { timer = setTimeout(step, TYPE_MS); return; }
+        erasing = true;
+        timer = setTimeout(step, HOLD_MS);
+        return;
+      }
+      length -= 1;
+      setText(target.slice(0, length) + '|');
+      if (length > 0) { timer = setTimeout(step, ERASE_MS); return; }
+      erasing = false;
+      example = (example + 1) % TYPED_EXAMPLES.length;
+      timer = setTimeout(step, PAUSE_MS);
+    };
+    timer = setTimeout(step, 900);
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, [active]);
+  return text;
+}
+
 function MiniChat({ visible }: { visible: boolean }) {
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const typed = useTypedPlaceholder(visible && !focused && value === '');
 
   const go = (question: string) => {
     setSubmitting(true);
@@ -238,13 +289,14 @@ function MiniChat({ visible }: { visible: boolean }) {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             disabled={submitting}
-            placeholder="Ask Alice something..."
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            placeholder={typed || 'Ask Alice something...'}
             aria-label="Ask Alice a question"
             className="w-full bg-transparent text-[14px] text-[var(--alice-heading)] placeholder:text-[var(--alice-muted)] focus:outline-none"
           />
           <div className="flex items-center justify-end gap-3">
             <span className="text-[11px] font-semibold text-[var(--alice-heading)]">Private</span>
-            <span className="text-[11px] text-[var(--alice-muted)]">Medium</span>
             <button
               type="submit"
               disabled={submitting}

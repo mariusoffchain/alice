@@ -171,7 +171,7 @@ export default function VsChatGptPage() {
             href={APP_URL}
             className="shrink-0 rounded-[3px] border-2 border-[var(--alice-primary)] bg-[var(--alice-primary)] px-5 py-3 font-semibold text-[var(--alice-on-primary)] transition-transform hover:-translate-y-0.5"
           >
-            Open Alice
+            Open web app
           </a>
         </section>
       </main>
