@@ -1,0 +1,427 @@
+name: Release desktop
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag de la release, par exemple v0.2.0
+        required: true
+        default: v0.2.0
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-desktop-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Vérifier la release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - id: release
+        name: Vérifier le tag et la version
+        shell: bash
+        env:
+          REQUESTED_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$REQUESTED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Tag invalide: $REQUESTED_TAG" >&2
+            exit 1
+          fi
+
+          expected_tag="v$(node -p "require('./package.json').version")"
+          if [[ "$REQUESTED_TAG" != "$expected_tag" ]]; then
+            echo "Le tag $REQUESTED_TAG ne correspond pas à la version $expected_tag du dépôt." >&2
+            exit 1
+          fi
+
+          if git rev-parse --verify --quiet "refs/tags/$REQUESTED_TAG" >/dev/null; then
+            tag_commit="$(git rev-list -n 1 "$REQUESTED_TAG")"
+            if [[ "$tag_commit" != "$GITHUB_SHA" ]]; then
+              echo "Le tag $REQUESTED_TAG pointe vers $tag_commit, mais le workflow construit $GITHUB_SHA." >&2
+              exit 1
+            fi
+          fi
+
+          # A manual run builds from main, or from the release branch whose
+          # name carries the very version being released: the draft release
+          # fills up during QA, before anything is merged or tagged.
+          release_branch="release/${expected_tag#v}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" \
+                && "${{ github.ref_name }}" != "main" \
+                && "${{ github.ref_name }}" != "$release_branch" ]]; then
+            echo "Le déclenchement manuel doit partir de main ou de $release_branch, pas de ${{ github.ref_name }}." >&2
+            exit 1
+          fi
+
+          echo "tag=$REQUESTED_TAG" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: ${{ matrix.label }}
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            label: macOS, DMG universel
+            os: macos-latest
+            extensions: .dmg
+            artifact_name: alice-desktop-macos
+          - platform: windows
+            label: Windows, MSI
+            os: windows-latest
+            extensions: .msi
+            artifact_name: alice-desktop-windows
+          - platform: linux
+            label: Linux, AppImage et DEB
+            os: ubuntu-latest
+            extensions: .AppImage,.deb
+            artifact_name: alice-desktop-linux
+    env:
+      APPLE_CERTIFICATE_SECRET: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD_SECRET: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD_SECRET: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
+      WINDOWS_CERTIFICATE_SECRET: ${{ secrets.WINDOWS_CERTIFICATE }}
+      WINDOWS_CERTIFICATE_PASSWORD_SECRET: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Installer Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Ajouter les cibles macOS universelles
+        if: matrix.platform == 'macos'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Mettre en cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/app-desktop/src-tauri -> target
+
+      - name: Installer les bibliothèques Tauri sous Ubuntu
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            patchelf \
+            wget \
+            xdg-utils
+
+      - name: Restaurer les ressources embarquées
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/app-web/public/learn
+            scripts/data/semantic-model
+          key: desktop-assets-${{ runner.os }}-${{ hashFiles('scripts/prepare-learn-packs.mjs', 'scripts/prepare-semantic-model.mjs', 'packages/alice-content/src/generated/planb-learn-catalog.ts', 'package-lock.json') }}
+
+      - name: Installer les dépendances npm
+        run: npm ci
+
+      - name: Vérifier les secrets Apple optionnels
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          certificate_values=0
+          [[ -n "$APPLE_CERTIFICATE_SECRET" ]] && certificate_values=$((certificate_values + 1))
+          [[ -n "$APPLE_CERTIFICATE_PASSWORD_SECRET" ]] && certificate_values=$((certificate_values + 1))
+          if [[ "$certificate_values" -ne 0 && "$certificate_values" -ne 2 ]]; then
+            echo "APPLE_CERTIFICATE et APPLE_CERTIFICATE_PASSWORD doivent être définis ensemble." >&2
+            exit 1
+          fi
+
+          notarization_values=0
+          [[ -n "$APPLE_ID_SECRET" ]] && notarization_values=$((notarization_values + 1))
+          [[ -n "$APPLE_PASSWORD_SECRET" ]] && notarization_values=$((notarization_values + 1))
+          [[ -n "$APPLE_TEAM_ID_SECRET" ]] && notarization_values=$((notarization_values + 1))
+          if [[ "$notarization_values" -ne 0 && "$notarization_values" -ne 3 ]]; then
+            echo "APPLE_ID, APPLE_PASSWORD et APPLE_TEAM_ID doivent être définis ensemble." >&2
+            exit 1
+          fi
+          if [[ "$notarization_values" -eq 3 && "$certificate_values" -ne 2 ]]; then
+            echo "La notarisation Apple exige aussi le certificat et son mot de passe." >&2
+            exit 1
+          fi
+
+          if [[ "$certificate_values" -eq 2 ]]; then
+            echo "APPLE_SIGNING_READY=true" >> "$GITHUB_ENV"
+            echo "DESKTOP_SIGNING_MODE=apple-developer" >> "$GITHUB_ENV"
+          else
+            echo "APPLE_SIGNING_READY=false" >> "$GITHUB_ENV"
+            echo "DESKTOP_SIGNING_MODE=ad-hoc" >> "$GITHUB_ENV"
+            echo "Aucun certificat Apple, le DMG utilisera la signature ad hoc sans identité de développeur."
+          fi
+
+          if [[ "$notarization_values" -eq 3 ]]; then
+            echo "APPLE_NOTARIZATION_READY=true" >> "$GITHUB_ENV"
+          else
+            echo "APPLE_NOTARIZATION_READY=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Importer le certificat Apple
+        if: matrix.platform == 'macos' && env.APPLE_SIGNING_READY == 'true'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/alice-certificate.p12"
+          keychain_path="$RUNNER_TEMP/alice-build.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$certificate_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security default-keychain -s "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -t 7200 -u "$keychain_path"
+          security import "$certificate_path" -k "$keychain_path" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain_path"
+
+          identity="$(security find-identity -v -p codesigning "$keychain_path" | sed -n 's/.*"\(.*\)".*/\1/p' | head -n 1)"
+          if [[ -z "$identity" ]]; then
+            echo "Aucune identité de signature exploitable dans le certificat Apple." >&2
+            exit 1
+          fi
+          echo "APPLE_SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
+          echo "Certificat Apple importé, identité détectée."
+
+      - name: Construire le DMG sans certificat Apple
+        if: matrix.platform == 'macos' && env.APPLE_SIGNING_READY != 'true'
+        env:
+          APPLE_SIGNING_IDENTITY: "-"
+        run: npm run build --workspace @alice-wallet/app-desktop -- --bundles dmg --target universal-apple-darwin
+
+      - name: Construire le DMG signé, sans notarisation
+        if: matrix.platform == 'macos' && env.APPLE_SIGNING_READY == 'true' && env.APPLE_NOTARIZATION_READY != 'true'
+        run: npm run build --workspace @alice-wallet/app-desktop -- --bundles dmg --target universal-apple-darwin
+
+      - name: Construire et notariser le DMG signé
+        if: matrix.platform == 'macos' && env.APPLE_SIGNING_READY == 'true' && env.APPLE_NOTARIZATION_READY == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run build --workspace @alice-wallet/app-desktop -- --bundles dmg --target universal-apple-darwin
+
+      - name: Vérifier les secrets Windows optionnels
+        if: matrix.platform == 'windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          certificate_values=0
+          [[ -n "$WINDOWS_CERTIFICATE_SECRET" ]] && certificate_values=$((certificate_values + 1))
+          [[ -n "$WINDOWS_CERTIFICATE_PASSWORD_SECRET" ]] && certificate_values=$((certificate_values + 1))
+          if [[ "$certificate_values" -ne 0 && "$certificate_values" -ne 2 ]]; then
+            echo "WINDOWS_CERTIFICATE et WINDOWS_CERTIFICATE_PASSWORD doivent être définis ensemble." >&2
+            exit 1
+          fi
+
+          if [[ "$certificate_values" -eq 2 ]]; then
+            echo "WINDOWS_SIGNING_READY=true" >> "$GITHUB_ENV"
+            echo "DESKTOP_SIGNING_MODE=authenticode" >> "$GITHUB_ENV"
+          else
+            echo "WINDOWS_SIGNING_READY=false" >> "$GITHUB_ENV"
+            echo "DESKTOP_SIGNING_MODE=unsigned" >> "$GITHUB_ENV"
+            echo "Aucun certificat Windows, le MSI sera construit sans signature Authenticode."
+          fi
+
+      - name: Importer le certificat Windows
+        if: matrix.platform == 'windows' && env.WINDOWS_SIGNING_READY == 'true'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $certificatePath = Join-Path $env:RUNNER_TEMP "alice-certificate.pfx"
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $imported = Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          $certificate = $imported | Where-Object HasPrivateKey | Select-Object -First 1
+          if (-not $certificate) {
+            throw "Le PFX Windows ne contient aucun certificat avec clé privée."
+          }
+
+          $configPath = Join-Path $env:RUNNER_TEMP "tauri.windows-signing.conf.json"
+          @{
+            bundle = @{
+              windows = @{
+                certificateThumbprint = $certificate.Thumbprint
+                digestAlgorithm = "sha256"
+                timestampUrl = "http://timestamp.digicert.com"
+              }
+            }
+          } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 $configPath
+          "TAURI_WINDOWS_SIGN_CONFIG=$configPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Certificat Windows importé, empreinte détectée."
+
+      - name: Construire le MSI sans certificat Windows
+        if: matrix.platform == 'windows' && env.WINDOWS_SIGNING_READY != 'true'
+        run: npm run build --workspace @alice-wallet/app-desktop -- --bundles msi
+
+      - name: Construire le MSI signé
+        if: matrix.platform == 'windows' && env.WINDOWS_SIGNING_READY == 'true'
+        shell: pwsh
+        run: npm run build --workspace @alice-wallet/app-desktop -- --bundles msi --config "$env:TAURI_WINDOWS_SIGN_CONFIG"
+
+      - name: Construire les paquets Linux
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          echo "DESKTOP_SIGNING_MODE=unsigned" >> "$GITHUB_ENV"
+          npm run build --workspace @alice-wallet/app-desktop -- --bundles appimage,deb
+
+      - name: Préparer et contrôler les installateurs
+        shell: bash
+        env:
+          ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          EXPECTED_EXTENSIONS: ${{ matrix.extensions }}
+          PLATFORM: ${{ matrix.platform }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const root = 'apps/app-desktop/src-tauri/target';
+          const output = 'desktop-release-assets';
+          const extensions = process.env.EXPECTED_EXTENSIONS.split(',');
+          const files = [];
+
+          function visit(directory) {
+            for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+              const fullPath = path.join(directory, entry.name);
+              if (entry.isDirectory()) visit(fullPath);
+              else if (extensions.some(extension => entry.name.endsWith(extension))) files.push(fullPath);
+            }
+          }
+
+          visit(root);
+          if (files.length !== extensions.length) {
+            throw new Error(`Installateurs attendus: ${extensions.join(', ')}, trouvés: ${files.join(', ') || 'aucun'}`);
+          }
+
+          fs.rmSync(output, { recursive: true, force: true });
+          fs.mkdirSync(output, { recursive: true });
+          for (const file of files) {
+            const size = fs.statSync(file).size;
+            const gib = size / 1024 / 1024 / 1024;
+            console.log(`${file}: ${(size / 1024 / 1024).toFixed(1)} Mo`);
+            if (size >= 2 * 1024 * 1024 * 1024) {
+              throw new Error(`${file} pèse ${gib.toFixed(2)} Gio, la limite d'un asset GitHub Release est 2 Gio.`);
+            }
+            fs.copyFileSync(file, path.join(output, path.basename(file)));
+          }
+
+          const metadata = [
+            `tag=${process.env.RELEASE_TAG}`,
+            `commit=${process.env.GITHUB_SHA}`,
+            `platform=${process.env.PLATFORM}`,
+            `signing=${process.env.DESKTOP_SIGNING_MODE}`,
+            '',
+          ].join('\n');
+          fs.writeFileSync(path.join(output, `${process.env.ARTIFACT_NAME}.txt`), metadata);
+          NODE
+
+      - name: Téléverser les installateurs du job
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: desktop-release-assets/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+      - name: Effacer les certificats temporaires
+        if: always()
+        run: node -e "const fs=require('node:fs'),p=require('node:path'); for(const f of ['alice-certificate.p12','alice-certificate.pfx']) fs.rmSync(p.join(process.env.RUNNER_TEMP,f),{force:true})"
+
+  release:
+    name: Créer la release en brouillon
+    needs:
+      - prepare
+      - build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Récupérer les installateurs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: alice-desktop-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Calculer les condensats SHA-256
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          cd release-assets
+          checksum_file="$RUNNER_TEMP/SHA256SUMS-desktop-${RELEASE_TAG}.txt"
+          find . -maxdepth 1 -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            > "$checksum_file"
+          mv "$checksum_file" "SHA256SUMS-desktop-${RELEASE_TAG}.txt"
+
+      - name: Créer ou actualiser la release en brouillon
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)"
+            if [[ "$is_draft" != "true" ]]; then
+              echo "La release $RELEASE_TAG est déjà publiée, refus de remplacer ses fichiers." >&2
+              exit 1
+            fi
+            gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          else
+            gh release create "$RELEASE_TAG" release-assets/* \
+              --draft \
+              --target "$GITHUB_SHA" \
+              --title "Alice $RELEASE_TAG" \
+              --notes "Installateurs desktop générés par le workflow de release. Vérifier les métadonnées de signature et les condensats avant publication."
+          fi
