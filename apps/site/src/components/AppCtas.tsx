@@ -7,6 +7,12 @@ import {
   ANDROID_RELEASE_URL,
   ANDROID_VERSION,
   APP_URL,
+  DESKTOP_LINUX_APPIMAGE_URL,
+  DESKTOP_LINUX_DEB_URL,
+  DESKTOP_MAC_URL,
+  DESKTOP_RELEASE_URL,
+  DESKTOP_VERSION,
+  DESKTOP_WINDOWS_URL,
   WALLET_URL,
 } from '@/lib/site';
 import {
@@ -41,9 +47,12 @@ export type PlatformItem = {
 // distributed. Items with no href render as "Coming soon".
 export const APP_PLATFORM_ITEMS: PlatformItem[] = [
   { icon: <GlobeIcon size={18} />, label: 'Web app', href: APP_URL },
-  { icon: <AppleGlyph size={18} />, label: 'Mac' },
-  { icon: <WindowsGlyph size={16} />, label: 'Windows' },
-  { icon: <LinuxGlyph size={18} />, label: 'Linux' },
+  { icon: <AppleGlyph size={18} />, label: `Mac ${DESKTOP_VERSION}`, href: DESKTOP_MAC_URL, notice: 'macos' },
+  { icon: <WindowsGlyph size={16} />, label: `Windows ${DESKTOP_VERSION}`, href: DESKTOP_WINDOWS_URL, notice: 'windows' },
+  // Linux raises no platform warning, so both packages link straight through.
+  { icon: <LinuxGlyph size={18} />, label: `Linux AppImage ${DESKTOP_VERSION}`, href: DESKTOP_LINUX_APPIMAGE_URL },
+  { icon: <LinuxGlyph size={18} />, label: `Linux Debian ${DESKTOP_VERSION}`, href: DESKTOP_LINUX_DEB_URL },
+  { icon: <DownloadIcon size={18} />, label: 'Release & checksum', href: DESKTOP_RELEASE_URL },
 ];
 
 export const WALLET_PLATFORM_ITEMS: PlatformItem[] = [
@@ -115,7 +124,7 @@ export function PlatformRow({ icon, label, href, notice, compact }: PlatformItem
           <DownloadNotice
             platform={notice}
             href={href}
-            verifyHref={ANDROID_RELEASE_URL}
+            verifyHref={notice === 'android' ? ANDROID_RELEASE_URL : DESKTOP_RELEASE_URL}
             onCancel={() => setShowNotice(false)}
           />
         )}

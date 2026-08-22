@@ -12,6 +12,15 @@ export const SOURCE_URL = 'https://github.com/mariusoffchain/alice';
 export const ANDROID_VERSION = '0.2.0';
 export const ANDROID_RELEASE_URL = `${SOURCE_URL}/releases/tag/v${ANDROID_VERSION}`;
 export const ANDROID_APK_URL = `${SOURCE_URL}/releases/download/v${ANDROID_VERSION}/Alice-Wallet-beta-${ANDROID_VERSION}-v13.apk`;
+// Desktop installers ship on the same GitHub release as the APK. File names
+// are what the release workflow emits (Tauri's naming), copied verbatim.
+export const DESKTOP_VERSION = '0.2.0';
+export const DESKTOP_RELEASE_URL = `${SOURCE_URL}/releases/tag/v${DESKTOP_VERSION}`;
+const DESKTOP_DOWNLOAD_BASE = `${SOURCE_URL}/releases/download/v${DESKTOP_VERSION}`;
+export const DESKTOP_MAC_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VERSION}_universal.dmg`;
+export const DESKTOP_WINDOWS_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VERSION}_x64_en-US.msi`;
+export const DESKTOP_LINUX_APPIMAGE_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VERSION}_amd64.AppImage`;
+export const DESKTOP_LINUX_DEB_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VERSION}_amd64.deb`;
 
 export const SITE_NAME = 'Alice';
 
