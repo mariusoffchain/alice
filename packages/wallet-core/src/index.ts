@@ -11,6 +11,11 @@ export {
   refreshTransactionHistory,
   getVtxos,
   restoreWallet,
+  type RecoveryScanStatus,
+  getRecoveryScanStatus,
+  runRecoveryScan,
+  resumeRecoveryScanIfPending,
+  WalletReplacedError,
   setVtxoFrozen,
   listReceiveAddresses,
   reserveArkadeReceiveAddress,
@@ -54,9 +59,17 @@ export {
 } from './native-onchain';
 export {
   quoteArkToLightningWithSatora,
+  SatoraRefusalError,
   type SatoraQuoteOptions,
 } from './satora-quote';
-export { friendlySatoraLimitError } from './satora-error-message';
+export {
+  friendlySatoraLimitError,
+  friendlySatoraReason,
+  genericSatoraRefusal,
+  classifySatoraReason,
+  describeSatoraRefusal,
+  extractSatoraReason,
+} from './satora-error-message';
 export { settledIncomingAmount } from './receive-completion';
 export {
   findNewIncomingTransaction,

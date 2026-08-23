@@ -19,6 +19,7 @@ import {
   reserveArkadeReceiveAddress,
   reserveOnchainReceiveAddress,
   restoreWallet,
+  runRecoveryScan,
   updateReceiveAddress,
   type ReceiveAddressLayer,
   type ReceiveAddressRecord,
@@ -118,7 +119,9 @@ export default function AddressesScreen() {
     setError(null);
     setSuccess(null);
     try {
+      // Both passes, to the end: "complete" must mean the deep window too.
       await restoreWallet();
+      await runRecoveryScan();
       setSuccess('FULL HD ADDRESS RESCAN COMPLETE.');
       setAddresses(await listReceiveAddresses());
     } catch (cause) {

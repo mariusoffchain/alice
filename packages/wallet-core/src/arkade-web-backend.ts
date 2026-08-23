@@ -147,6 +147,10 @@ export class ArkadeWebBackend implements WalletBackend {
     await this.requireWallet().restore({ gapLimit: RECEIVE_RESTORE_GAP_LIMIT });
   }
 
+  deepScan(): Promise<void> {
+    return this.restore();
+  }
+
   getAddress(): Promise<string> {
     return this.requireWallet().getAddress();
   }

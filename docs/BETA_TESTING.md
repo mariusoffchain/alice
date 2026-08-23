@@ -7,8 +7,8 @@ testers using a fresh wallet and small amounts only.
 
 Alice's source lives at <https://github.com/mariusoffchain/alice>.
 
-- Version: `0.1.0`
-- Source: public tag `v0.1.0` in <https://github.com/mariusoffchain/alice>.
+- Version: `0.2.0`
+- Source: public tag `v0.2.0` in <https://github.com/mariusoffchain/alice>.
 - Android: the official APK, its version code and its SHA-256 are published
   together in the GitHub Release attached to that tag.
 
@@ -25,21 +25,27 @@ Two checks, and they answer different questions.
 `SHA256SUMS` file from the same release:
 
 ```bash
-shasum -a 256 -c SHA256SUMS-v0.1.0.txt
+shasum -a 256 -c SHA256SUMS-v0.2.0.txt
 ```
 
 **Was it signed by Alice?** This is the one that matters when an APK reaches
-you through someone else. Every Alice release is signed with the same key, so
-the certificate fingerprint below never changes. A build signed by anyone else
+you through someone else. Alice releases are signed with one key, and its
+certificate fingerprint is published here. A build signed by anyone else
 carries a different fingerprint, whatever its file name says:
 
 ```
-SHA-256  189bf5a7bb13f8ddde59074bcdba4b8799368c8cf50b249e1c9d7b4455eef26c
+SHA-256  1f52d235f5d404242cf974819338e168406867c2fbc448f20623bf776cad744b
 ```
 
 ```bash
-apksigner verify --print-certs Alice-Wallet-beta-0.1.0-v11.apk
+apksigner verify --print-certs Alice-Wallet-beta-0.2.0-v8.apk
 ```
+
+The key changed once, between 0.1.0 and 0.2.0, together with the Android
+application id (see "Updating Alice Wallet from 0.1.0" below). The 0.1.0 APK
+was signed with `189bf5a7bb13f8ddde59074bcdba4b8799368c8cf50b249e1c9d7b4455eef26c`;
+that fingerprint is only valid for that release. From 0.2.0 on, the key above
+is the one to expect.
 
 Android enforces this on its own: it refuses to install an update signed with
 a different key than the app already on the device. The manual check is for
@@ -49,13 +55,15 @@ the first install, which is exactly when you have nothing to compare against.
 
 | | |
 | --- | --- |
-| Tag | `v0.1.0` |
-| Commit | `2982c32c4eb300d93912c3deab8f9479c3ee594c` |
-| Android version code | `11` |
+| Tag | `v0.2.0` |
+| Commit | the commit the `v0.2.0` tag points to, listed in the GitHub Release |
+| Android application id | `com.alicebtc.wallet` |
+| Android version code | `8` |
 | Expo SDK | `54.0.35` |
 | React Native | `0.81.5` |
 | Node | `24` |
-| Build service | Expo Application Services (EAS), `production` profile |
+| Build service | Expo Application Services (EAS), `beta` profile, local build (`--local`) signed with the EAS-held keystore |
+| Native AI engine | llama.rn compiled from its bundled sources during the build (`rnllamaBuildFromSource=true`); its prebuilt download is skipped with `RNLLAMA_SKIP_POSTINSTALL=1` and `scripts/eas-post-install.js` |
 
 Stated plainly: this describes the build, it does not let you reproduce it.
 An EAS build is not byte-for-byte reproducible, so the checksum proves the
@@ -174,18 +182,18 @@ GitHub Release installation is.
    aapt dump badging path/to/downloaded.apk | head -1
    ```
 
-   The 0.2.0 build carries version code `3`. Rename the file with that code,
+   The 0.2.0 build carries version code `8`. Rename the file with that code,
    and make sure `ANDROID_APK_URL` in `apps/site/src/lib/site.ts` ends in the
-   same `v13.apk`; if the two disagree, fix the URL, not the file name:
+   same `v8.apk`; if the two disagree, fix the URL, not the file name:
 
    ```bash
-   mv path/to/downloaded.apk Alice-Wallet-beta-0.2.0-v3.apk
+   mv path/to/downloaded.apk Alice-Wallet-beta-0.2.0-v8.apk
    ```
 
 4. Calculate and verify its SHA-256 digest:
 
    ```bash
-   shasum -a 256 Alice-Wallet-beta-0.2.0-v3.apk \
+   shasum -a 256 Alice-Wallet-beta-0.2.0-v8.apk \
      > SHA256SUMS-v0.2.0.txt
    shasum -a 256 -c SHA256SUMS-v0.2.0.txt
    ```
@@ -195,7 +203,7 @@ GitHub Release installation is.
 
    ```bash
    gh release upload v0.2.0 \
-     Alice-Wallet-beta-0.2.0-v3.apk \
+     Alice-Wallet-beta-0.2.0-v8.apk \
      SHA256SUMS-v0.2.0.txt \
      --clobber
    ```

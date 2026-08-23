@@ -122,6 +122,8 @@ export interface EmergencyExitState {
 export interface WalletBackend {
   init(): Promise<void>;
   restore(): Promise<void>;
+  /** The deep recovery pass alone, blocking, for a retry after an interrupted one. */
+  deepScan(): Promise<void>;
   getAddress(): Promise<string>;
   getBoardingAddress(): Promise<string>;
   getBalance(): Promise<Balance>;

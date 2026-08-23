@@ -25,7 +25,7 @@ import { effectiveBaseUrl, isUsingCustomNode } from '@/lib/explorer/node-config'
 import type { PrivacySignal } from '@/lib/explorer/signals';
 import type { FullContext } from '@/lib/explorer/ask-alice';
 import { addTab, closeTab, makeTab, overviewTab, type Tab } from '@/lib/explorer/tabs';
-import { consumePendingOpen, loadTabs, pendingOpenFromUrl, saveTabs } from '@/lib/explorer/tab-storage';
+import { consumePendingOpen, loadTabs, pendingOpenFromUrl, saveTabs, searchWithoutOpenRequest } from '@/lib/explorer/tab-storage';
 import { getSessionTabs, saveSessionTabs } from '@/lib/explorer/session-links';
 import { DEFAULT_NETWORK_ID, getNetwork } from '@/lib/explorer/networks';
 import { getDefaultNetworkId } from '@/lib/explorer/prefs';
@@ -95,7 +95,13 @@ function ExplorerWorkspace() {
     // request, and is taken out of the address bar once read so a reload
     // does not open it a second time.
     const fromUrl = pendingOpenFromUrl(window.location.search);
-    if (fromUrl) window.history.replaceState(null, '', window.location.pathname);
+    if (fromUrl) {
+      window.history.replaceState(
+        null,
+        '',
+        `${window.location.pathname}${searchWithoutOpenRequest(window.location.search)}${window.location.hash}`,
+      );
+    }
     const pending = fromUrl ?? consumePendingOpen();
     if (pending) {
       const base = stored ? stored.tabs : [overviewTab(getDefaultNetworkId())];

@@ -26,3 +26,6 @@ test('nothing bound is always stale', () => {
   tracker.unbind();
   assert.equal(tracker.stale(), true);
 });
+
+// The race itself (an initialisation for A resolving after B) is covered in
+// backend-slot.test.ts against the real slot logic.

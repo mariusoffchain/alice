@@ -13,6 +13,10 @@ import type {
 import { addDiagnosticLog } from './diagnostic-log';
 import { clearLocalSwapRepository, clearLocalWalletRepository } from './wallet-data';
 import { seedGeneration } from './seed-generation';
+import { createBackendSlot, WalletReplacedError } from './backend-slot';
+
+export { WalletReplacedError };
+import { isRecoveryScanPending } from './storage';
 import type {
   ParsedPaymentRequest,
   PaymentQuote,
@@ -44,10 +48,6 @@ export type WalletState = {
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
-let backend: WalletBackend | null = null;
-let initPromise: Promise<WalletBackend> | null = null;
-let connectionStatus: ConnectionStatus = 'disconnected';
-let lastError: string | null = null;
 let maintenancePromise: Promise<VtxoMaintenanceResult> | null = null;
 let syncPromise: Promise<VtxoSyncResult> | null = null;
 let paymentRefreshPromise: Promise<void> | null = null;
@@ -57,8 +57,19 @@ let lastMaintenanceStartedAt = 0;
 const MAINTENANCE_INTERVAL_MS = 5 * 60 * 1_000;
 const WALLET_REFRESH_TIMEOUT_MS = 8_000;
 
+const slot = createBackendSlot<WalletBackend>({
+  create: async () => Platform.OS === 'web'
+    ? new (await import('./arkade-web-backend')).ArkadeWebBackend()
+    : new (await import('./arkade-backend')).ArkadeBackend(),
+  generation: seedGeneration,
+  initTimeoutMs: 15_000,
+  initTimeoutMessage: `Connection to ${NETWORK === 'bitcoin' ? 'Bitcoin Mainnet' : 'Mutinynet'} timed out. Check your internet connection.`,
+  isTransient: isTransientConnectionError,
+  log: (level, title, detail) => { void addDiagnosticLog(level, title, detail).catch(() => {}); },
+});
+
 export function getConnectionStatus(): { status: ConnectionStatus; error: string | null } {
-  return { status: connectionStatus, error: lastError };
+  return { status: slot.status(), error: slot.error() };
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
@@ -90,62 +101,8 @@ function runMaintenance(
   return maintenancePromise;
 }
 
-async function ensureBackend(): Promise<WalletBackend> {
-  // Second barrier behind onboarding's explicit discard: a backend built
-  // from a phrase that has since been replaced is never handed out.
-  if (backend && seedGeneration.stale()) {
-    await restartBackend();
-  }
-  if (backend) {
-    connectionStatus = 'connected';
-    return backend;
-  }
-
-  if (!initPromise) {
-    connectionStatus = 'connecting';
-    lastError = null;
-    seedGeneration.bind();
-    initPromise = (async () => {
-      let failure: unknown = null;
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        const nextBackend: WalletBackend = Platform.OS === 'web'
-          ? new (await import('./arkade-web-backend')).ArkadeWebBackend()
-          : new (await import('./arkade-backend')).ArkadeBackend();
-        try {
-          const networkLabel = NETWORK === 'bitcoin' ? 'Bitcoin Mainnet' : 'Mutinynet';
-          await withTimeout(
-            nextBackend.init(),
-            15_000,
-            `Connection to ${networkLabel} timed out. Check your internet connection.`,
-          );
-          backend = nextBackend;
-          connectionStatus = 'connected';
-          lastError = null;
-          void addDiagnosticLog('info', 'Arkade wallet connected').catch(() => {});
-          return nextBackend;
-        } catch (error) {
-          failure = error;
-          void nextBackend.dispose().catch(() => {});
-          if (attempt === 0 && isTransientConnectionError(error)) {
-            void addDiagnosticLog('warning', 'Arkade connection retrying over network', 'A transient connection error occurred during wallet initialization.').catch(() => {});
-            continue;
-          }
-        }
-      }
-      connectionStatus = 'error';
-      lastError = failure instanceof Error ? failure.message : String(failure);
-      void addDiagnosticLog(
-        'error',
-        'Arkade connection failed',
-        `error_class=${failure instanceof Error ? failure.name : 'unknown'}`,
-      ).catch(() => {});
-      throw failure;
-    })().finally(() => {
-      initPromise = null;
-    });
-  }
-
-  return initPromise;
+function ensureBackend(): Promise<WalletBackend> {
+  return slot.ensure();
 }
 
 export async function initWallet(): Promise<WalletState> {
@@ -234,6 +191,43 @@ export async function restoreWallet(): Promise<void> {
   await (await ensureBackend()).restore();
 }
 
+export type RecoveryScanStatus = 'complete' | 'running' | 'incomplete';
+
+/**
+ * Where the deep recovery pass stands for the current seed. "incomplete"
+ * means a pass was interrupted and funds beyond the first 20 addresses may
+ * not be listed yet; the home screen says so and offers a retry.
+ */
+export async function getRecoveryScanStatus(): Promise<RecoveryScanStatus> {
+  if (!(await isRecoveryScanPending())) return 'complete';
+  return recoveryScanPromise ? 'running' : 'incomplete';
+}
+
+let recoveryScanPromise: Promise<void> | null = null;
+
+/** Runs the deep recovery pass to completion; clears the pending flag on success. */
+export function runRecoveryScan(): Promise<void> {
+  if (recoveryScanPromise) return recoveryScanPromise;
+  // Owned by the phrase it started for, like an initialisation: a pass that
+  // outlives a seed change reports nothing to the next wallet.
+  const startedFor = seedGeneration.current();
+  const run = (async () => {
+    await (await ensureBackend()).deepScan();
+    if (seedGeneration.current() !== startedFor) throw new WalletReplacedError();
+  })();
+  recoveryScanPromise = run;
+  void run.catch(() => {}).finally(() => {
+    if (recoveryScanPromise === run) recoveryScanPromise = null;
+  });
+  return run;
+}
+
+/** Resumes an interrupted deep recovery pass, if any, without blocking the caller. */
+export async function resumeRecoveryScanIfPending(): Promise<void> {
+  if (!(await isRecoveryScanPending())) return;
+  void runRecoveryScan().catch(() => {});
+}
+
 export async function setVtxoFrozen(id: string, frozen: boolean): Promise<void> {
   await (await ensureBackend()).setVtxoFrozen(id, frozen);
 }
@@ -269,7 +263,7 @@ export async function syncVtxos(ids?: string[]): Promise<VtxoSyncResult> {
 }
 
 export async function syncVtxosIfReady(): Promise<VtxoSyncResult | null> {
-  const walletBackend = backend ?? await ensureBackend();
+  const walletBackend = await ensureBackend();
   syncPromise ??= walletBackend.syncVtxos().finally(() => {
     syncPromise = null;
   });
@@ -281,7 +275,8 @@ export async function syncVtxosIfReady(): Promise<VtxoSyncResult | null> {
 }
 
 export async function maintainVtxosIfReady(): Promise<VtxoMaintenanceResult | null> {
-  if (!backend) return null;
+  const backend = slot.current();
+  if (!backend || seedGeneration.stale()) return null;
   return runMaintenance(backend);
 }
 
@@ -303,19 +298,13 @@ export async function getVtxoAutomationStatus(): Promise<VtxoAutomationStatus> {
 
 async function restartBackend(): Promise<void> {
   await maintenancePromise?.catch(() => {});
-  const activeBackend = backend;
-  backend = null;
-  initPromise = null;
   maintenancePromise = null;
   syncPromise = null;
   paymentRefreshPromise = null;
   transactionHistoryPromise = null;
   transactionHistoryCache = null;
   lastMaintenanceStartedAt = 0;
-  seedGeneration.unbind();
-  if (activeBackend) {
-    await activeBackend.dispose();
-  }
+  await slot.restart();
 }
 
 /**
@@ -327,6 +316,7 @@ async function restartBackend(): Promise<void> {
  * something else. No network call: this must work offline.
  */
 export async function discardWalletForNewSeed(): Promise<void> {
+  recoveryScanPromise = null;
   await restartBackend();
   await unregisterArkadeBackgroundSync().catch(() => {});
   await closeArkadeBackgroundDatabase();
@@ -501,11 +491,11 @@ export async function createReceivePayment(request: ReceivePaymentRequest): Prom
 }
 
 export function isWalletReady(): boolean {
-  return backend !== null;
+  return slot.current() !== null;
 }
 
 export async function clearWalletBackendData(): Promise<void> {
-  const activeBackend = backend ?? await ensureBackend();
+  const activeBackend = await ensureBackend();
   await maintenancePromise?.catch(() => {});
   const paymentRail = await activeBackend.getPaymentRail();
   if (paymentRail) {
@@ -524,8 +514,7 @@ export async function clearWalletBackendData(): Promise<void> {
     activeBackend.dispose().catch(() => {}),
     new Promise<void>(resolve => setTimeout(resolve, 3000)),
   ]);
-  backend = null;
-  initPromise = null;
+  slot.forget();
   maintenancePromise = null;
   syncPromise = null;
   paymentRefreshPromise = null;

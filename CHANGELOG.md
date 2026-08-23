@@ -72,7 +72,10 @@ entry covers the full span since `0.1.0`.
   amount, fees ride on top and are shown before sending. Satora's own
   refusals are now shown as such ("invoices must expire within 24 hours",
   "this invoice already has a swap") instead of a false "server unreachable",
-  and the wallet checks the invoice lifetime before asking.
+  and the wallet checks the invoice lifetime before asking. Only refusals
+  the wallet recognises are shown in Satora's terms; any other server
+  message is replaced by a generic refusal with its status and kept, without
+  URLs, in the diagnostic log.
 - Creating a wallet shows the welcome at once; connecting to the Ark server
   happens in the background, as Arkade Wallet does, instead of holding the
   screen until the server answers.
@@ -83,6 +86,9 @@ entry covers the full span since `0.1.0`.
   wallet. The app could keep serving the previously imported wallet while
   the stored phrase, and the backup screen, already held the new one; every
   new phrase now starts from nothing (backend, local index, swap records).
+  A connection still in progress when the phrase changes is discarded on
+  arrival rather than stored, so the window between "Create" and the
+  server's answer cannot bring the previous wallet back either.
 - Recovery scans the SDK's default window of 20 unused addresses first,
   shows the wallet as soon as something is found, and still runs the deep
   window of 100 in the background (at once, and blocking, when nothing
@@ -90,8 +96,12 @@ entry covers the full span since `0.1.0`.
   network scan when some lookups fail instead of stopping at "discovery
   handlers failed", says so plainly if it still cannot finish, and the
   screen says "restoring" rather than "generating keys" while it runs. An
-  imported wallet counts as onboarded only once its recovery finished. The welcome screen no longer jumps to the wallet on its
-  own; the Start button is the only way forward.
+  imported wallet counts as onboarded only once its recovery finished. A
+  deep pass that did not finish is remembered: the home screen shows
+  "Recovery scan incomplete" with a retry, the scan resumes at the next
+  launch, and the address page only says "rescan complete" once the deep
+  window really ran. The welcome screen no longer jumps to the wallet on
+  its own; the Start button is the only way forward.
 - The welcome after key creation (Alice, her message, the Start button) now
   actually appears on Android. A layout signal could stop the fill animation
   mid-way and leave the screen blue with the welcome at opacity zero.
@@ -107,7 +117,9 @@ entry covers the full span since `0.1.0`.
   every 10 s, the history only polls while a transaction is still moving,
   and the knowledge corpus (2 000+ chunks) loads after the first
   interactions rather than at launch. The first question to Alice pays that
-  load once.
+  load once. Offline, the home screen stops polling and refreshes the moment
+  the connection is back; the Send scanner stops when another screen covers
+  it.
 
 ### Site
 

@@ -503,7 +503,7 @@ export default function AISettingsScreen() {
                   );
                 })}
                 {installedModels.length === 0 && (
-                  <Text style={[s.modelBadgeSecondary, { lineHeight: 18 }]}>No model installed.{'\n'}Download one above.</Text>
+                  <Text style={[s.modelEmptyText, { color: colors.muted }]}>No model installed.{'\n'}Download one above.</Text>
                 )}
               </View>
 
@@ -910,6 +910,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     modelMeta: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
     modelBadge: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
 	    modelBadgeSecondary: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
+	    modelEmptyText: { fontFamily: typography.numbers, fontSize: 14, lineHeight: 19 },
 	    dropdownDescription: { fontFamily: typography.numbers, fontSize: 13, color: colors.muted, lineHeight: 17, marginTop: spacing.xs },
 	    modelActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
 

@@ -67,6 +67,26 @@ export function saveTabs(tabs: Tab[], activeId: string): void {
 const PENDING_KEY = 'explorer.pending-open.v1';
 const OPENABLE: TabKind[] = ['tx', 'address', 'block', 'xpub'];
 
+// What a URL may hand the Explorer for each subject. The value then goes
+// into an upstream request path, so it is shape-checked here rather than
+// trusted: a hash is 64 hex digits, a block is that or a height, an address
+// or an extended key is a bech32 / base58 string of sane length.
+const URL_SUBJECT_SHAPE: Record<Exclude<TabKind, 'overview'>, RegExp> = {
+  tx: /^[0-9a-f]{64}$/i,
+  block: /^(?:[0-9a-f]{64}|\d{1,9})$/i,
+  address: /^[a-z0-9]{14,120}$/i,
+  xpub: /^[a-z0-9]{60,160}$/i,
+};
+
+/** Strips only the keys the Explorer consumed, keeping any other parameter. */
+export function searchWithoutOpenRequest(search: string): string {
+  const params = new URLSearchParams(search);
+  for (const kind of OPENABLE) params.delete(kind);
+  params.delete('network');
+  const rest = params.toString();
+  return rest ? `?${rest}` : '';
+}
+
 export interface PendingOpenNote {
   /** Human words for what the subject is ("Les 2 pizzas à 10 000 BTC"). */
   label: string;
@@ -106,6 +126,7 @@ export function pendingOpenFromUrl(search: string): {
   for (const kind of OPENABLE) {
     const query = params.get(kind)?.trim();
     if (!query) continue;
+    if (!URL_SUBJECT_SHAPE[kind as Exclude<TabKind, 'overview'>].test(query)) return null;
     const network = params.get('network') ?? undefined;
     const networkId = network && getNetwork(network).id === network ? network : undefined;
     return {

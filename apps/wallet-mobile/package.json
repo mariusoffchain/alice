@@ -13,7 +13,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build:pwa": "node scripts/build-pwa.js",
-    "check:ai-boundary": "node scripts/check-ai-wallet-boundary.js"
+    "check:ai-boundary": "node scripts/check-ai-wallet-boundary.js",
+    "eas-build-post-install": "node scripts/eas-post-install.js"
   },
   "dependencies": {
     "@alice-wallet/alice-ai": "*",

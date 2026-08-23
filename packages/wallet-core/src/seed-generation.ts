@@ -16,6 +16,8 @@ export function createSeedGenerationTracker() {
     bump(): void { current += 1; },
     /** The backend being built now belongs to the current phrase. */
     bind(): void { bound = current; },
+    /** The generation of the phrase stored right now. */
+    current(): number { return current; },
     /** True when the bound backend predates the latest phrase. */
     stale(): boolean { return bound !== current; },
     /** Nothing bound any more. */

@@ -35,6 +35,7 @@ import {
 } from './boltz-rail.native';
 import { CompositePaymentRail } from './composite-payment-rail';
 import { addDiagnosticLog } from './diagnostic-log';
+import { clearRecoveryScanPending, loadRecoveryScanToken, markRecoveryScanPending } from './storage';
 import { isRecoverableArkadeSettlementLog } from './arkade-settlement-log';
 import { purgeLegacyBoltzSwapsOnce } from './legacy-boltz-purge';
 import {
@@ -322,12 +323,32 @@ export class ArkadeBackend implements WalletBackend {
     // Something was found: the wallet is usable now. The deep window still
     // runs, in the background, so funds sitting beyond a gap of more than 20
     // unused addresses are never missed; the scan is idempotent and only
-    // adds what it finds.
+    // adds what it finds. Until it completes, the wallet is recorded as
+    // partially recovered: an interrupted pass is retried at the next
+    // launch and shown in the interface, never mistaken for a full one.
+    const token = await markRecoveryScanPending();
+    void this.runDeepScan(token).catch(() => {});
+  }
+
+  async deepScan(): Promise<void> {
+    // A retry (next launch, or the banner) clears the token it found stored,
+    // which is the one set by the pass it is finishing on behalf of.
+    return this.runDeepScan(await loadRecoveryScanToken());
+  }
+
+  private runDeepScan(token: string | null): Promise<void> {
     this.deepScanPromise ??= this.scanWithRetries(RECEIVE_RESTORE_GAP_LIMIT)
+      .then(() => (token ? clearRecoveryScanPending(token) : undefined))
       .catch(error => {
         void addDiagnosticLog('warning', 'Deep recovery scan did not finish', error instanceof Error ? error.message : String(error)).catch(() => {});
+        throw error;
       })
       .finally(() => { this.deepScanPromise = null; });
+    return this.deepScanPromise;
+  }
+
+  isDeepScanRunning(): boolean {
+    return this.deepScanPromise !== null;
   }
 
   private deepScanPromise: Promise<void> | null = null;

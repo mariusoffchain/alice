@@ -1,4 +1,26 @@
 import { CLIENT_AGENT, SATORA_SERVER_VERSION } from '@satora/swap';
+import { describeSatoraRefusal, friendlySatoraReason, genericSatoraRefusal } from './satora-error-message.ts';
+
+/**
+ * Satora said no. The message is already fit for the screen; the server's
+ * own wording is kept aside for the diagnostic log only.
+ */
+export class SatoraRefusalError extends Error {
+  readonly status: number;
+  /** Status and class for the diagnostic log; the server's text is not kept. */
+  readonly diagnostic: string;
+  /** False when the message is the generic refusal. */
+  readonly recognized: boolean;
+
+  constructor(reason: string, status: number) {
+    const friendly = reason ? friendlySatoraReason(reason) : null;
+    super(friendly ?? genericSatoraRefusal(status));
+    this.name = 'SatoraRefusalError';
+    this.status = status;
+    this.diagnostic = describeSatoraRefusal(status, reason);
+    this.recognized = friendly !== null;
+  }
+}
 import { decodeInvoice } from '@arkade-os/boltz-swap';
 import { bech32 } from '@scure/base';
 import type { ParsedPaymentRequest, PaymentQuote } from './payment-types.ts';
@@ -173,8 +195,9 @@ export async function quoteArkToLightningWithSatora(
   }
 
   if (!response.ok) {
-    // Satora explains its refusals in a JSON body; that sentence is worth more
-    // to the user than a status code.
+    // Satora explains its refusals in a JSON body. Only reasons we recognise
+    // reach the screen, in our own words; the rest goes, sanitised, to the
+    // diagnostic log, and the user sees a generic refusal with the status.
     let detail = '';
     try {
       const body = await response.json() as { error?: unknown };
@@ -182,11 +205,7 @@ export async function quoteArkToLightningWithSatora(
     } catch {
       // No readable body: the status will have to do.
     }
-    throw new Error(
-      detail
-        ? `Satora refused the quote: ${detail}. No funds were sent.`
-        : `Satora quote failed with HTTP ${response.status}. No funds were sent.`,
-    );
+    throw new SatoraRefusalError(detail, response.status);
   }
 
   let parsedQuote: unknown;

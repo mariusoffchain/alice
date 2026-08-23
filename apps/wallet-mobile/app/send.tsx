@@ -16,15 +16,20 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { ArkAddress } from '@arkade-os/sdk';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { spacing, typography, type Colors, type Pixel } from '@alice-wallet/alice-content';
 import { useTheme } from '@alice-wallet/alice-ui';
 import {
   getArkAddress,
   getBalance,
   addDiagnosticLog,
+  extractSatoraReason,
+  friendlySatoraReason,
+  genericSatoraRefusal,
+  describeSatoraRefusal,
+  SatoraRefusalError,
   canOfferNativeOnchainFallback,
   quoteNativeOnchainPayment,
   sendQuotedPayment,
@@ -101,19 +106,21 @@ function friendlySendError(
   }
 
   // Satora explains its refusals in a JSON body that the SDK wraps verbatim.
-  // Those sentences go first: "invoice timeout too long" is about the
-  // invoice's lifetime, and the word "timeout" alone used to turn it into a
-  // false "server unreachable".
-  const satoraReason = raw.match(/\{"error":"([^"]+)"\}/)?.[1] ?? raw.match(/Satora refused the quote: (.+?)\. No funds/)?.[1];
+  // Only reasons we recognise are shown, in our own words: a server message
+  // may carry an internal URL or a payload fragment. The rest becomes a
+  // generic refusal, and the sanitised reason goes to the diagnostic log.
+  if (error instanceof SatoraRefusalError) {
+    if (!error.recognized) {
+      void addDiagnosticLog('warning', 'Satora refused the quote', error.diagnostic).catch(() => {});
+    }
+    return error.message;
+  }
+  const satoraReason = extractSatoraReason(raw);
   if (satoraReason) {
-    const reason = satoraReason.toLowerCase();
-    if (reason.includes('invoice timeout too long') || reason.includes('expires within')) {
-      return 'SATORA ONLY PAYS LIGHTNING INVOICES THAT EXPIRE WITHIN 24 HOURS. ASK THE RECIPIENT FOR A SHORTER INVOICE. NO FUNDS WERE SENT.';
-    }
-    if (reason.includes('payment hash exists')) {
-      return 'THIS INVOICE ALREADY HAS A SATORA SWAP. AN INVOICE ISSUED BY SATORA CANNOT BE PAID THROUGH SATORA. NO FUNDS WERE SENT.';
-    }
-    return `SATORA: ${satoraReason.toUpperCase()}. NO FUNDS WERE SENT.`;
+    const friendly = friendlySatoraReason(satoraReason);
+    if (friendly) return friendly;
+    void addDiagnosticLog('warning', 'Satora refused the swap', describeSatoraRefusal(undefined, satoraReason)).catch(() => {});
+    return genericSatoraRefusal();
   }
   if (normalized.includes('only pays lightning invoices that expire within') || normalized.includes('priced the swap differently')) {
     return raw.toUpperCase();
@@ -222,6 +229,8 @@ export default function SendScreen() {
   // The camera is one of the most expensive things this screen can mount,
   // and most sends are pasted, not scanned: it starts only when asked.
   const [scannerOpen, setScannerOpen] = useState(false);
+  // And it stops as soon as another screen covers this one.
+  useFocusEffect(useCallback(() => () => setScannerOpen(false), []));
   const [scanError, setScanError] = useState<string | null>(null);
   const [sentPayment, setSentPayment] = useState<SentPayment | null>(null);
   const [addressCopied, setAddressCopied] = useState(false);

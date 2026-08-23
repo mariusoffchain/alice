@@ -119,6 +119,24 @@ test('Satora quote surfaces the reason Satora gives for refusing', async () => {
         { status: 400 },
       ),
     }),
-    /Satora refused the quote: invoice timeout too long/,
+    /SATORA ONLY PAYS LIGHTNING INVOICES THAT EXPIRE WITHIN 24 HOURS/,
+  );
+});
+
+test('Satora quote never shows an unknown server reason to the user', async () => {
+  await assert.rejects(
+    quoteArkToLightningWithSatora(REQUEST, undefined, {
+      baseUrl: 'https://satora.test',
+      fetcher: async () => Response.json(
+        { error: 'upstream failure at http://10.0.0.7:9735/internal/pay: stack trace follows' },
+        { status: 502 },
+      ),
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.equal(error.message, 'SATORA REFUSED THIS PAYMENT (HTTP 502). NO FUNDS WERE SENT.');
+      assert.ok(!error.message.includes('10.0.0.7'));
+      return true;
+    },
   );
 });

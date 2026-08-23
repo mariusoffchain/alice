@@ -28,13 +28,17 @@ import {
 import {
   getBalance,
   getPaymentHistory,
+  getRecoveryScanStatus,
   getTransactionHistory,
   getVtxos,
   isHdDescriptorMismatchError,
   maintainVtxosIfReady,
   NETWORK,
   rebuildLocalArkadeIndex,
+  resumeRecoveryScanIfPending,
+  runRecoveryScan,
   syncVtxosIfReady,
+  type RecoveryScanStatus,
   type WalletState,
 } from '@alice-wallet/wallet-core';
 import { PixelFill, PixelWaveTransition, type PixelWavePhase } from '@alice-wallet/alice-ui';
@@ -286,6 +290,16 @@ export default function WalletScreen() {
   const [recentEntries, setRecentEntries] = useState<HistoryEntry[]>([]);
   const [backupComplete, setBackupComplete] = useState<boolean | null>(null);
   const [expiringVtxos, setExpiringVtxos] = useState(0);
+  // The deep recovery pass after an import: "incomplete" means it was
+  // interrupted and funds beyond the first addresses may still be missing.
+  const [recoveryScan, setRecoveryScan] = useState<RecoveryScanStatus>('complete');
+  const retryRecoveryScan = useCallback(() => {
+    setRecoveryScan('running');
+    runRecoveryScan()
+      .then(() => setRecoveryScan('complete'))
+      .catch(() => setRecoveryScan('incomplete'))
+      .finally(() => refreshWalletRef.current?.());
+  }, []);
   const [btcPrice, setBtcPrice] = useState<number | null>(null);
   const [currency, setCurrency] = useState<FiatCurrency>('USD');
   const [chatState, setChatState] = useState<PixelWavePhase>('closed');
@@ -428,6 +442,10 @@ export default function WalletScreen() {
         // network.
         const net = Platform.OS === 'web' ? null : await Network.getNetworkStateAsync().catch(() => null);
         if (net?.isConnected === false) throw new Error(OFFLINE_MESSAGE);
+        // An import whose deep pass was interrupted picks it up again here,
+        // in the background; the banner below reflects where it stands.
+        await resumeRecoveryScanIfPending().catch(() => {});
+        void getRecoveryScanStatus().then(setRecoveryScan).catch(() => {});
         await syncVtxosIfReady().catch(cause => {
           console.warn('Unable to synchronize Arkade before refreshing the balance.', cause);
         });
@@ -469,6 +487,11 @@ export default function WalletScreen() {
         });
       } catch (error) {
         const msg = error instanceof Error ? error.message : 'Wallet unavailable.';
+        if (msg === OFFLINE_MESSAGE && pollRef.current) {
+          // Already offline at mount: the network listener will restart it.
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
         if (msg.includes('onboarding') || msg.includes('Complete wallet')) {
           router.replace('/onboarding');
           return;
@@ -517,9 +540,24 @@ export default function WalletScreen() {
     // Thirty seconds: a received payment still shows within the time it takes
     // to look up from the phone, and the JS thread is free far more often.
     pollRef.current = setInterval(refreshWallet, 30_000);
+    // Offline, the tick would only re-discover the offline state every 30 s.
+    // Pause it, and refresh the moment the network is back.
+    const network = Platform.OS === 'web' ? null : Network.addNetworkStateListener(({ isConnected }) => {
+      if (isConnected === false) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        pollRef.current = null;
+        return;
+      }
+      if (!pollRef.current) {
+        pollRef.current = setInterval(refreshWallet, 30_000);
+        refreshWallet();
+      }
+    });
     return () => {
       cancelled = true;
+      network?.remove();
       if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = null;
     };
   }, [refreshWallet]));
 
@@ -660,6 +698,29 @@ export default function WalletScreen() {
               <Text style={[s.vtxoDescription, { color: colors.dangerInk }]}>{expiringVtxos} coin{expiringVtxos === 1 ? '' : 's'} need{expiringVtxos === 1 ? 's' : ''} attention.</Text>
             </View>
             <Text style={[s.vtxoAction, { color: colors.danger }]}>REVIEW →</Text>
+          </TouchableOpacity>
+        )}
+
+        {recoveryScan !== 'complete' && (
+          <TouchableOpacity
+            style={[s.vtxoBanner, pixel]}
+            onPress={retryRecoveryScan}
+            disabled={recoveryScan === 'running'}
+            accessibilityRole="alert"
+          >
+            <View style={s.vtxoCopy}>
+              <Text style={[s.vtxoTitle, { color: colors.danger }]}>
+                {recoveryScan === 'running' ? 'RECOVERY SCAN RUNNING' : 'RECOVERY SCAN INCOMPLETE'}
+              </Text>
+              <Text style={[s.vtxoDescription, { color: colors.dangerInk }]}>
+                {recoveryScan === 'running'
+                  ? 'Looking for funds on older addresses. Your balance may still grow.'
+                  : 'The deep scan was interrupted. Funds on older addresses may be missing until it finishes.'}
+              </Text>
+            </View>
+            {recoveryScan === 'incomplete' && (
+              <Text style={[s.vtxoAction, { color: colors.danger }]}>RETRY →</Text>
+            )}
           </TouchableOpacity>
         )}
 
@@ -1313,7 +1374,7 @@ const s = StyleSheet.create({
   // Same size as Alice's text: a smaller user bubble made the two sides of the
   // conversation read as different weights.
   bubbleTextUser: { fontFamily: typography.numbers, fontSize: 17, lineHeight: 24 },
-  truncatedNotice: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, opacity: 0.7, marginTop: spacing.xs },
+  truncatedNotice: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, opacity: 0.7, marginTop: spacing.xs },
   markdownWrap: { gap: 4 },
   markdownStrong: { fontWeight: '700' },
   markdownHr: { height: 1, alignSelf: 'stretch', marginVertical: spacing.sm, opacity: 0.25 },
