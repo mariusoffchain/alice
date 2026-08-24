@@ -331,9 +331,12 @@ export class ArkadeBackend implements WalletBackend {
   }
 
   async deepScan(): Promise<void> {
-    // A retry (next launch, or the banner) clears the token it found stored,
-    // which is the one set by the pass it is finishing on behalf of.
-    return this.runDeepScan(await loadRecoveryScanToken());
+    // A retry (next launch, the banner, the address page) finishes the pass
+    // recorded as unfinished and clears that one only. Nothing recorded:
+    // nothing to do, the last deep pass completed.
+    const token = await loadRecoveryScanToken();
+    if (!token) return;
+    return this.runDeepScan(token);
   }
 
   private runDeepScan(token: string | null): Promise<void> {

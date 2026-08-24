@@ -141,6 +141,8 @@ export function createBackendSlot<B extends Disposable>(options: BackendSlotOpti
     const active = backend;
     backend = null;
     initPromise = null;
+    status = 'disconnected';
+    lastError = null;
     generation.unbind();
     if (active) {
       // Bounded: "Create wallet" must not hang offline on a backend that
@@ -153,6 +155,8 @@ export function createBackendSlot<B extends Disposable>(options: BackendSlotOpti
   function forget(): void {
     backend = null;
     initPromise = null;
+    status = 'disconnected';
+    lastError = null;
   }
 
   return {

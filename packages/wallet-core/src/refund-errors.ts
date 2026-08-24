@@ -1,4 +1,8 @@
+import { SatoraRefusalError } from './satora-error-message.ts';
+
 export function friendlyRefundError(error: unknown, provider = 'Satora'): string {
+  // The rail already turned Satora's answer into a sentence of ours.
+  if (error instanceof SatoraRefusalError) return error.message;
   const raw = error instanceof Error ? error.message : String(error || 'Unknown error');
   const normalized = raw.toLowerCase();
   const label = provider.trim().toUpperCase() || 'SWAP PROVIDER';
@@ -26,5 +30,6 @@ export function friendlyRefundError(error: unknown, provider = 'Satora'): string
     return `${label} COULD NOT BROADCAST THE REFUND. YOUR FUNDS REMAIN RECOVERABLE. CHECK YOUR CONNECTION AND TRY AGAIN.`;
   }
 
-  return raw;
+  // Anything else came from a server or a library: not for the screen.
+  return `${label} COULD NOT PROCESS THE REFUND. YOUR FUNDS REMAIN RECOVERABLE. TRY AGAIN LATER.`;
 }

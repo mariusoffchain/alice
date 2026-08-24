@@ -1,26 +1,7 @@
 import { CLIENT_AGENT, SATORA_SERVER_VERSION } from '@satora/swap';
-import { describeSatoraRefusal, friendlySatoraReason, genericSatoraRefusal } from './satora-error-message.ts';
+import { SatoraRefusalError } from './satora-error-message.ts';
 
-/**
- * Satora said no. The message is already fit for the screen; the server's
- * own wording is kept aside for the diagnostic log only.
- */
-export class SatoraRefusalError extends Error {
-  readonly status: number;
-  /** Status and class for the diagnostic log; the server's text is not kept. */
-  readonly diagnostic: string;
-  /** False when the message is the generic refusal. */
-  readonly recognized: boolean;
-
-  constructor(reason: string, status: number) {
-    const friendly = reason ? friendlySatoraReason(reason) : null;
-    super(friendly ?? genericSatoraRefusal(status));
-    this.name = 'SatoraRefusalError';
-    this.status = status;
-    this.diagnostic = describeSatoraRefusal(status, reason);
-    this.recognized = friendly !== null;
-  }
-}
+export { SatoraRefusalError };
 import { decodeInvoice } from '@arkade-os/boltz-swap';
 import { bech32 } from '@scure/base';
 import type { ParsedPaymentRequest, PaymentQuote } from './payment-types.ts';
@@ -205,7 +186,7 @@ export async function quoteArkToLightningWithSatora(
     } catch {
       // No readable body: the status will have to do.
     }
-    throw new SatoraRefusalError(detail, response.status);
+    throw new SatoraRefusalError(detail, response.status, 'send');
   }
 
   let parsedQuote: unknown;

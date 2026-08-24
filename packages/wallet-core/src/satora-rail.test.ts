@@ -223,9 +223,16 @@ test('Satora rail refuses funding when recovery data was not persisted', async (
 });
 
 test('Satora provider failure before swap creation cannot fund or persist a payment', async () => {
-  const context = setup({ createError: new Error('Satora unavailable') });
+  const context = setup({ createError: new Error('Satora unavailable: {"detail":"node http://10.0.0.7 down"}') });
 
-  await assert.rejects(context.rail.send(QUOTE), /Satora unavailable/);
+  // The SDK's wording, which may carry a server body, is replaced by ours.
+  await assert.rejects(context.rail.send(QUOTE), (error: unknown) => {
+    assert.ok(error instanceof Error);
+    assert.equal(error.name, 'SatoraRefusalError');
+    assert.equal(error.message, 'SATORA REFUSED THIS PAYMENT. NO FUNDS WERE SENT.');
+    assert.ok(!error.message.includes('10.0.0.7'));
+    return true;
+  });
   assert.equal(context.getCreateCalls(), 1);
   assert.equal(context.getSendCalls(), 0);
   assert.deepEqual(await context.storage.swapStorage.getAll(), []);

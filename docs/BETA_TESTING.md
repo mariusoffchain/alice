@@ -38,7 +38,7 @@ SHA-256  1f52d235f5d404242cf974819338e168406867c2fbc448f20623bf776cad744b
 ```
 
 ```bash
-apksigner verify --print-certs Alice-Wallet-beta-0.2.0-v8.apk
+apksigner verify --print-certs Alice-Wallet-beta-0.2.0-v9.apk
 ```
 
 The key changed once, between 0.1.0 and 0.2.0, together with the Android
@@ -58,7 +58,7 @@ the first install, which is exactly when you have nothing to compare against.
 | Tag | `v0.2.0` |
 | Commit | the commit the `v0.2.0` tag points to, listed in the GitHub Release |
 | Android application id | `com.alicebtc.wallet` |
-| Android version code | `8` |
+| Android version code | `9` |
 | Expo SDK | `54.0.35` |
 | React Native | `0.81.5` |
 | Node | `24` |
@@ -182,18 +182,18 @@ GitHub Release installation is.
    aapt dump badging path/to/downloaded.apk | head -1
    ```
 
-   The 0.2.0 build carries version code `8`. Rename the file with that code,
+   The 0.2.0 build carries version code `9`. Rename the file with that code,
    and make sure `ANDROID_APK_URL` in `apps/site/src/lib/site.ts` ends in the
-   same `v8.apk`; if the two disagree, fix the URL, not the file name:
+   same `v9.apk`; if the two disagree, fix the URL, not the file name:
 
    ```bash
-   mv path/to/downloaded.apk Alice-Wallet-beta-0.2.0-v8.apk
+   mv path/to/downloaded.apk Alice-Wallet-beta-0.2.0-v9.apk
    ```
 
 4. Calculate and verify its SHA-256 digest:
 
    ```bash
-   shasum -a 256 Alice-Wallet-beta-0.2.0-v8.apk \
+   shasum -a 256 Alice-Wallet-beta-0.2.0-v9.apk \
      > SHA256SUMS-v0.2.0.txt
    shasum -a 256 -c SHA256SUMS-v0.2.0.txt
    ```
@@ -203,15 +203,15 @@ GitHub Release installation is.
 
    ```bash
    gh release upload v0.2.0 \
-     Alice-Wallet-beta-0.2.0-v8.apk \
+     Alice-Wallet-beta-0.2.0-v9.apk \
      SHA256SUMS-v0.2.0.txt \
      --clobber
    ```
 
-6. In `apps/site/src/lib/site.ts`, change only `ANDROID_VERSION` from `0.1.0`
-   to `0.2.0` after the release assets exist. This derives the release page and
-   APK download URLs. Confirm both URLs return the intended files before the
-   site is deployed.
+6. In `apps/site/src/lib/site.ts`, `ANDROID_VERSION` and the version code in
+   `ANDROID_APK_URL` must match the uploaded asset (`0.2.0`, `v9`). They derive
+   the release page and APK download URLs. Confirm both URLs return the
+   intended files before the site is deployed.
 
 ## Safety Rules
 

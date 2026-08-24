@@ -111,7 +111,7 @@ function friendlySendError(
   // generic refusal, and the sanitised reason goes to the diagnostic log.
   if (error instanceof SatoraRefusalError) {
     if (!error.recognized) {
-      void addDiagnosticLog('warning', 'Satora refused the quote', error.diagnostic).catch(() => {});
+      void addDiagnosticLog('warning', 'Satora refused the request', error.diagnostic).catch(() => {});
     }
     return error.message;
   }

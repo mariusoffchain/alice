@@ -68,6 +68,9 @@ export {
   genericSatoraRefusal,
   classifySatoraReason,
   describeSatoraRefusal,
+  fromSatoraSdkError,
+  satoraCall,
+  type SatoraContext,
   extractSatoraReason,
 } from './satora-error-message';
 export { settledIncomingAmount } from './receive-completion';

@@ -7,11 +7,10 @@
  * the build dies before compiling anything. When the host already holds a
  * verified copy, this hook installs it instead.
  *
- * Inactive unless both are set on the build command:
- *   RNLLAMA_SKIP_POSTINSTALL=1        llama.rn skips its own download
- *   RNLLAMA_ARTIFACTS_DIR=<path>      a llama.rn package dir holding the
- *                                     artifacts, typically the host's
- *                                     node_modules/llama.rn
+ * Inactive unless RNLLAMA_ARTIFACTS_DIR is set on the build command, to a
+ * llama.rn package dir holding the artifacts (typically the host's
+ * node_modules/llama.rn). Pair it with RNLLAMA_SKIP_POSTINSTALL=1 so that
+ * llama.rn skips its own download during npm ci.
  *
  * The host copy is accepted only if its marker file carries the archive
  * SHA-256 that llama.rn's own manifest expects, the same rule llama.rn
@@ -47,11 +46,18 @@ for (const artifact of wanted) {
     console.error(`eas-post-install: ${artifact.name} in ${sourceRoot} is ${recorded}, manifest expects ${artifact.sha256}`);
     process.exit(1);
   }
-  const target = path.join(targetRoot, artifact.relativePath);
+  const target = path.resolve(targetRoot, artifact.relativePath);
+  const markerTarget = path.resolve(targetRoot, artifact.markerPath);
+  for (const inside of [target, markerTarget]) {
+    if (!inside.startsWith(targetRoot + path.sep)) {
+      console.error(`eas-post-install: refusing to write outside llama.rn: ${inside}`);
+      process.exit(1);
+    }
+  }
   fs.rmSync(target, { recursive: true, force: true });
   fs.cpSync(source, target, { recursive: true });
   // The marker is the SHA-256 of the archive, recorded by llama.rn when it
   // verified the download; the files under it are what that archive held.
-  fs.writeFileSync(path.join(targetRoot, artifact.markerPath), `${artifact.sha256}\n`);
+  fs.writeFileSync(markerTarget, `${artifact.sha256}\n`);
   console.log(`eas-post-install: installed ${artifact.name} from host copy ${artifact.sha256.slice(0, 12)}`);
 }

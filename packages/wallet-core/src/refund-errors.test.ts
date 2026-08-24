@@ -16,3 +16,8 @@ test('refund errors distinguish retryable failures from a broadcast refund', () 
     /DO NOT RETRY/,
   );
 });
+
+test('an unrecognised refund error is not shown as is', () => {
+  const shown = friendlyRefundError(new Error('node panic at /srv/x: token=abc'), 'Satora');
+  assert.equal(shown, 'SATORA COULD NOT PROCESS THE REFUND. YOUR FUNDS REMAIN RECOVERABLE. TRY AGAIN LATER.');
+});
