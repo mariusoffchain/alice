@@ -22,6 +22,11 @@ export const DESKTOP_WINDOWS_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VER
 export const DESKTOP_LINUX_APPIMAGE_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VERSION}_amd64.AppImage`;
 export const DESKTOP_LINUX_DEB_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VERSION}_amd64.deb`;
 
+// Shown under "Alice Wallet" in the download menu. The wallet is a beta that
+// holds real bitcoin on mainnet, and the person choosing a download is the
+// one who needs to read that, before the release notes rather than after.
+export const WALLET_BETA_NOTE = 'Beta, not audited. Small amounts only.';
+
 export const SITE_NAME = 'Alice';
 
 // Drives noindex/robots.txt. Still false: the next release opens the public

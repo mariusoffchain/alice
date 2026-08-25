@@ -3,6 +3,7 @@
 // point at something a reader can open: a claim whose proof is only promised
 // is the one thing this block cannot contain.
 import { SOURCE_URL } from '@/lib/site';
+import { externalLinkProps } from '@/lib/links';
 
 type Claim = { claim: string; href: string; proof: string };
 
@@ -43,9 +44,7 @@ export function VerifyBlock() {
                 // Off-site proofs open in a new tab, and no referrer follows
                 // the reader there: a privacy page that leaks where you came
                 // from would undercut the claim right above it.
-                {...(c.href.startsWith('http')
-                  ? { target: '_blank', rel: 'noreferrer' }
-                  : {})}
+                {...externalLinkProps(c.href)}
                 className="shrink-0 text-[13px] text-[var(--alice-primary)] hover:underline"
               >
                 {c.proof} →

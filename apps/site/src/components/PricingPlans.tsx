@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { APP_URL, PROXY_URL } from '@/lib/site';
+import { externalLinkProps } from '@/lib/links';
 
 /**
  * The price list, quoted the way Alice charges: satoshis first, the euro
@@ -18,6 +19,9 @@ type PlanQuote = {
   price_sats: number | null;
   price_minor: number;
 };
+
+// Straight to the account panel of the app, where the top-up happens.
+const ACCOUNT_URL = `${APP_URL}/?settings=account`;
 
 const FALLBACK_ANCHOR: Record<'cloud', number> = {
   cloud: 500,
@@ -115,7 +119,8 @@ export function PricingPlans() {
 
       <div className="lg:col-span-2">
         <a
-          href={`${APP_URL}/?settings=account`}
+          href={ACCOUNT_URL}
+          {...externalLinkProps(ACCOUNT_URL)}
           className="cta px-6 py-3 text-[15px]"
         >
           Get more Private Cloud

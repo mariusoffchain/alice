@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { SOURCE_URL } from '@/lib/site';
 import { SiteNav } from '@/components/SiteNav';
 import { SiteFooter } from '@/components/SiteFooter';
+import { externalLinkProps } from '@/lib/links';
 
 export const metadata: Metadata = {
   title: 'Credits and licenses',
@@ -59,6 +60,7 @@ export default function CreditsPage() {
                 {font.role} Designed by {font.designer}, and released under the{' '}
                 <a
                   href={font.license}
+                  {...externalLinkProps(font.license)}
                   className="text-[var(--alice-primary)] hover:underline"
                 >
                   SIL Open Font License 1.1

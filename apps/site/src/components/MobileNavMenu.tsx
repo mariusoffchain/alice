@@ -76,6 +76,11 @@ export function MobileNavMenu() {
                     <span className="font-pixel text-[9px] uppercase tracking-widest text-[var(--alice-muted)]">
                       {group.label}
                     </span>
+                    {group.note && (
+                      <p className="mt-1 text-[10px] leading-[1.35] text-[var(--alice-muted)]">
+                        {group.note}
+                      </p>
+                    )}
                   </div>
                   {group.items.map((item) => (
                     <PlatformRow key={`${group.label}:${item.label}`} {...item} compact />

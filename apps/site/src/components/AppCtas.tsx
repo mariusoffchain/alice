@@ -12,6 +12,7 @@ import {
   DESKTOP_MAC_URL,
   DESKTOP_RELEASE_URL,
   DESKTOP_WINDOWS_URL,
+  WALLET_BETA_NOTE,
   WALLET_URL,
 } from '@/lib/site';
 import {
@@ -25,6 +26,7 @@ import {
   ChevronDownIcon,
   ShieldCheckIcon,
 } from '@/components/icons';
+import { externalLinkProps } from '@/lib/links';
 
 type Size = 'sm' | 'md';
 
@@ -72,14 +74,18 @@ export const WALLET_PLATFORM_ITEMS: PlatformItem[] = [
   { icon: <DownloadIcon size={18} />, label: 'Release & checksum', href: ANDROID_RELEASE_URL },
 ];
 
-export type PlatformGroup = { label: string; items: PlatformItem[] };
+// `note` is a one-line caveat under the group title, for what the reader
+// should know before clicking any row in it, not just one.
+export type PlatformGroup = { label: string; items: PlatformItem[]; note?: string };
 
 // Everything Alice ships, in one list. Two products, so the menu names them
 // rather than pretending there is only one; the nav's other button is the
 // one that just opens the companion.
 export const DOWNLOAD_GROUPS: PlatformGroup[] = [
   { label: 'Alice App', items: APP_PLATFORM_ITEMS },
-  { label: 'Alice Wallet', items: WALLET_PLATFORM_ITEMS },
+  // The wallet is a beta holding real bitcoin: the warning belongs where the
+  // download is chosen, not only in the release notes.
+  { label: 'Alice Wallet', items: WALLET_PLATFORM_ITEMS, note: WALLET_BETA_NOTE },
 ];
 
 // Available items get a real link; items with no href (not yet distributed)
@@ -138,6 +144,7 @@ export function PlatformRow({ icon, label, href, notice, compact }: PlatformItem
       <a
         href={href}
         role="menuitem"
+        {...externalLinkProps(href)}
         className={`${box} transition-colors hover:bg-[var(--alice-bg)]`}
       >
         {inner}
@@ -188,6 +195,13 @@ function PlatformMenu({
               <span className="whitespace-nowrap font-pixel text-[9px] uppercase tracking-widest text-[var(--alice-muted)]">
                 {group.label}
               </span>
+              {/* The note sits under its title and wraps; the App column has
+                  one row more, so the two columns end level. */}
+              {group.note && (
+                <p className="mt-1 text-[11px] leading-[1.35] text-[var(--alice-muted)]">
+                  {group.note}
+                </p>
+              )}
             </div>
             {group.items.map((item) => (
               <PlatformRow key={`${group.label}:${item.label}`} {...item} compact={placement.compact} />
@@ -280,7 +294,7 @@ function PlatformSelector({
 // where practice becomes real, and it has its own step in the tour.
 export function OpenAliceButton({ size = 'md' }: { size?: Size }) {
   return (
-    <a href={APP_URL} className={`cta cta-solid ${sizes[size]}`}>
+    <a href={APP_URL} {...externalLinkProps(APP_URL)} className={`cta cta-solid ${sizes[size]}`}>
       Open web app
     </a>
   );

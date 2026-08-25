@@ -1,5 +1,6 @@
 import { APP_URL, NAV_LINKS } from '@/lib/site';
 import { AliceMark } from '@/components/icons';
+import { externalLinkProps } from '@/lib/links';
 
 export function SiteFooter() {
   return (
@@ -25,7 +26,7 @@ export function SiteFooter() {
           <a href="/credits/" className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
             Credits
           </a>
-          <a href={APP_URL} className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
+          <a href={APP_URL} {...externalLinkProps(APP_URL)} className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
             Open web app
           </a>
         </nav>

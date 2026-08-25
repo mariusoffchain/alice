@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { APP_URL, OG_ALT, SITE_URL } from '@/lib/site';
 import { SiteNav } from '@/components/SiteNav';
 import { SiteFooter } from '@/components/SiteFooter';
+import { externalLinkProps } from '@/lib/links';
 
 export const metadata: Metadata = {
   title: 'Alice vs ChatGPT for Bitcoin',
@@ -169,6 +170,7 @@ export default function VsChatGptPage() {
           </div>
           <a
             href={APP_URL}
+            {...externalLinkProps(APP_URL)}
             className="shrink-0 rounded-[3px] border-2 border-[var(--alice-primary)] bg-[var(--alice-primary)] px-5 py-3 font-semibold text-[var(--alice-on-primary)] transition-transform hover:-translate-y-0.5"
           >
             Open web app

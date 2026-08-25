@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { SiteNav } from '@/components/SiteNav';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SOURCE_URL } from '@/lib/site';
+import { externalLinkProps } from '@/lib/links';
 
 export const metadata: Metadata = {
   title: 'Trust & verification',
@@ -170,7 +171,7 @@ export default function TrustPage() {
         <p className="mt-12 text-sm text-[var(--alice-muted)]">
           The source code is public under the AGPL, so anyone can check these
           claims independently:{' '}
-          <a href={SOURCE_URL} className="underline underline-offset-4">read the code</a>.
+          <a href={SOURCE_URL} {...externalLinkProps(SOURCE_URL)} className="underline underline-offset-4">read the code</a>.
         </p>
       </main>
       <SiteFooter />
