@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 // What an unsigned build does to a first-time visitor, said before it happens
 // rather than after.
@@ -72,6 +72,11 @@ export function DownloadNotice({
   onCancel: () => void;
 }) {
   const notice = NOTICES[platform];
+  // The steps are needed *after* the download, when the operating system puts
+  // its warning on screen. Closing this dialog on the download click threw
+  // them away at exactly the moment they became useful, so the click starts
+  // the file and leaves the instructions standing.
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -85,76 +90,119 @@ export function DownloadNotice({
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8 overflow-y-auto"
       style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
-      onClick={onCancel}
+      // Before the download, a click outside is a way out. After it, it is a
+      // stray click that would take the steps away mid-install; the close
+      // button and Escape stay, and they are deliberate.
+      onClick={started ? undefined : onCancel}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={notice.title}
         onClick={event => event.stopPropagation()}
-        className="w-full max-w-lg rounded-[6px] border-2 p-6"
+        className="relative flex max-h-[calc(100vh-4rem)] w-full max-w-lg flex-col rounded-[6px] border-2"
         style={{
           borderColor: 'var(--alice-border)',
           backgroundColor: 'var(--alice-bg)',
         }}
       >
-        <p className="font-pixel text-[11px] uppercase tracking-widest text-[var(--alice-primary)]">
-          Before you download
-        </p>
-        <h2 className="mt-3 text-xl font-semibold text-[var(--alice-heading)] sm:text-2xl">
-          {notice.title}
-        </h2>
-
-        <p
-          className="mt-4 rounded-[4px] border-l-2 px-4 py-3 text-[15px] leading-relaxed"
-          style={{
-            borderColor: 'var(--alice-primary)',
-            backgroundColor: 'var(--alice-bg-soft)',
-            color: 'var(--alice-text)',
-          }}
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Close"
+          className="absolute right-3 top-3 cursor-pointer bg-transparent px-2 py-1 text-lg leading-none text-[var(--alice-muted)]"
         >
-          {notice.screen}
-        </p>
+          ×
+        </button>
 
-        <p className="mt-4 leading-relaxed text-[var(--alice-text)]">{notice.why}</p>
+        <div className="shrink-0 px-6 pt-6">
+          <p className="font-pixel text-[11px] uppercase tracking-widest text-[var(--alice-primary)] pr-8">
+            {started ? 'While it downloads' : 'Before you download'}
+          </p>
+          <h2 className="mt-3 text-xl font-semibold text-[var(--alice-heading)] sm:text-2xl">
+            {notice.title}
+          </h2>
 
-        <ol className="mt-4 flex list-decimal flex-col gap-2 pl-5 leading-relaxed text-[var(--alice-text)]">
-          {notice.steps.map(step => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
+          {started && (
+            <p className="mt-3 text-sm leading-relaxed text-[var(--alice-primary)]">
+              Your download has started. These steps stay on screen until you
+              close them, because you will need them when the warning appears.
+            </p>
+          )}
+        </div>
 
-        <p className="mt-5 text-sm leading-relaxed text-[var(--alice-muted)]">
-          Alice is open source, and every release publishes the checksum of each
-          file. You can verify that what you downloaded is exactly what we
-          published:{' '}
-          <a
-            href={verifyHref}
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
-            style={{ color: 'var(--alice-primary)' }}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6">
+          <p
+            className="mt-4 rounded-[4px] border-l-2 px-4 py-3 text-[15px] leading-relaxed"
+            style={{
+              borderColor: 'var(--alice-primary)',
+              backgroundColor: 'var(--alice-bg-soft)',
+              color: 'var(--alice-text)',
+            }}
           >
-            release notes and checksums
-          </a>
-          .
-        </p>
+            {notice.screen}
+          </p>
 
-        <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="cursor-pointer bg-transparent px-3 py-2 text-sm text-[var(--alice-muted)]"
-          >
-            Cancel
-          </button>
-          <a
-            href={href}
-            onClick={onCancel}
-            className="cta cta-solid px-5 py-2.5 text-sm"
-          >
-            Download anyway
-          </a>
+          <p className="mt-4 leading-relaxed text-[var(--alice-text)]">{notice.why}</p>
+
+          <ol className="mt-4 flex list-decimal flex-col gap-2 pl-5 leading-relaxed text-[var(--alice-text)]">
+            {notice.steps.map(step => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+
+          <p className="mt-5 text-sm leading-relaxed text-[var(--alice-muted)]">
+            Alice is open source, and every release publishes the checksum of each
+            file. You can verify that what you downloaded is exactly what we
+            published:{' '}
+            <a
+              href={verifyHref}
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+              style={{ color: 'var(--alice-primary)' }}
+            >
+              release notes and checksums
+            </a>
+            .
+          </p>
+        </div>
+
+        <div className="shrink-0 flex flex-wrap items-center justify-end gap-3 px-6 pb-6 pt-4">
+          {started ? (
+            <>
+              <a
+                href={href}
+                className="cursor-pointer px-3 py-2 text-sm text-[var(--alice-muted)] underline"
+              >
+                Download again
+              </a>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="cta cta-solid px-5 py-2.5 text-sm"
+              >
+                Close
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="cursor-pointer bg-transparent px-3 py-2 text-sm text-[var(--alice-muted)]"
+              >
+                Cancel
+              </button>
+              <a
+                href={href}
+                onClick={() => setStarted(true)}
+                className="cta cta-solid px-5 py-2.5 text-sm"
+              >
+                Download anyway
+              </a>
+            </>
+          )}
         </div>
       </div>
     </div>
