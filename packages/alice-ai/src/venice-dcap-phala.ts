@@ -5,7 +5,7 @@
 // functions `verifyTdxQuote` expects, plus the default PCCS origin.
 //
 // The library is Apache-2.0 and pure JS (no WASM); it works on web and Tauri.
-// React Native is NOT yet confirmed by a device run — do not treat mobile as
+// React Native is NOT yet confirmed by a device run, do not treat mobile as
 // verified until that test exists (see docs/security/private-cloud-e2ee.md).
 
 import * as dcap from '@phala/dcap-qvl';

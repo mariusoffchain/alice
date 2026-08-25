@@ -214,7 +214,7 @@ export function AliceMark({
         className="block"
       />
       {showWordmark && (
-        <span className="font-pixel text-[13px] text-[var(--alice-heading)]">Alice</span>
+        <span className="font-pixel text-[14px] text-[var(--alice-heading)]">Alice</span>
       )}
     </span>
   );

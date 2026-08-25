@@ -1,6 +1,6 @@
 {
   "name": "@alice-wallet/wallet-mobile",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "AGPL-3.0-or-later",
   "private": true,
   "main": "index.js",
@@ -13,9 +13,15 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build:pwa": "node scripts/build-pwa.js",
-    "check:ai-boundary": "node scripts/check-ai-wallet-boundary.js"
+    "check:ai-boundary": "node scripts/check-ai-wallet-boundary.js",
+    "eas-build-post-install": "node scripts/eas-post-install.js"
   },
   "dependencies": {
+    "@alice-wallet/alice-ai": "*",
+    "@alice-wallet/alice-content": "*",
+    "@alice-wallet/alice-ui": "*",
+    "@alice-wallet/shared-types": "*",
+    "@alice-wallet/wallet-core": "*",
     "@arkade-os/boltz-swap": "0.3.44",
     "@arkade-os/sdk": "0.4.39",
     "@expo/metro-runtime": "~6.1.2",
@@ -25,7 +31,7 @@
     "@noble/secp256k1": "^3.0.0",
     "@phala/dcap-qvl": "^0.6.1",
     "@react-native-async-storage/async-storage": "^2.1.2",
-    "@satora/swap": "0.1.0",
+    "@satora/swap": "1.3.1",
     "@scure/base": "^2.0.0",
     "@scure/bip32": "^2.2.0",
     "@scure/bip39": "^2.0.1",

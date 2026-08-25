@@ -1,4 +1,4 @@
 {
   "installCommand": "cd ../.. && npm ci --include=optional",
-  "buildCommand": "NAPI_RS_FORCE_WASI=true npm run build"
+  "buildCommand": ": \"${NEXT_PUBLIC_LEARN_PACKS_BASE:=$(node ../../scripts/prepare-learn-packs.mjs --print-base)}\" && export NEXT_PUBLIC_LEARN_PACKS_BASE && NAPI_RS_FORCE_WASI=true npm run build"
 }

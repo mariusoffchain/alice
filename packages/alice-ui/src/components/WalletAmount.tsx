@@ -12,7 +12,7 @@ type Props = {
   containerStyle?: StyleProp<ViewStyle>;
   iconSize?: number;
   iconColor?: string;
-  /** @deprecated tight is now the default — only pass false to restore the old loose viewBox */
+  /** @deprecated tight is now the default, only pass false to restore the old loose viewBox */
   iconTight?: boolean;
   iconOffsetY?: number;
   gap?: number;

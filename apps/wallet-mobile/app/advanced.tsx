@@ -1,32 +1,26 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { spacing, typography, type Colors, type Pixel } from '@alice-wallet/alice-content';
 import { useTheme } from '@alice-wallet/alice-ui';
+import {
+  ADVANCED_GROUP_ORDER,
+  advancedSectionsInGroup,
+  type AdvancedGroup,
+} from '../lib/advanced-sections';
+
+const GROUP_TITLES: Record<AdvancedGroup, string> = {
+  connection: 'CONNECTION',
+  coins: 'YOUR COINS',
+  recovery: 'RECOVERY',
+  developer: 'DEVELOPER',
+};
 
 export default function AdvancedSettingsScreen() {
   const router = useRouter();
   const { colors, pixel } = useTheme();
   const s = useMemo(() => makeStyles(colors, pixel), [colors, pixel]);
-
-  const rows = [
-    { label: 'LOGS', route: '/advanced-logs' as const },
-    { label: 'SERVER', route: '/advanced-server' as const },
-    { label: 'DELEGATED RENEWAL', route: '/delegates' as const },
-    { label: 'COIN CONTROL', route: '/coin-control' as const },
-    { label: 'ADDRESSES', route: '/addresses' as const },
-    { label: 'SWAP IDs', route: '/swap-ids' as const },
-    { label: 'EMERGENCY EXIT', route: '/emergency-exit' as const },
-    // A developer tool that deliberately lets a swap expire so it can be
-    // refunded. It was hidden by the swap provider, which made its visibility
-    // an accident of configuration: a Boltz build would have shipped it to
-    // testers. Gate it on the build type instead, so no distributed build can
-    // show it whatever the provider is.
-    ...(__DEV__
-      ? [{ label: 'TEST', route: '/advanced-test' as const }]
-      : []),
-  ];
 
   return (
     <SafeAreaView style={s.safe}>
@@ -35,18 +29,34 @@ export default function AdvancedSettingsScreen() {
         <Text style={s.title}>ADVANCED</Text>
         <View style={{ width: 36 }} />
       </View>
-      <View style={s.section}>
-        {rows.map((row, index) => (
-          <TouchableOpacity key={row.label} style={[s.row, index === rows.length - 1 && s.rowLast]} onPress={() => router.push(row.route as never)}>
-            <Text style={s.rowLabel}>{row.label}</Text>
-            <Text style={s.chevron}>›</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
 
-      <TouchableOpacity style={s.resetBtn} onPress={() => router.push('/reset-wallet')}>
-        <Text style={s.resetText}>RESET WALLET</Text>
-      </TouchableOpacity>
+      <ScrollView contentContainerStyle={s.scroll}>
+        {ADVANCED_GROUP_ORDER.map((group) => {
+          const sections = advancedSectionsInGroup(group);
+          if (sections.length === 0) return null;
+          return (
+            <View key={group}>
+              <Text style={s.groupTitle}>{GROUP_TITLES[group]}</Text>
+              <View style={s.section}>
+                {sections.map((section, index) => (
+                  <TouchableOpacity
+                    key={section.id}
+                    style={[s.row, index === sections.length - 1 && s.rowLast]}
+                    onPress={() => router.push(section.route)}
+                  >
+                    <Text style={s.rowLabel}>{section.label}</Text>
+                    <Text style={s.chevron}>›</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          );
+        })}
+
+        <TouchableOpacity style={[s.resetBtn, { backgroundColor: colors.dangerSoft, borderColor: colors.danger }]} onPress={() => router.push('/reset-wallet')}>
+          <Text style={[s.resetText, { color: colors.danger }]}>RESET WALLET</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -58,14 +68,14 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     backBtn: { ...pixel, width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardBg },
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
     title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 3 },
-    section: { ...pixel, marginHorizontal: spacing.lg, marginTop: spacing.xl, backgroundColor: colors.cardBg },
+    scroll: { paddingBottom: spacing.xxl },
+    groupTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 2, marginHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.xs },
+    section: { ...pixel, marginHorizontal: spacing.lg, backgroundColor: colors.cardBg },
     row: { minHeight: 72, paddingHorizontal: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.dotted },
     rowLast: { borderBottomWidth: 0 },
-    rowLabel: { fontFamily: typography.pixel, fontSize: 9, color: colors.primaryDark, letterSpacing: 1 },
-    rowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-    rowValue: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted },
+    rowLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
     chevron: { fontFamily: typography.numbers, fontSize: 28, color: colors.muted },
     resetBtn: { ...pixel, marginHorizontal: spacing.lg, marginTop: spacing.xxl, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: '#fff1f1', borderColor: '#e06060' },
-    resetText: { fontFamily: typography.pixel, fontSize: 8, color: '#c84f4f', letterSpacing: 1 },
+    resetText: { fontFamily: typography.pixel, fontSize: 12, color: '#c84f4f', letterSpacing: 1 },
   });
 }

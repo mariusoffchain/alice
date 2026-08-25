@@ -92,7 +92,7 @@ describe('encryptToEnvelope / decryptEnvelope', () => {
 
   it('round-trips unicode and long text', () => {
     const model = generateEphemeralKeyPair();
-    const text = 'Bitcoin ⚡ — accents, émojis 🔐, and a fairly long sentence. '.repeat(20);
+    const text = 'Bitcoin ⚡, accents, émojis 🔐, and a fairly long sentence. '.repeat(20);
     const envelope = encryptToEnvelope(model.publicKey, text);
     assert.equal(decryptEnvelope(model.secretKey, envelope), text);
   });
@@ -141,7 +141,7 @@ describe('encryptToEnvelope / decryptEnvelope', () => {
   });
 });
 
-describe('parseEnvelope — fail closed on anything malformed', () => {
+describe('parseEnvelope, fail closed on anything malformed', () => {
   it('splits a well-formed envelope at the right offsets', () => {
     const model = generateEphemeralKeyPair();
     const envelope = encryptToEnvelope(model.publicKey, 'hello');
@@ -152,8 +152,8 @@ describe('parseEnvelope — fail closed on anything malformed', () => {
     assert.ok(parsed.ciphertext.length >= 16, 'ciphertext carries at least the GCM tag');
   });
 
-  // The whole point: a Venice response that is NOT an envelope — most
-  // importantly, one that is plaintext model output — must be rejected, never
+  // The whole point: a Venice response that is NOT an envelope, most
+  // importantly, one that is plaintext model output, must be rejected, never
   // rendered as if E2EE had happened.
   it('rejects plaintext model output', () => {
     assert.throws(() => parseEnvelope('A UTXO is an unspent transaction output.'), VeniceE2EEError);

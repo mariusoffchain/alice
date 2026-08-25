@@ -39,9 +39,9 @@ export default function AboutScreen() {
   const connLabel = connStatus === 'connected' ? 'SERVICES ONLINE'
     : connStatus === 'checking' ? 'CHECKING...'
     : 'PARTIAL OUTAGE';
-  const connColor = connStatus === 'connected' ? '#2ea043'
-    : connStatus === 'checking' ? '#d4a017'
-    : '#e06060';
+  const connColor = connStatus === 'connected' ? colors.success
+    : connStatus === 'checking' ? colors.warning
+    : colors.danger;
   const appVersion = Constants.expoConfig?.version ?? 'unknown';
   const appCommit = process.env.EXPO_PUBLIC_APP_COMMIT_SHA ?? 'local-dev';
 
@@ -95,9 +95,9 @@ export default function AboutScreen() {
             >
               <Text style={[s.rowLabel, { color: colors.primaryDark }]}>{service.label}</Text>
               <View style={s.rowRight}>
-                <View style={[s.statusDot, { backgroundColor: service.ok ? '#2ea043' : '#e06060' }]} />
+                <View style={[s.statusDot, { backgroundColor: service.ok ? colors.success : colors.danger }]} />
                 <Text
-                  style={[s.rowValue, { color: service.ok ? colors.muted : '#e06060' }]}
+                  style={[s.rowValue, { color: service.ok ? colors.muted : colors.danger }]}
                   numberOfLines={1}
                   ellipsizeMode="middle"
                 >
@@ -143,11 +143,11 @@ const s = StyleSheet.create({
   backIcon: { fontFamily: typography.pixel, fontSize: 18 },
   title: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 3 },
   section: { marginHorizontal: spacing.lg, marginTop: spacing.md },
-  sectionTitle: { fontFamily: typography.pixel, fontSize: 8, letterSpacing: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
+  sectionTitle: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, borderBottomWidth: 1 },
   rowLast: { borderBottomWidth: 0 },
-  rowLabel: { fontFamily: typography.pixel, fontSize: 11, letterSpacing: 1 },
-  rowValue: { flexShrink: 1, fontFamily: typography.pixel, fontSize: 11, textAlign: 'right' },
+  rowLabel: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1 },
+  rowValue: { flexShrink: 1, fontFamily: typography.pixel, fontSize: 12, textAlign: 'right' },
   rowRight: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: spacing.xs, marginLeft: spacing.md },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
 });

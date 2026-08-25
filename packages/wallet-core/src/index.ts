@@ -11,6 +11,11 @@ export {
   refreshTransactionHistory,
   getVtxos,
   restoreWallet,
+  type RecoveryScanStatus,
+  getRecoveryScanStatus,
+  runRecoveryScan,
+  resumeRecoveryScanIfPending,
+  WalletReplacedError,
   setVtxoFrozen,
   listReceiveAddresses,
   reserveArkadeReceiveAddress,
@@ -54,9 +59,20 @@ export {
 } from './native-onchain';
 export {
   quoteArkToLightningWithSatora,
+  SatoraRefusalError,
   type SatoraQuoteOptions,
 } from './satora-quote';
-export { friendlySatoraLimitError } from './satora-error-message';
+export {
+  friendlySatoraLimitError,
+  friendlySatoraReason,
+  genericSatoraRefusal,
+  classifySatoraReason,
+  describeSatoraRefusal,
+  fromSatoraSdkError,
+  satoraCall,
+  type SatoraContext,
+  extractSatoraReason,
+} from './satora-error-message';
 export { settledIncomingAmount } from './receive-completion';
 export {
   findNewIncomingTransaction,
@@ -66,6 +82,7 @@ export { quoteArkToLightningForProvider } from './swap-quote';
 export { getConfirmations } from './confirmations';
 export {
   type ExplorerLink,
+  resolveBitcoinExplorer,
   resolveTransactionExplorer,
   resolvePaymentExplorer,
   resolveArkadeExplorer,
@@ -92,6 +109,7 @@ export {
   friendlyNetworkError,
   checkNetworkHealth,
 } from './network-errors';
+export { friendlyRefundError } from './refund-errors';
 export {
   NETWORK,
   ASP_URL,
@@ -101,6 +119,7 @@ export {
   SATORA_HEALTH_URL,
   SWAP_PROVIDER,
   type SwapProvider,
+  ALICE_APP_URL,
   ARKADE_EXPLORER,
   MEMPOOL_EXPLORER,
   WEB_DB_NAME,
@@ -127,7 +146,7 @@ export {
   type PaymentStatus,
 } from './payment-types';
 export { isRefundTestArmed, armRefundTest, disarmRefundTest, consumeRefundTest } from './refund-test';
-export { saveMnemonic, loadMnemonic, savePublicKey, loadPublicKey, clearWallet } from './storage';
+export { saveMnemonic, loadMnemonic, savePublicKey, loadPublicKey, clearWallet, forgetWalletForNewSeed } from './storage';
 export {
   type Balance,
   type TransactionStatus,

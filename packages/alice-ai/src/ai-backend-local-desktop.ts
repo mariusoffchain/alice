@@ -25,6 +25,10 @@ const POLL_INTERVAL_MS = 500;
 const POLL_TIMEOUT_MS = 30_000;
 
 const DESKTOP_MODEL_PATH_KEY = 'alice_ai_desktop_model_path';
+// Desktop machines afford a roomier context than the shared mobile default:
+// every catalog model supports at least 8k, and 4096 left ~250 tokens for the
+// answer once the system prompt and history were in.
+const DESKTOP_CONTEXT_TOKENS = 8192;
 
 export async function getDesktopModelPath(): Promise<string | null> {
   return AsyncStorage.getItem(DESKTOP_MODEL_PATH_KEY);
@@ -71,17 +75,30 @@ export async function installDesktopModel(
     const total = Number(response.headers.get('content-length') ?? entry.sizeBytes);
     const reader = response.body.getReader();
     let written = 0;
+    // Network reads arrive in ~16-64 KB pieces; forwarding each one over the
+    // JSON IPC bridge means tens of thousands of expensive calls on a
+    // multi-GB file (observed failing late into large downloads). Batch them.
+    const BATCH_BYTES = 4 * 1024 * 1024;
+    let batch: number[] = [];
+    const flush = async () => {
+      if (batch.length === 0) return;
+      const chunk = batch;
+      batch = [];
+      await tauriInvoke('local_ai_download_model_chunk', {
+        filename: entry.filename,
+        chunk,
+      });
+    };
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       if (!value) continue;
       written += value.byteLength;
-      await tauriInvoke('local_ai_download_model_chunk', {
-        filename: entry.filename,
-        chunk: Array.from(value),
-      });
+      for (let i = 0; i < value.length; i++) batch.push(value[i]);
+      if (batch.length >= BATCH_BYTES) await flush();
       if (total > 0) onProgress?.(Math.min(written / total, 1));
     }
+    await flush();
     await tauriInvoke('local_ai_download_model_finish', { filename: entry.filename });
     onProgress?.(1);
   } catch (error) {
@@ -133,6 +150,11 @@ async function waitForExistingLocalServer(timeoutMs: number): Promise<boolean> {
   return false;
 }
 
+// The model llama-server was last started with, so switching the active model
+// in the UI actually reloads the server instead of silently answering with
+// whatever was loaded before.
+let runningModelPath: string | null = null;
+
 export class LocalDesktopAIBackend implements AIBackend {
   readonly type = 'local' as const;
   private _status: AIBackendStatus = { state: 'idle' };
@@ -140,17 +162,24 @@ export class LocalDesktopAIBackend implements AIBackend {
   async init(): Promise<void> {
     this._status = { state: 'loading' };
     try {
-      if (await isLocalServerReady()) {
-        this._status = { state: 'ready' };
-        return;
-      }
       const activeModelId = await getActiveModelId();
       const installedModelPath = await getDesktopInstalledModelPath(activeModelId);
       const modelPath = await getDesktopModelPath();
       const selectedModelPath = installedModelPath || modelPath;
+      const serverReady = await isLocalServerReady();
+      if (serverReady && (!selectedModelPath || runningModelPath === selectedModelPath)) {
+        this._status = { state: 'ready' };
+        return;
+      }
       if (selectedModelPath) {
-        await tauriInvoke('local_ai_start', { modelPath: selectedModelPath });
+        if (serverReady) {
+          // A server is up but with another (or an unknown) model: reload it
+          // so the answer really comes from the model named in the UI.
+          await tauriInvoke('local_ai_stop').catch(() => {});
+        }
+        await tauriInvoke('local_ai_start', { modelPath: selectedModelPath, ctxSize: DESKTOP_CONTEXT_TOKENS });
         await pollUntilReady();
+        runningModelPath = selectedModelPath;
         this._status = { state: 'ready' };
         return;
       }
@@ -179,17 +208,30 @@ export class LocalDesktopAIBackend implements AIBackend {
   async sendMessage(messages: Message[], onChunk?: (chunk: string) => void, options?: SendMessageOptions): Promise<AIResponse> {
     if (this._status.state !== 'ready') throw new Error('Local AI is not ready.');
 
-    const [preset, instructions] = await Promise.all([getPreset('local'), getAliceInstructions()]);
+    const [preset, instructions, activeModelId] = await Promise.all([
+      getPreset('local'),
+      getAliceInstructions(),
+      getActiveModelId(),
+    ]);
     const params = PRESETS[preset];
     const shouldBuffer = requiresBufferedAliceResponse(instructions);
     const streamFn = shouldBuffer ? undefined : onChunk;
 
+    // Qwen3 models reason by default and the <think> block eats the whole
+    // max_tokens budget, truncating the visible answer mid-sentence. Disable
+    // thinking through both channels: the official /no_think soft switch (any
+    // llama-server) and the chat-template kwarg (recent builds).
+    const disableThinking = activeModelId.startsWith('qwen3');
+    const systemPrompt =
+      buildAliceSystemPrompt(instructions, options?.responseLanguage ?? 'en') +
+      (disableThinking ? ' /no_think' : '');
+
     const fullMessages = [
-      { role: 'system' as const, content: buildAliceSystemPrompt(instructions, options?.responseLanguage ?? 'en') },
+      { role: 'system' as const, content: systemPrompt },
       ...withAliceInstructionReminder(messages, instructions, options?.responseLanguage ?? 'en', options?.strictLanguageRetry),
     ];
 
-    const fitted = fitMessagesToEstimatedLocalContext(fullMessages, params.maxTokens);
+    const fitted = fitMessagesToEstimatedLocalContext(fullMessages, params.maxTokens, DESKTOP_CONTEXT_TOKENS);
     const streaming = Boolean(streamFn);
     const payload: Record<string, unknown> = {
       model: 'local',
@@ -199,6 +241,7 @@ export class LocalDesktopAIBackend implements AIBackend {
       stream: streaming,
     };
     if (streaming) payload.stream_options = { include_usage: true };
+    if (disableThinking) payload.chat_template_kwargs = { enable_thinking: false };
 
     const t0 = Date.now();
     const response = await globalThis.fetch(`${LLAMA_BASE}/v1/chat/completions`, {

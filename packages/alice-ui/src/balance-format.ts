@@ -29,7 +29,10 @@ export function formatBalance(sats: number, format: BalanceFormat, btcPrice: num
     case 'sats':
       return sats.toLocaleString('en-US').replace(/,/g, ' ');
     case 'btc':
-      return (sats / 100_000_000).toFixed(8);
+      // All eight decimals only when they carry information: the trailing
+      // zeros beyond the first two are dropped, so 50.00000000 reads "50.00",
+      // 50.00001000 reads "50.00001", and 50.00000001 keeps every digit.
+      return (sats / 100_000_000).toFixed(8).replace(/(\.\d{2}\d*?)0+$/, '$1');
     case 'usd':
       if (!btcPrice) return '...';
       return withSymbol(symbol, ((sats / 100_000_000) * btcPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));

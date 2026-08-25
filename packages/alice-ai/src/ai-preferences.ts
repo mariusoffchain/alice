@@ -35,17 +35,13 @@ export const PRESETS: Record<AIPreset, PresetParams> = {
 
 // Cloud budgets are circuit breakers, not the thing that ends a normal answer:
 // they must be high enough that Alice finishes on her own. Raising them costs
-// nothing by itself — only generated tokens are billed — so the ceiling is set
+// nothing by itself, only generated tokens are billed, so the ceiling is set
 // well above what a well-behaved answer needs.
 export const CLOUD_PRESETS: Record<AIPreset, PresetParams> = {
   fast: { temperature: 0.3, maxTokens: 1024 },
   balanced: { temperature: 0.7, maxTokens: 4096 },
   deep: { temperature: 0.9, maxTokens: 8192 },
 };
-
-// A Deep answer is the whole point of the brain button, so it never inherits a
-// low reasoning preset: it gets at least this much room.
-export const CLOUD_DEEP_MIN_TOKENS = 8192;
 
 export const ALL_PRESETS: AIPreset[] = ['fast', 'balanced', 'deep'];
 
@@ -116,14 +112,11 @@ export type CloudModelEntry = {
   description: string;
 };
 
-// Cloud inference runs on Venice Private Cloud. Only the standard model is
-// user-selectable; Deep is a per-message toggle, not a catalog entry.
+// Cloud inference runs on Venice Private Cloud. The model is not user-selectable;
+// Light, Normal, and High are reasoning presets for the same catalog entry.
 export const CLOUD_MODELS: CloudModelEntry[] = [
   { id: 'alice-cloud', name: 'Private Cloud', veniceId: 'e2ee-gpt-oss-120b-p', description: 'Larger off-device model' },
 ];
-
-// Model used when a message is sent with the Deep toggle enabled.
-export const CLOUD_DEEP_MODEL = 'e2ee-glm-5-2-p';
 
 const PRESET_LOCAL_KEY = 'alice_ai_preset_local';
 const PRESET_CLOUD_KEY = 'alice_ai_preset_cloud';
@@ -320,8 +313,15 @@ export async function hasAnyInstalledModel(): Promise<boolean> {
 // AI enabled/disabled toggle
 
 const AI_ENABLED_KEY = 'alice_ai_enabled';
-const LOCAL_AI_ENABLED_KEY = 'alice_ai_local_enabled';
-const CLOUD_AI_ENABLED_KEY = 'alice_ai_cloud_enabled';
+const BACKEND_ENABLED_KEY_PREFIX = 'alice_ai_backend_enabled_';
+const LEGACY_LOCAL_AI_ENABLED_KEY = 'alice_ai_local_enabled';
+const LEGACY_CLOUD_AI_ENABLED_KEY = 'alice_ai_cloud_enabled';
+
+export type AIBackendEnabledState = {
+  local: boolean;
+  cloud: boolean;
+  custom: boolean;
+};
 
 export async function isAIEnabled(): Promise<boolean> {
   const stored = await AsyncStorage.getItem(AI_ENABLED_KEY);
@@ -332,23 +332,41 @@ export async function setAIEnabled(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(AI_ENABLED_KEY, String(enabled));
 }
 
-export async function isLocalAIEnabled(): Promise<boolean> {
-  const stored = await AsyncStorage.getItem(LOCAL_AI_ENABLED_KEY);
-  return stored !== 'false';
+export async function isAIBackendEnabled(backend: keyof AIBackendEnabledState): Promise<boolean> {
+  const stored = await AsyncStorage.getItem(`${BACKEND_ENABLED_KEY_PREFIX}${backend}`);
+  if (stored !== null) return stored !== 'false';
+
+  // Keep existing local and cloud preferences when moving to the shared
+  // per-backend setting. Custom has always defaulted to enabled.
+  const legacyKey = backend === 'local'
+    ? LEGACY_LOCAL_AI_ENABLED_KEY
+    : backend === 'cloud'
+      ? LEGACY_CLOUD_AI_ENABLED_KEY
+      : null;
+  if (!legacyKey) return true;
+  return (await AsyncStorage.getItem(legacyKey)) !== 'false';
 }
 
-export async function setLocalAIEnabled(enabled: boolean): Promise<void> {
-  await AsyncStorage.setItem(LOCAL_AI_ENABLED_KEY, String(enabled));
+export async function setAIBackendEnabled(
+  backend: keyof AIBackendEnabledState,
+  enabled: boolean,
+): Promise<void> {
+  await AsyncStorage.setItem(`${BACKEND_ENABLED_KEY_PREFIX}${backend}`, String(enabled));
 }
 
-export async function isCloudAIEnabled(): Promise<boolean> {
-  const stored = await AsyncStorage.getItem(CLOUD_AI_ENABLED_KEY);
-  return stored !== 'false';
+export async function getAIBackendEnabledState(): Promise<AIBackendEnabledState> {
+  const [local, cloud, custom] = await Promise.all([
+    isAIBackendEnabled('local'),
+    isAIBackendEnabled('cloud'),
+    isAIBackendEnabled('custom'),
+  ]);
+  return { local, cloud, custom };
 }
 
-export async function setCloudAIEnabled(enabled: boolean): Promise<void> {
-  await AsyncStorage.setItem(CLOUD_AI_ENABLED_KEY, String(enabled));
-}
+export const isLocalAIEnabled = () => isAIBackendEnabled('local');
+export const setLocalAIEnabled = (enabled: boolean) => setAIBackendEnabled('local', enabled);
+export const isCloudAIEnabled = () => isAIBackendEnabled('cloud');
+export const setCloudAIEnabled = (enabled: boolean) => setAIBackendEnabled('cloud', enabled);
 
 // Custom server (compatible local or remote endpoint)
 

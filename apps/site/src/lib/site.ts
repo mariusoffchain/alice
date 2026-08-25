@@ -4,17 +4,30 @@
 export const SITE_URL = 'https://alicebtc.com';
 export const APP_URL = 'https://app.alicebtc.com';
 export const WALLET_URL = 'https://wallet.alicebtc.com';
+// The blind proxy. The pricing page quotes satoshi prices from its public
+// /billing/plans endpoint, the same one the app checks out against, so the
+// site can never advertise a different figure than the invoice asks for.
+export const PROXY_URL = 'https://proxy.alicebtc.com';
 export const SOURCE_URL = 'https://github.com/mariusoffchain/alice';
-export const ANDROID_VERSION = '0.1.0';
+export const ANDROID_VERSION = '0.2.0';
 export const ANDROID_RELEASE_URL = `${SOURCE_URL}/releases/tag/v${ANDROID_VERSION}`;
-export const ANDROID_APK_URL = `${SOURCE_URL}/releases/download/v${ANDROID_VERSION}/Alice-Wallet-beta-${ANDROID_VERSION}-v11.apk`;
+export const ANDROID_APK_URL = `${SOURCE_URL}/releases/download/v${ANDROID_VERSION}/Alice-Wallet-beta-${ANDROID_VERSION}-v9.apk`;
+// Desktop installers ship on the same GitHub release as the APK. File names
+// are what the release workflow emits (Tauri's naming), copied verbatim.
+export const DESKTOP_VERSION = '0.2.0';
+export const DESKTOP_RELEASE_URL = `${SOURCE_URL}/releases/tag/v${DESKTOP_VERSION}`;
+const DESKTOP_DOWNLOAD_BASE = `${SOURCE_URL}/releases/download/v${DESKTOP_VERSION}`;
+export const DESKTOP_MAC_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VERSION}_universal.dmg`;
+export const DESKTOP_WINDOWS_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VERSION}_x64_en-US.msi`;
+export const DESKTOP_LINUX_APPIMAGE_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VERSION}_amd64.AppImage`;
+export const DESKTOP_LINUX_DEB_URL = `${DESKTOP_DOWNLOAD_BASE}/Alice_${DESKTOP_VERSION}_amd64.deb`;
 
 export const SITE_NAME = 'Alice';
 
-// Drives noindex/robots.txt. Deliberately false: the beta is closed and has
-// not been shared beyond a handful of people, so the site stays unlisted even
-// though the source is now public. Being open source and being announced are
-// two different decisions. Flip this the day the beta opens, not before.
+// Drives noindex/robots.txt. Still false: the next release opens the public
+// beta, and this flag flips on go-live day, as the last step of the release
+// checklist, not before. Until then the site stays unlisted even though the
+// source is already public.
 export const SITE_IS_PUBLIC = false;
 
 // Deep-link a question into the Alice app. `autosend=1` asks the app to submit
@@ -38,22 +51,17 @@ export const SITE_TAGLINE =
   'A private AI companion that helps you understand, hold, and use Bitcoin.';
 
 // The slogan, in one place: the home hero, the shared link-preview card, and
-// the alt text that describes that card all read it from here.
-export const HERO_TITLE =
-  'Meet Alice. Your private companion, all the way down the Bitcoin rabbit hole.';
+// the alt text that describes that card all read it from here. Changing it
+// also means rerunning scripts/generate-og.mjs, which carries its own copy.
+export const HERO_TITLE = 'Your Bitcoin questions are nobody’s business.';
 export const OG_ALT = HERO_TITLE;
-
-// Marketing status. Alice is a private beta on Bitcoin mainnet, the site
-// must say so plainly rather than imply a finished product — and must never
-// let a tester believe real sats are test coins.
-export const BETA_NOTICE =
-  'Alice is in private beta on Bitcoin mainnet, small amounts only. A Mutinynet (test coins) build is available to practice safely.';
 
 export const NAV_LINKS = [
   { label: 'How it works', href: '/#sovereignty' },
-  { label: 'Mission', href: '/#missions' },
+  { label: 'Trust', href: '/trust/' },
+  { label: 'Pricing', href: '/pricing/' },
   { label: 'vs ChatGPT', href: '/vs/chatgpt/' },
 ] as const;
 
 // Pages that exist today, for the sitemap. Add entries here as pages ship.
-export const SITE_ROUTES = ['/', '/trust/', '/privacy/', '/credits/', '/vs/chatgpt/'] as const;
+export const SITE_ROUTES = ['/', '/pricing/', '/trust/', '/privacy/', '/credits/', '/vs/chatgpt/'] as const;

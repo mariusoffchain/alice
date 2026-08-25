@@ -1,14 +1,23 @@
 // Native semantic RAG runtime. The compact E5 embedding model is downloaded
 // only on Wi-Fi; until it is ready, rag.ts keeps using its lexical fallback.
-import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DeviceEventEmitter, Platform } from 'react-native';
 import { getRegisteredPacks } from './knowledge-packs';
+import {
+  NATIVE_SEMANTIC_MODEL_DOWNLOAD_BYTES,
+  SEMANTIC_SEARCH_PREFERENCE_KEY,
+  SEMANTIC_SEARCH_STATE_EVENT,
+  parseSemanticSearchPreference,
+  type SemanticSearchPreference,
+  type SemanticSearchState,
+} from './semantic-policy';
 import type { ChunkEmbeddingIndex, SemanticMatch } from './semantic-search';
 import { rankBySimilarity, toQueryText } from './semantic-search';
 
 const EMBEDDING_MODEL = {
   id: 'keisuke-miyako/multilingual-e5-small-gguf-q8_0',
   filename: 'multilingual-e5-small-Q8_0.gguf',
-  sizeBytes: 131_953_504,
+  sizeBytes: NATIVE_SEMANTIC_MODEL_DOWNLOAD_BYTES,
   url: 'https://huggingface.co/keisuke-miyako/multilingual-e5-small-gguf-q8_0/resolve/main/multilingual-e5-small-Q8_0.gguf',
 };
 const LEGACY_MODEL_FILENAMES = ['multilingual-e5-small-q8_0.gguf'];
@@ -20,15 +29,52 @@ type EmbeddingContext = {
   release(): Promise<void>;
 };
 
+type ActiveDownload = {
+  pauseAsync(): Promise<unknown>;
+};
+
 let indexPromise: Promise<ChunkEmbeddingIndex | null> | null = null;
 let modelReadyPromise: Promise<boolean> | null = null;
 let embeddingContextPromise: Promise<EmbeddingContext | null> | null = null;
 let networkSubscription: { remove(): void } | null = null;
+let activeDownload: ActiveDownload | null = null;
+let preparationPromise: Promise<void> | null = null;
 let releaseTimer: ReturnType<typeof setTimeout> | null = null;
 let indexReady = false;
 let modelReady = false;
 let didLogContextReady = false;
 let didLogContextFailure = false;
+let generation = 0;
+let preference: SemanticSearchPreference | null = null;
+let state: SemanticSearchState = { status: 'idle', progress: null };
+
+function setState(next: SemanticSearchState): void {
+  if (state.status === next.status && state.progress === next.progress) return;
+  state = next;
+  DeviceEventEmitter.emit(SEMANTIC_SEARCH_STATE_EVENT);
+}
+
+async function readPreference(): Promise<SemanticSearchPreference> {
+  if (preference) return preference;
+  try {
+    const stored = parseSemanticSearchPreference(
+      await AsyncStorage.getItem(SEMANTIC_SEARCH_PREFERENCE_KEY),
+    );
+    preference ??= stored;
+  } catch {
+    preference ??= 'auto';
+  }
+  return preference;
+}
+
+async function writePreference(next: SemanticSearchPreference): Promise<void> {
+  preference = next;
+  try {
+    await AsyncStorage.setItem(SEMANTIC_SEARCH_PREFERENCE_KEY, next);
+  } catch {
+    // Best-effort persistence, matching the browser runtime's localStorage policy.
+  }
+}
 
 function base64ToFloat32Array(value: string): Float32Array {
   const binary = atob(value);
@@ -134,6 +180,16 @@ async function isWifiReachable(): Promise<boolean> {
   }
 }
 
+async function embeddingModelExists(): Promise<boolean> {
+  try {
+    const { FileSystem, model } = await nativePaths();
+    const current = await FileSystem.getInfoAsync(model);
+    return current.exists && current.size === EMBEDDING_MODEL.sizeBytes;
+  } catch {
+    return false;
+  }
+}
+
 async function ensureEmbeddingModel(): Promise<boolean> {
   try {
     const { FileSystem, directory, model } = await nativePaths();
@@ -148,7 +204,9 @@ async function ensureEmbeddingModel(): Promise<boolean> {
     const partial = `${model}.download`;
     await FileSystem.deleteAsync(partial, { idempotent: true });
     const download = FileSystem.createDownloadResumable(EMBEDDING_MODEL.url, partial);
+    activeDownload = download;
     const result = await download.downloadAsync();
+    if (activeDownload === download) activeDownload = null;
     const downloaded = await FileSystem.getInfoAsync(partial);
     if (result?.status !== 200 || !downloaded.exists || downloaded.size !== EMBEDDING_MODEL.sizeBytes) {
       throw new Error('Semantic model download was incomplete.');
@@ -156,6 +214,7 @@ async function ensureEmbeddingModel(): Promise<boolean> {
     await FileSystem.moveAsync({ from: partial, to: model });
     return true;
   } catch {
+    activeDownload = null;
     return false;
   }
 }
@@ -206,18 +265,52 @@ async function loadEmbeddingContext(): Promise<EmbeddingContext | null> {
 }
 
 async function prepareWhenWifiIsAvailable(): Promise<void> {
-  if (!(await isWifiReachable())) return;
-  networkSubscription?.remove();
-  networkSubscription = null;
-  indexPromise ??= loadBundledIndex().then(index => {
+  const startedGeneration = generation;
+  if ((await readPreference()) === 'off') {
+    if (startedGeneration === generation) setState({ status: 'off', progress: null });
+    return;
+  }
+
+  const modelExists = modelReady || await embeddingModelExists();
+  if (startedGeneration !== generation) return;
+  if (!modelExists && !(await isWifiReachable())) {
+    if (startedGeneration === generation) setState({ status: 'blocked-metered', progress: null });
+    return;
+  }
+
+  setState({ status: 'loading', progress: null });
+  const currentIndexPromise = indexPromise ??= loadBundledIndex().then(index => {
     indexReady = Boolean(index);
     if (!index) indexPromise = null;
     return index;
   });
-  modelReadyPromise ??= ensureEmbeddingModel().then(ready => {
+  if (modelExists) modelReady = true;
+  const currentModelPromise = modelReadyPromise ??= (
+    modelExists ? Promise.resolve(true) : ensureEmbeddingModel()
+  ).then(ready => {
     modelReady = ready;
     if (!ready) modelReadyPromise = null;
     return ready;
+  });
+  const [index, ready] = await Promise.all([currentIndexPromise, currentModelPromise]);
+  if (startedGeneration !== generation) return;
+  setState(
+    index && ready
+      ? { status: 'ready', progress: null }
+      : { status: 'failed', progress: null },
+  );
+}
+
+function queuePreparation(): void {
+  if (preparationPromise) {
+    const activePreparation = preparationPromise;
+    void activePreparation.then(() => {
+      if (state.status === 'idle' || state.status === 'blocked-metered') queuePreparation();
+    });
+    return;
+  }
+  preparationPromise = prepareWhenWifiIsAvailable().finally(() => {
+    preparationPromise = null;
   });
 }
 
@@ -225,24 +318,64 @@ function watchForWifi(): void {
   if (networkSubscription) return;
   void import('expo-network').then(Network => {
     networkSubscription ??= Network.addNetworkStateListener(() => {
-      void prepareWhenWifiIsAvailable();
+      if (state.status === 'idle' || state.status === 'blocked-metered') queuePreparation();
     });
   }).catch(() => {});
 }
 
 /** Starts the Wi-Fi-only semantic model download without blocking chat. */
 export function preloadSemanticSearch(): void {
-  void prepareWhenWifiIsAvailable();
   watchForWifi();
+  if (state.status === 'idle' || state.status === 'blocked-metered') queuePreparation();
 }
 
 export function isSemanticSearchReady(): boolean {
   return indexReady && modelReady;
 }
 
+/** Settings surface, mapped onto the native Wi-Fi-gated download flags. */
+export function getSemanticSearchState(): SemanticSearchState {
+  return state;
+}
+
+/** Native keeps the Wi-Fi rule for explicit requests, so Settings can never start a hidden mobile-data download. */
+export function downloadSemanticSearchNow(): void {
+  void writePreference('auto');
+  if (state.status === 'loading' || state.status === 'ready') return;
+  setState({ status: 'idle', progress: null });
+  watchForWifi();
+  queuePreparation();
+}
+
+/** Removal persists `off`, matching web: a later question cannot silently recreate the 132 MB download. */
+export async function disableSemanticSearch(): Promise<void> {
+  generation += 1;
+  setState({ status: 'off', progress: null });
+  await writePreference('off');
+  const download = activeDownload;
+  activeDownload = null;
+  await Promise.all([
+    releaseSemanticSearchContext(),
+    download?.pauseAsync().catch(() => {}),
+  ]);
+  indexPromise = null;
+  modelReadyPromise = null;
+  indexReady = false;
+  modelReady = false;
+  try {
+    const { FileSystem, model } = await nativePaths();
+    await Promise.all([
+      FileSystem.deleteAsync(model, { idempotent: true }),
+      FileSystem.deleteAsync(`${model}.download`, { idempotent: true }),
+    ]);
+  } catch {
+    // Nothing on disk to remove.
+  }
+}
+
 export async function getSemanticMatches(query: string, topK: number): Promise<SemanticMatch[] | null> {
-  if (!indexPromise || !modelReadyPromise) {
-    preloadSemanticSearch();
+  if (state.status !== 'ready' || !indexPromise || !modelReadyPromise) {
+    if (state.status === 'idle') preloadSemanticSearch();
     return null;
   }
   const [index, modelReady] = await Promise.all([indexPromise, modelReadyPromise]);

@@ -3,7 +3,7 @@ import type { PackDescriptor } from './pack-downloader';
 // Packs are published as GitHub Release assets on this same repo (see
 // scripts/publish-knowledge-pack.js and knowledge-packs/ for pack sources).
 // A release asset is only publicly downloadable while the repo itself is
-// public — until then, downloads here will fail for anyone without repo
+// public, until then, downloads here will fail for anyone without repo
 // access, which is expected during the private-repo phase.
 //
 // Empty for now by design: the download/verify/update mechanism has been

@@ -33,31 +33,45 @@ const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   settled: 'SETTLED',
   failed: 'FAILED',
   expired: 'EXPIRED',
-  refundable: 'REFUNDABLE',
+  refundable: 'REFUND AVAILABLE',
   refunded: 'REFUNDED',
 };
 
 function statusColor(status: TransactionStatus, colors: Colors): string {
   switch (status) {
-    case 'settled': return '#2ea043';
+    case 'settled': return colors.success;
     case 'preconfirmed': return colors.primary;
-    case 'pending': return '#d4a017';
-    case 'failed': return '#e06060';
+    case 'pending': return colors.warning;
+    case 'failed': return colors.danger;
   }
 }
 
 function paymentStatusColor(status: PaymentStatus, colors: Colors): string {
-  if (status === 'settled') return '#2ea043';
-  if (status === 'refundable') return '#d4a017';
-  if (status === 'failed' || status === 'expired') return '#e06060';
+  if (status === 'settled') return colors.success;
+  if (status === 'refundable') return colors.warning;
+  if (status === 'failed' || status === 'expired') return colors.danger;
   if (status === 'refunded') return colors.primary;
-  return '#d4a017';
+  return colors.warning;
 }
 
 function entryDescription(entry: HistoryEntry): string {
+  if (entry.kind === 'payment') {
+    if (entry.payment.status === 'refundable') return 'Swap refund available';
+    if (entry.payment.status === 'refunded') return 'Refunded swap';
+    if (entry.payment.layer === 'lightning') {
+      return entry.payment.direction === 'incoming'
+        ? 'Lightning received'
+        : 'Lightning sent';
+    }
+    if (entry.payment.layer === 'onchain') {
+      return entry.payment.direction === 'incoming'
+        ? 'Bitcoin received'
+        : 'Bitcoin sent';
+    }
+  }
   const layer = entry.kind === 'transaction' ? entry.transaction.layer : entry.payment.layer;
-  if (layer === 'lightning') return 'Lightning payment';
-  if (layer === 'onchain') return 'On-chain transaction';
+  if (layer === 'lightning') return 'Lightning transaction';
+  if (layer === 'onchain') return 'Bitcoin transaction';
   return 'Arkade transaction';
 }
 
@@ -81,7 +95,7 @@ export default function HistoryScreen() {
   const [currency, setCurrency] = useState<FiatCurrency>('USD');
   const [btcPrice, setBtcPrice] = useState<number | null>(null);
   const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [focused, setFocused] = useState(false);
   const refreshInFlightRef = useRef(false);
 
   const publishEntries = useCallback(() => {
@@ -151,10 +165,6 @@ export default function HistoryScreen() {
     getBalanceFormat().then(setBalanceFormat).catch(() => {});
     getFiatCurrency().then(setCurrency).catch(() => {});
     refresh();
-    pollRef.current = setInterval(() => refresh(true), POLL_INTERVAL);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
   }, [refresh]));
 
   useEffect(() => {
@@ -167,6 +177,18 @@ export default function HistoryScreen() {
   const hasPending = entries.some(entry => entry.kind === 'transaction'
     ? entry.transaction.status !== 'settled'
     : !['settled', 'failed', 'expired', 'refunded'].includes(entry.payment.status));
+
+  // A settled history has nothing to watch: polling only runs while an entry
+  // is still moving, and stops the moment the screen loses focus.
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    return () => setFocused(false);
+  }, []));
+  useEffect(() => {
+    if (!hasPending || !focused) return;
+    const id = setInterval(() => refresh(true), POLL_INTERVAL);
+    return () => clearInterval(id);
+  }, [hasPending, focused, refresh]);
   const visibleEntries = entries.slice(0, visibleCount);
   const hasMore = visibleEntries.length < entries.length;
 
@@ -207,7 +229,7 @@ export default function HistoryScreen() {
         }
         ListEmptyComponent={loading
           ? <ActivityIndicator color={colors.primary} style={s.empty} />
-          : <Text style={[s.emptyText, error && s.error]}>{error ?? 'NO TRANSACTIONS YET'}</Text>}
+          : <Text style={[s.emptyText, error && [s.error, { color: colors.danger }]]}>{error ?? 'NO TRANSACTIONS YET'}</Text>}
         ItemSeparatorComponent={() => <View style={s.sep} />}
         renderItem={({ item }) => {
           const direction = item.kind === 'transaction' ? item.transaction.type : item.payment.direction;
@@ -262,24 +284,24 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
     title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 3 },
     pollingBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.sm, backgroundColor: colors.backgroundSoft },
-    pollingText: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
+    pollingText: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: colors.muted },
     list: { paddingHorizontal: spacing.lg },
     empty: { marginTop: spacing.xxxl },
-    emptyText: { marginTop: spacing.xxxl, textAlign: 'center', fontFamily: typography.pixel, fontSize: 8, color: colors.muted },
+    emptyText: { marginTop: spacing.xxxl, textAlign: 'center', fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.muted },
     error: { color: '#e06060', fontFamily: typography.numbers, fontSize: 14 },
-    pageCount: { paddingVertical: spacing.lg, textAlign: 'center', fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
+    pageCount: { paddingVertical: spacing.lg, textAlign: 'center', fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
     loadingMore: { paddingVertical: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
-    loadingMoreText: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
+    loadingMoreText: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: colors.muted },
     sep: { height: 1, borderBottomWidth: 1, borderBottomColor: colors.dotted },
     row: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.lg, gap: spacing.md },
     arrow: { fontFamily: typography.pixel, fontSize: 16, color: colors.primary, width: 24, textAlign: 'center' },
     details: { flex: 1, gap: 3 },
-    addr: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark },
-    date: { fontFamily: typography.pixel, fontSize: 10, color: colors.muted },
+    addr: { fontFamily: typography.numbers, fontSize: 15, lineHeight: 19, color: colors.primaryDark },
+    date: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 16, color: colors.muted },
     rightCol: { alignItems: 'flex-end', gap: 4 },
     amtIn: { fontFamily: typography.numbers, fontSize: 16, color: colors.primaryDark },
     amtOut: { fontFamily: typography.numbers, fontSize: 16, color: colors.muted },
-    statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderRadius: 2 },
-    statusText: { fontFamily: typography.pixel, fontSize: 5, letterSpacing: 1 },
+    statusBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 3, borderWidth: 1, borderRadius: 2 },
+    statusText: { fontFamily: typography.pixel, fontSize: 9, lineHeight: 12, letterSpacing: 1, includeFontPadding: false, textAlignVertical: 'center' },
   });
 }

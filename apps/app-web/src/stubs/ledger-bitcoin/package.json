@@ -1,0 +1,8 @@
+{
+  "name": "@ledgerhq/ledger-bitcoin",
+  "version": "0.3.1",
+  "description": "Local no-op stub. Explorer derives addresses only and never drives a Ledger, so @bitcoinerlab/descriptors' optional Ledger dependency is replaced with this empty module to keep it out of the bundle.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "private": true
+}

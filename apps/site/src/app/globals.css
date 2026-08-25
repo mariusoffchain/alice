@@ -24,7 +24,7 @@
   --alice-bg-soft: #161b22;
   --alice-primary: #8bb8ff;
   --alice-primary-dark: #a8ccff;
-  --alice-text: #c9d9f5;
+  --alice-text: #f2efe6;
   --alice-heading: #eaf1ff;
   --alice-border: #2a3a52;
   --alice-muted: #7f97bd;
@@ -61,14 +61,22 @@ body {
   border-bottom: 1px solid rgba(139, 184, 255, 0.07);
 }
 
-h1, h2, h3 {
-  color: var(--alice-heading);
-  letter-spacing: -0.01em;
-}
+/* In Tailwind v4's real CSS cascade layers, an unlayered rule always beats a
+   layered one regardless of specificity, so these two base defaults, if left
+   unlayered, would silently win over every text-[var(--alice-*)] utility
+   that targets an h1/h2/h3 or an <a>, no matter how specific. Explicitly in
+   @layer base, they sit where Tailwind expects a base style: utilities in
+   the page still override them, as every className below assumes they do. */
+@layer base {
+  h1, h2, h3 {
+    color: var(--alice-heading);
+    letter-spacing: -0.01em;
+  }
 
-a {
-  color: inherit;
-  text-decoration: none;
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 /* Sharp, terminal-style focus ring for keyboard users. */
@@ -93,11 +101,64 @@ button:focus-visible {
   font-weight: 600;
   color: var(--alice-heading);
   background: transparent;
-  transition: transform 0.15s ease;
+  /* Affordance 8-bit (lot 4): decollage + ombre dure sans blur, en steps()
+     pour rester dans le langage terminal. */
+  transition: transform 0.1s steps(2, jump-none), box-shadow 0.1s steps(2, jump-none);
 }
 .cta:hover {
-  transform: translateY(-2px);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--alice-primary) 35%, transparent);
 }
+.cta:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 color-mix(in srgb, var(--alice-primary) 35%, transparent);
+}
+
+/* Menus de plateforme (Alice App / Alice Wallet). Fermes par defaut, ouverts
+   par l'etat clique (data-open), et, seulement sur les appareils a vrai
+   pointeur, ouverts au survol du bouton. Sur tactile, hover: hover est faux,
+   donc seul le tap ouvre. */
+.platform-menu {
+  display: none;
+}
+.platform-selector[data-open] .platform-menu {
+  display: block;
+}
+@media (hover: hover) and (pointer: fine) {
+  .platform-selector:hover .platform-menu {
+    display: block;
+  }
+}
+
+/* Meme affordance pour les boutons qui ne sont pas des .cta (couleurs
+   intactes, seulement le mouvement et l'ombre). */
+.raise {
+  transition: transform 0.1s steps(2, jump-none), box-shadow 0.1s steps(2, jump-none);
+}
+.raise:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--alice-primary) 35%, transparent);
+}
+.raise:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 color-mix(in srgb, var(--alice-primary) 35%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Always-filled CTA, for the one primary action that does not depend on the
+   visitor's device (opening the companion works everywhere). */
+.cta-solid {
+  background: var(--alice-primary);
+  color: var(--alice-on-primary);
+}
+
 @media (min-width: 768px) {
   .cta-desktop {
     background: var(--alice-primary);

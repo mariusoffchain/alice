@@ -13,18 +13,18 @@ import {
 
 export { VeniceAPIError, type VeniceErrorCode } from './venice-errors';
 
-// Venice Private Cloud — OpenAI-compatible chat completions endpoint.
+// Venice Private Cloud, OpenAI-compatible chat completions endpoint.
 const VENICE_API_URL = 'https://api.venice.ai/api/v1/chat/completions';
 const VENICE_MODEL = 'e2ee-gpt-oss-120b-p';
 
-// Set via app config / env — never hardcode in production.
+// Set via app config / env, never hardcode in production.
 // WARNING: anything prefixed EXPO_PUBLIC_ is inlined into the client bundle.
 // An APK and desktop binary are inspectable too, so distributed Alice builds
 // must use the proxy below. A direct key is limited to explicit internal
 // diagnostics with a personal, revocable key.
 const VENICE_API_KEY = process.env.EXPO_PUBLIC_VENICE_API_KEY ?? '';
 
-// Alice's blind proxy. Not a secret — it is only a URL — but when it is set it
+// Alice's blind proxy. Not a secret, it is only a URL, but when it is set it
 // takes precedence, and the key is never sent from the client.
 const VENICE_PROXY_URL = process.env.EXPO_PUBLIC_VENICE_PROXY_URL ?? '';
 const VENICE_PCCS_URL = process.env.EXPO_PUBLIC_VENICE_PCCS_URL ?? '';
@@ -174,7 +174,13 @@ async function sendE2EEMessage(
       if (err.code === 'free_quota_exhausted') {
         throw new VeniceAPIError('free_quota_exhausted', err.message, err.status);
       }
-      if (err.code === 'model_not_in_free_plan') {
+      if (err.code === 'plan_quota_exhausted') {
+        throw new VeniceAPIError('plan_quota_exhausted', err.message, err.status);
+      }
+      // `model_not_in_free_plan` is the name the proxy used before plans
+      // existed. Both are honoured: a shipped client must keep understanding a
+      // deployed Worker, and a deployed client a shipped Worker.
+      if (err.code === 'model_not_in_plan' || err.code === 'model_not_in_free_plan') {
         throw new VeniceAPIError('plan_restricted', err.message, err.status);
       }
       if (err.code === 'attestation_unavailable') {

@@ -16,15 +16,20 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { ArkAddress } from '@arkade-os/sdk';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { spacing, typography, type Colors, type Pixel } from '@alice-wallet/alice-content';
 import { useTheme } from '@alice-wallet/alice-ui';
 import {
   getArkAddress,
   getBalance,
   addDiagnosticLog,
+  extractSatoraReason,
+  friendlySatoraReason,
+  genericSatoraRefusal,
+  describeSatoraRefusal,
+  SatoraRefusalError,
   canOfferNativeOnchainFallback,
   quoteNativeOnchainPayment,
   sendQuotedPayment,
@@ -41,8 +46,8 @@ import { BitcoinIcon } from '@alice-wallet/alice-ui';
 import { friendlyNetworkError } from '@alice-wallet/wallet-core';
 import { resolveLightningRequestToBolt11 } from '@alice-wallet/wallet-core';
 import {
-  MEMPOOL_EXPLORER,
   resolveArkadeExplorer,
+  resolveBitcoinExplorer,
   PAYMENT_NETWORK,
   SWAP_PROVIDER,
 } from '@alice-wallet/wallet-core';
@@ -67,6 +72,10 @@ type SuccessState = 'idle' | 'animating' | 'complete';
 const MIN_ARKADE_SEND = 1;
 const PAYMENT_NETWORK_LABEL = PAYMENT_NETWORK === 'bitcoin' ? 'Bitcoin Mainnet' : 'Mutinynet';
 const PAYMENT_NETWORK_UPPER = PAYMENT_NETWORK_LABEL.toUpperCase();
+const ARKADE_FUNDS_REFRESH_ERROR = [
+  'YOUR ARKADE FUNDS NEED TO BE REFRESHED. RETURN TO THE WALLET AND WAIT FOR SYNC, THEN TRY AGAIN LATER.',
+  'OR SEND VIA ARKADE OR LIGHTNING INSTEAD.',
+].join('\n');
 
 function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
   return a.length === b.length && a.every((byte, index) => byte === b[index]);
@@ -96,6 +105,27 @@ function friendlySendError(
     return `DUST LIMIT = ${dustLimitMatch[1]} SATS.`;
   }
 
+  // Satora explains its refusals in a JSON body that the SDK wraps verbatim.
+  // Only reasons we recognise are shown, in our own words: a server message
+  // may carry an internal URL or a payload fragment. The rest becomes a
+  // generic refusal, and the sanitised reason goes to the diagnostic log.
+  if (error instanceof SatoraRefusalError) {
+    if (!error.recognized) {
+      void addDiagnosticLog('warning', 'Satora refused the request', error.diagnostic).catch(() => {});
+    }
+    return error.message;
+  }
+  const satoraReason = extractSatoraReason(raw);
+  if (satoraReason) {
+    const friendly = friendlySatoraReason(satoraReason);
+    if (friendly) return friendly;
+    void addDiagnosticLog('warning', 'Satora refused the swap', describeSatoraRefusal(undefined, satoraReason)).catch(() => {});
+    return genericSatoraRefusal();
+  }
+  if (normalized.includes('only pays lightning invoices that expire within') || normalized.includes('priced the swap differently')) {
+    return raw.toUpperCase();
+  }
+
   if (
     normalized.includes('insufficient')
     || normalized.includes('not enough')
@@ -113,10 +143,12 @@ function friendlySendError(
     return `ARKADE SERVER MISMATCH. USE AN ADDRESS FROM THE ${PAYMENT_NETWORK_UPPER} ARKADE WALLET.`;
   }
   if (normalized.includes('expired') || normalized.includes('vtxo')) {
-    return 'YOUR ARKADE FUNDS NEED TO BE REFRESHED. RETURN TO THE WALLET, WAIT FOR SYNC, THEN TRY AGAIN.';
+    return ARKADE_FUNDS_REFRESH_ERROR;
   }
   if (normalized.includes('signingdescriptor') || normalized.includes('cannot sign input for default contract')) {
-    return `THIS WALLET HAS OLD ARKADE TEST FUNDS THAT THIS BUILD CANNOT SIGN. FOR ${PAYMENT_NETWORK_UPPER} TESTING, RESET THE WALLET OR CREATE A FRESH TEST WALLET, THEN FUND IT AGAIN.`;
+    // "A fresh wallet", not "a fresh test wallet": Playground is now a product
+    // name, and this message is about stale Arkade funds in the real wallet.
+    return `THIS WALLET HAS OLD ARKADE TEST FUNDS THAT THIS BUILD CANNOT SIGN. FOR ${PAYMENT_NETWORK_UPPER} TESTING, RESET THE WALLET OR CREATE A FRESH WALLET, THEN FUND IT AGAIN.`;
   }
   if (normalized.includes('onboarding') || normalized.includes('not initialized')) {
     return 'WALLET NOT READY. COMPLETE ONBOARDING OR REOPEN THE APP, THEN TRY AGAIN.';
@@ -194,6 +226,11 @@ export default function SendScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [nativeFallback, setNativeFallback] = useState<NativeFallback | null>(null);
   const [scanned, setScanned] = useState(false);
+  // The camera is one of the most expensive things this screen can mount,
+  // and most sends are pasted, not scanned: it starts only when asked.
+  const [scannerOpen, setScannerOpen] = useState(false);
+  // And it stops as soon as another screen covers this one.
+  useFocusEffect(useCallback(() => () => setScannerOpen(false), []));
   const [scanError, setScanError] = useState<string | null>(null);
   const [sentPayment, setSentPayment] = useState<SentPayment | null>(null);
   const [addressCopied, setAddressCopied] = useState(false);
@@ -274,7 +311,7 @@ export default function SendScreen() {
   }
 
   // Started from PixelFill's onReady so the grid is mounted before progress
-  // moves — otherwise the natively driven fill runs ahead of first paint.
+  // moves, otherwise the natively driven fill runs ahead of first paint.
   const startSuccessAnimation = () => {
     successProgress.setValue(0);
     Animated.timing(successProgress, {
@@ -573,7 +610,7 @@ export default function SendScreen() {
     if (!sentPayment?.txid) return;
     const usesMempool = sentPayment.destination.layer === 'onchain' && !sentPayment.nativeExit;
     const link = usesMempool
-      ? { url: `${MEMPOOL_EXPLORER}/tx/${sentPayment.txid}`, direct: true }
+      ? resolveBitcoinExplorer(sentPayment.txid)
       : resolveArkadeExplorer(sentPayment.txid);
     if (!link) {
       setExplorerHint('NO PUBLIC EXPLORER IS CONFIGURED FOR THIS ARKADE TRANSACTION.');
@@ -626,7 +663,7 @@ export default function SendScreen() {
       <KeyboardAvoidingView style={s.kav} behavior="padding">
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
         <View style={s.field}>
-          <Text style={s.label}>SEND ON BITCOIN, LIGHTNING OR ARKADE</Text>
+          <Text style={s.introText}>Send on Bitcoin, Lightning or Arkade</Text>
           <TextInput
             style={[s.textInput, Platform.OS === 'web' && ({ outlineStyle: 'none' } as any)]}
             value={address}
@@ -647,6 +684,12 @@ export default function SendScreen() {
                 <Text style={s.scannedTitle}>QR SCANNED</Text>
                 <Text style={s.scannedText}>PAYMENT DETAILS FILLED BELOW</Text>
               </View>
+            ) : !scannerOpen ? (
+              <View style={s.permissionPanel}>
+                <TouchableOpacity style={s.permissionBtn} onPress={() => setScannerOpen(true)}>
+                  <Text style={s.permissionBtnText}>OPEN SCANNER</Text>
+                </TouchableOpacity>
+              </View>
             ) : permission?.granted ? (
               <>
                 <CameraView
@@ -666,9 +709,9 @@ export default function SendScreen() {
               </View>
             )}
           </View>
-          {scanError && <Text style={s.scanError}>{scanError}</Text>}
+          {scanError && <Text style={[s.scanError, { color: colors.danger }]}>{scanError}</Text>}
           {scanned && (
-            <TouchableOpacity style={s.rescanBtn} onPress={() => { setScanned(false); setScanError(null); }}>
+            <TouchableOpacity style={s.rescanBtn} onPress={() => { setScanned(false); setScanError(null); setScannerOpen(true); }}>
               <Text style={s.rescanText}>SCAN AGAIN</Text>
             </TouchableOpacity>
           )}
@@ -677,13 +720,6 @@ export default function SendScreen() {
         <View style={s.field}>
           <View style={s.amountLabelRow}>
             <Text style={s.label}>AMOUNT</Text>
-            <Text style={s.label}>(</Text>
-            {balanceFormat === 'symbol' ? (
-              <BitcoinIcon size={14} color={colors.muted} />
-            ) : (
-              <Text style={s.label}>{amountUnitLabel}</Text>
-            )}
-            <Text style={s.label}>)</Text>
           </View>
           <View style={s.amountRow}>
             <TextInput
@@ -718,10 +754,10 @@ export default function SendScreen() {
                   format={balanceFormat}
                   btcPrice={btcPrice}
                   currencySymbol={CURRENCY_SYMBOL[currency]}
-                  iconSize={14}
+                  iconSize={18}
                   iconColor={colors.muted}
                   textStyle={s.available}
-                  iconOffsetY={-2}
+                  iconOffsetY={0}
                   gap={2}
                 />
               </View>
@@ -734,10 +770,10 @@ export default function SendScreen() {
                   format={balanceFormat}
                   btcPrice={btcPrice}
                   currencySymbol={CURRENCY_SYMBOL[currency]}
-                  iconSize={14}
+                  iconSize={18}
                   iconColor={colors.muted}
                   textStyle={s.available}
-                  iconOffsetY={-2}
+                  iconOffsetY={0}
                   gap={2}
                 />
               </View>
@@ -746,9 +782,9 @@ export default function SendScreen() {
         </View>
 
         {formError && (
-          <View style={s.errorCard} accessibilityRole="alert">
-            <Text style={s.errorTitle}>PAYMENT ERROR</Text>
-            <Text style={s.errorText}>{formError}</Text>
+          <View style={[s.errorCard, { backgroundColor: colors.dangerSoft, borderColor: colors.danger }]} accessibilityRole="alert">
+            <Text style={[s.errorTitle, { color: colors.danger }]}>PAYMENT ERROR</Text>
+            <Text style={[s.errorText, { color: colors.dangerInk }]}>{formError}</Text>
             {nativeFallback && (
               <TouchableOpacity
                 style={[s.nativeFallbackBtn, (quoting || sending) && s.disabled]}
@@ -983,12 +1019,12 @@ function makeStyles(colors: Colors, pixel: Pixel) {
   title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 3 },
   body: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.xl },
   errorCard: { ...pixel, backgroundColor: '#fff1f1', borderColor: '#e06060', padding: spacing.md, gap: spacing.sm },
-  errorTitle: { fontFamily: typography.pixel, fontSize: 7, color: '#c84f4f', letterSpacing: 1 },
-  errorText: { fontFamily: typography.pixel, fontSize: 6, color: '#9e4141', lineHeight: 13 },
+  errorTitle: { fontFamily: typography.pixel, fontSize: 12, color: '#c84f4f', letterSpacing: 1 },
+  errorText: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: '#9e4141' },
   nativeFallbackBtn: { ...pixel, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.md, alignItems: 'center' },
-  nativeFallbackText: { fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary, letterSpacing: 1 },
+  nativeFallbackText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
   field: { gap: spacing.sm },
-  label: { fontFamily: typography.pixel, fontSize: 8, color: colors.muted, letterSpacing: 2 },
+  label: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 2 },
   amountLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   textInput: {
     ...pixel,
@@ -1006,13 +1042,13 @@ function makeStyles(colors: Colors, pixel: Pixel) {
   amountRow: { ...pixel, minHeight: 62, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBg },
   amountInput: { flex: 1, height: 62, backgroundColor: 'transparent', borderWidth: 0 },
   amountUnitWrap: { minWidth: 48, alignItems: 'center', justifyContent: 'center' },
-  amountUnit: { fontFamily: typography.pixel, fontSize: 8, color: colors.muted, letterSpacing: 2 },
+  amountUnit: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 2 },
   maxBtn: { ...pixel, alignSelf: 'stretch', minWidth: 76, paddingHorizontal: spacing.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, borderColor: colors.primaryDark },
-  maxText: { fontFamily: typography.pixel, fontSize: 8, color: colors.onPrimary, letterSpacing: 1 },
+  maxText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
   amountMeta: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   metaAmount: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   usdEquiv: { fontFamily: typography.numbers, fontSize: 14, color: colors.muted },
-  available: { fontFamily: typography.pixel, fontSize: 8, color: colors.muted, letterSpacing: 1, textAlign: 'right' },
+  available: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, textAlign: 'right' },
   scannerSection: { gap: spacing.sm },
   cameraFrame: { ...pixel, height: 230, overflow: 'hidden', backgroundColor: colors.backgroundSoft, position: 'relative' },
   camera: { flex: 1 },
@@ -1031,56 +1067,57 @@ function makeStyles(colors: Colors, pixel: Pixel) {
   },
   scannedPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.lg },
   scannedIcon: { fontFamily: typography.pixel, fontSize: 24, color: colors.primaryDark },
-  scannedTitle: { fontFamily: typography.pixel, fontSize: 9, color: colors.primaryDark, letterSpacing: 2 },
-  scannedText: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1, textAlign: 'center' },
+  scannedTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 2 },
+  scannedText: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: colors.muted, textAlign: 'center' },
   permissionPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xl },
-  permissionText: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, lineHeight: 14, textAlign: 'center' },
+  permissionText: { fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.muted, textAlign: 'center' },
   permissionBtn: { ...pixel, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
-  permissionBtnText: { fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary, letterSpacing: 1 },
-  scanError: { fontFamily: typography.pixel, fontSize: 6, color: '#e06060', lineHeight: 12, textAlign: 'center' },
+  permissionBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
+  scanError: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: '#e06060', textAlign: 'center' },
   rescanBtn: { alignSelf: 'center', paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-  rescanText: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark, letterSpacing: 1 },
+  rescanText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
   sendBtn: { ...pixel, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.lg, alignItems: 'center' },
   disabled: { opacity: 0.4 },
-  sendText: { fontFamily: typography.pixel, fontSize: 10, color: colors.onPrimary, letterSpacing: 2 },
-  hint: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1, textAlign: 'center' },
+  sendText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 2 },
+  hint: { fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.muted, textAlign: 'center' },
+  introText: { fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.muted, textAlign: 'center' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(48, 74, 112, 0.48)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   confirmCard: { ...pixel, width: '100%', maxWidth: 420, backgroundColor: colors.background, padding: spacing.xl, gap: spacing.lg },
-  confirmTitle: { fontFamily: typography.pixel, fontSize: 9, color: colors.primaryDark, letterSpacing: 2, textAlign: 'center' },
+  confirmTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 2, textAlign: 'center' },
   confirmAmount: { fontFamily: typography.numbers, fontSize: 32, color: colors.primaryDark, textAlign: 'center' },
   centeredAmount: { justifyContent: 'center', alignItems: 'center' },
   confirmUsd: { fontFamily: typography.numbers, fontSize: 16, color: colors.muted, textAlign: 'center' },
-  confirmNetwork: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 1, textAlign: 'center' },
+  confirmNetwork: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1, textAlign: 'center' },
   quoteDetails: { gap: spacing.sm, paddingVertical: spacing.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.dotted },
   quoteRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  quoteLabel: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
+  quoteLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
   quoteValue: { fontFamily: typography.numbers, fontSize: 13, color: colors.primaryDark },
   confirmAddress: { ...pixel, backgroundColor: colors.cardBg, padding: spacing.md, fontFamily: typography.numbers, fontSize: 13, lineHeight: 18, color: colors.primaryDark, textAlign: 'center' },
   confirmActions: { flexDirection: 'row', gap: spacing.md },
   cancelBtn: { ...pixel, flex: 1, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.cardBg },
-  cancelText: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark, letterSpacing: 1 },
+  cancelText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
   confirmBtn: { ...pixel, flex: 1, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.primary, borderColor: colors.primaryDark },
-  confirmBtnText: { fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary, letterSpacing: 1 },
+  confirmBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
   successOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 20, overflow: 'hidden' },
   successComplete: { backgroundColor: colors.primary },
   successContent: { flex: 1 },
   successClose: { position: 'absolute', top: spacing.sm, left: spacing.md, zIndex: 2, width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
   successCloseText: { fontFamily: typography.numbers, fontSize: 42, lineHeight: 46, color: colors.onPrimary },
   successReceipt: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxxl },
-  successEyebrow: { fontFamily: typography.pixel, fontSize: 11, color: colors.onPrimary, letterSpacing: 3, textAlign: 'center' },
-  safeToClose: { marginTop: spacing.md, marginBottom: spacing.sm, fontFamily: typography.pixel, fontSize: 8, color: colors.onPrimary, letterSpacing: 2, textAlign: 'center' },
-  refundCloseNotice: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl, fontFamily: typography.pixel, fontSize: 7, lineHeight: 16, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
+  successEyebrow: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 3, textAlign: 'center' },
+  safeToClose: { marginTop: spacing.md, marginBottom: spacing.sm, fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 2, textAlign: 'center' },
+  refundCloseNotice: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl, fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: colors.onPrimary, textAlign: 'center' },
   successAmount: { marginTop: spacing.xxl, fontFamily: typography.numbers, fontSize: 56, lineHeight: 62, color: colors.onPrimary, textAlign: 'center' },
   successAmountRow: { marginTop: spacing.xxl, justifyContent: 'center' },
-  successUnit: { fontFamily: typography.pixel, fontSize: 9, color: colors.onPrimary, letterSpacing: 3 },
+  successUnit: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 3 },
   successUsd: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 18, color: colors.onPrimary, opacity: 0.7, textAlign: 'center' },
   successDivider: { width: 44, height: 3, marginVertical: spacing.xxxl, backgroundColor: colors.onPrimary },
-  successLabel: { marginTop: spacing.xxxl, fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary, letterSpacing: 2, textAlign: 'center' },
-  successValue: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 8, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
+  successLabel: { marginTop: spacing.xxxl, fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 2, textAlign: 'center' },
+  successValue: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
   successAddress: { marginTop: spacing.sm, maxWidth: 460, fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.onPrimary, textAlign: 'center' },
   successLink: { alignItems: 'center', maxWidth: 460 },
-  successLinkHint: { marginTop: spacing.xs, fontFamily: typography.pixel, fontSize: 6, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
+  successLinkHint: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 13, lineHeight: 17, color: colors.onPrimary, textAlign: 'center' },
   successBtn: { ...pixel, backgroundColor: colors.onPrimary, marginHorizontal: spacing.xxl, marginBottom: spacing.xxxl, paddingVertical: spacing.lg, alignItems: 'center' },
-  successBtnText: { fontFamily: typography.pixel, fontSize: 9, color: colors.primary, letterSpacing: 2 },
+  successBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary, letterSpacing: 2 },
   });
 }

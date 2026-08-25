@@ -119,7 +119,7 @@ export default function AddressArchivesScreen() {
           </Text>
         </View>
 
-        {error && <Text style={s.error}>{error}</Text>}
+        {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
 
         {loading ? (
           <ActivityIndicator color={colors.primary} style={s.loading} />
@@ -162,7 +162,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     headerSpacer: { width: 38, height: 38 },
     title: {
       fontFamily: typography.pixel,
-      fontSize: 10,
+      fontSize: 12,
       color: colors.primaryDark,
       letterSpacing: 1,
       textAlign: 'center',
@@ -204,7 +204,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     emptyTitle: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.muted,
     },
     section: {
@@ -215,7 +215,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     network: {
       paddingVertical: spacing.md,
       fontFamily: typography.pixel,
-      fontSize: 8,
+      fontSize: 12,
       color: colors.primaryDark,
     },
     list: { borderTopWidth: 1, borderTopColor: colors.dotted },

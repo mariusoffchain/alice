@@ -48,6 +48,20 @@ const FAILED_STATUSES = new Set([
   'expired',
 ]);
 
+// The statuses the Satora protocol defines. Anything else the server sends
+// is shown as "unknown": a status is displayed to the user as is.
+const KNOWN_SATORA_STATUSES = new Set([
+  'pending', 'clientfundingseen', 'clientfunded', 'serverfunded', 'clientredeeming',
+  'clientredeemed', 'serverredeemed', 'expired', 'clientrefunded',
+  'clientrefundedserverrefunded', 'clientrefundedserverfunded',
+  'clientredeemedandclientrefunded', 'clientfundedserverrefunded', 'serverwontfund',
+  'clientfundedtoolate', 'clientinvalidfunded', 'spent_refund', 'invalid',
+]);
+
+export function displaySatoraStatus(providerStatus: string): string {
+  return KNOWN_SATORA_STATUSES.has(providerStatus) ? providerStatus : 'unknown';
+}
+
 function text(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value : undefined;
 }
@@ -168,7 +182,7 @@ export function toSatoraPaymentRecord(
         arkadeFundingTxid,
         completionTxid: claimTxid,
         refundTxid,
-        providerStatus,
+        providerStatus: displaySatoraStatus(providerStatus),
         sendAmountSats,
       },
     };
@@ -209,7 +223,7 @@ export function toSatoraPaymentRecord(
       fundingTxid,
       completionTxid: text(snapshot.arkade_claim_txid),
       refundTxid,
-      providerStatus,
+      providerStatus: displaySatoraStatus(providerStatus),
       sendAmountSats,
     },
   };
@@ -276,7 +290,7 @@ export function toSatoraSwapRecord(stored: SatoraStoredSwap): PaymentRecord {
       completionTxid: text(snapshot.arkade_claim_txid)
         ?? text(snapshot.alice_claim_txid),
       refundTxid: text(snapshot.alice_refund_txid),
-      providerStatus,
+      providerStatus: displaySatoraStatus(providerStatus),
       sendAmountSats,
     },
   };

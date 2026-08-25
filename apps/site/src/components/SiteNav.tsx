@@ -1,5 +1,6 @@
 import { NAV_LINKS } from '@/lib/site';
-import { DesktopAppButton, MobileWalletButton } from '@/components/AppCtas';
+import { DownloadButton, OpenAliceButton } from '@/components/AppCtas';
+import { MobileNavMenu } from '@/components/MobileNavMenu';
 import { AliceMark } from '@/components/icons';
 
 // Sitewide top navigation. Keeps the primary CTA (open the app) always reachable.
@@ -13,7 +14,7 @@ export function SiteNav() {
         {/* Relative, not the hardcoded production domain, so this is always
             correct: the preview's own home today, alicebtc.com once launched. */}
         <a href="/" aria-label="Alice home">
-          <AliceMark size={28} />
+          <AliceMark size={34} />
         </a>
 
         <div className="hidden items-center gap-7 text-sm md:flex">
@@ -29,10 +30,15 @@ export function SiteNav() {
         </div>
 
         <div className="flex items-center gap-2.5">
+          {/* Desktop: open the companion, or reach every install. Phone:
+              everything folds into the single Menu button. */}
           <span className="hidden md:block">
-            <DesktopAppButton size="sm" />
+            <DownloadButton size="sm" />
           </span>
-          <MobileWalletButton size="sm" />
+          <span className="hidden md:block">
+            <OpenAliceButton size="sm" />
+          </span>
+          <MobileNavMenu />
         </div>
       </nav>
     </header>

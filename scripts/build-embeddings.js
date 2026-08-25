@@ -86,7 +86,9 @@ async function main() {
     external: ['react-native', '@huggingface/transformers'],
   });
   const moduleUrl = `data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].contents).toString('base64')}`;
-  const { getAllChunks } = await import(moduleUrl);
+  const { getAllChunks, loadRagCorpus } = await import(moduleUrl);
+  // The corpus loads on demand since 0.2.0: ask for it before reading.
+  await loadRagCorpus();
 
   const chunks = getAllChunks();
   console.log(`Embedding ${chunks.length} chunks for ${TARGET} with ${target.modelId}...`);

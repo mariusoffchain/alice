@@ -249,7 +249,7 @@ export default function CoinControlScreen() {
         <View style={s.statusBand}>
           <View style={s.statusTop}>
             <Text style={s.statusTitle}>AUTOMATIC RENEWAL</Text>
-            <Text style={[s.statusValue, automation.renewalEnabled && s.good]}>
+            <Text style={[s.statusValue, automation.renewalEnabled && [s.good, { color: colors.success }]]}>
               {automation.renewalEnabled ? 'ON' : 'OFF'}
             </Text>
           </View>
@@ -284,8 +284,8 @@ export default function CoinControlScreen() {
         ))}
       </View>
 
-      {success && <Text style={s.success}>{success}</Text>}
-      {error && <Text style={s.error}>{error}</Text>}
+      {success && <Text style={[s.success, { color: colors.success }]}>{success}</Text>}
+      {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
 
       <FlatList
         data={visible}
@@ -315,10 +315,10 @@ export default function CoinControlScreen() {
               <View style={s.rowBody}>
                 <View style={s.rowTop}>
                   <Text style={s.amount}>{fmt(item.value)} SATS</Text>
-                  <Text style={[s.state, danger && s.danger]}>{lifecycleLabel(item)}</Text>
+                  <Text style={[s.state, danger && [s.danger, { color: colors.danger }]]}>{lifecycleLabel(item)}</Text>
                 </View>
                 <Text style={s.id}>{shortId(item.id)}</Text>
-                <Text style={[s.expiry, (item.needsRenewal || item.expired) && s.danger]}>
+                <Text style={[s.expiry, (item.needsRenewal || item.expired) && [s.danger, { color: colors.danger }]]}>
                   {expiryLabel(item.batchExpiry)}
                 </Text>
                 {item.frozen && (
@@ -326,7 +326,7 @@ export default function CoinControlScreen() {
                 )}
                 {item.excluded && (
                   <View style={s.exclusion}>
-                    <Text style={s.exclusionReason}>{item.exclusionReason}</Text>
+                    <Text style={[s.exclusionReason, { color: colors.danger }]}>{item.exclusionReason}</Text>
                     <TouchableOpacity onPress={() => void retryInput(item.id)} disabled={busy}>
                       <Text style={s.retryInput}>SYNC & RETRY INPUT</Text>
                     </TouchableOpacity>
@@ -366,7 +366,7 @@ export default function CoinControlScreen() {
               </TouchableOpacity>
             )}
             {canEmergencyExit && (
-              <TouchableOpacity style={s.emergencyAction} onPress={openEmergencyExit}>
+              <TouchableOpacity style={[s.emergencyAction, { backgroundColor: colors.danger, borderColor: colors.dangerInk }]} onPress={openEmergencyExit}>
                 <Ionicons name="exit-outline" size={17} color="#ffffff" />
                 <Text style={s.emergencyActionText}>EXIT</Text>
               </TouchableOpacity>
@@ -425,15 +425,15 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     safe: { flex: 1, backgroundColor: colors.background },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     iconBtn: { ...pixel, width: 38, height: 38, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardBg },
-    title: { fontFamily: typography.pixel, fontSize: 11, color: colors.primaryDark, letterSpacing: 2 },
+    title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 2 },
     summary: { alignItems: 'center', paddingVertical: spacing.lg },
-    summaryLabel: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 1 },
+    summaryLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
     summaryAmount: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 27, color: colors.primaryDark },
-    summaryMeta: { marginTop: spacing.xs, fontFamily: typography.pixel, fontSize: 7, color: colors.muted },
+    summaryMeta: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 14, color: colors.muted },
     statusBand: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.dotted, backgroundColor: colors.cardBg },
     statusTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    statusTitle: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark },
-    statusValue: { fontFamily: typography.pixel, fontSize: 7, color: '#c84f4f' },
+    statusTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark },
+    statusValue: { fontFamily: typography.pixel, fontSize: 12, color: '#c84f4f' },
     good: { color: '#2ea043' },
     statusCopy: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: colors.muted },
     statusDetail: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: colors.muted },
@@ -442,46 +442,46 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     filters: { flexDirection: 'row', marginHorizontal: spacing.lg, marginVertical: spacing.md, borderWidth: 2, borderColor: colors.border },
     filterBtn: { flex: 1, minHeight: 38, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xs, backgroundColor: colors.cardBg },
     filterActive: { backgroundColor: colors.primary },
-    filterText: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, textAlign: 'center' },
+    filterText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, textAlign: 'center' },
     filterTextActive: { color: colors.onPrimary },
     success: { marginHorizontal: spacing.lg, marginBottom: spacing.md, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: '#2ea043', textAlign: 'center' },
     error: { marginHorizontal: spacing.lg, marginBottom: spacing.md, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: '#c84f4f', textAlign: 'center' },
     list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, flexGrow: 1 },
     listSelected: { paddingBottom: 150 },
     empty: { marginTop: spacing.xxxl },
-    emptyText: { marginTop: spacing.xxxl, fontFamily: typography.pixel, fontSize: 7, color: colors.muted, textAlign: 'center' },
+    emptyText: { marginTop: spacing.xxxl, fontFamily: typography.pixel, fontSize: 12, color: colors.muted, textAlign: 'center' },
     row: { ...pixel, minHeight: 112, marginBottom: spacing.md, padding: spacing.md, flexDirection: 'row', backgroundColor: colors.cardBg },
     rowSelected: { borderColor: colors.primary, backgroundColor: colors.cardBg },
     check: { width: 34, paddingTop: 1 },
     rowBody: { flex: 1, minWidth: 0 },
     rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
     amount: { flexShrink: 1, fontFamily: typography.numbers, fontSize: 17, color: colors.primaryDark },
-    state: { fontFamily: typography.pixel, fontSize: 7, color: '#2ea043', textAlign: 'right' },
-    id: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 12, color: colors.muted },
-    expiry: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 7, color: colors.muted },
+    state: { fontFamily: typography.pixel, fontSize: 12, color: '#2ea043', textAlign: 'right' },
+    id: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
+    expiry: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
     danger: { color: '#c84f4f' },
     frozenCopy: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: colors.primary },
     exclusion: { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.dotted, gap: spacing.sm },
-    exclusionReason: { fontFamily: typography.numbers, fontSize: 12, lineHeight: 16, color: '#c84f4f' },
-    retryInput: { fontFamily: typography.pixel, fontSize: 7, color: colors.primary },
+    exclusionReason: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 16, color: '#c84f4f' },
+    retryInput: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary },
     actionBar: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg, borderTopWidth: 2, borderTopColor: colors.border, backgroundColor: colors.background },
     selectionSummary: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
-    selectionTitle: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark },
+    selectionTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark },
     selectionAmount: { fontFamily: typography.numbers, fontSize: 15, color: colors.primaryDark },
     actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     smallAction: { ...pixel, flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: spacing.xs, backgroundColor: colors.cardBg },
-    smallActionText: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark },
+    smallActionText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark },
     emergencyAction: { ...pixel, flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: spacing.xs, backgroundColor: '#c84f4f', borderColor: '#8f3030' },
-    emergencyActionText: { fontFamily: typography.pixel, fontSize: 7, color: '#ffffff' },
+    emergencyActionText: { fontFamily: typography.pixel, fontSize: 12, color: '#ffffff' },
     modalBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, backgroundColor: 'rgba(48, 74, 112, 0.48)' },
     modalCard: { ...pixel, width: '100%', maxWidth: 420, padding: spacing.xl, gap: spacing.lg, backgroundColor: colors.background },
-    modalTitle: { fontFamily: typography.pixel, fontSize: 8, color: colors.primaryDark, letterSpacing: 1, textAlign: 'center' },
+    modalTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1, textAlign: 'center' },
     modalAmount: { fontFamily: typography.numbers, fontSize: 28, color: colors.primaryDark, textAlign: 'center' },
     modalDescription: { fontFamily: typography.numbers, fontSize: 15, lineHeight: 22, color: colors.muted, textAlign: 'center' },
     modalActions: { flexDirection: 'row', gap: spacing.md },
     cancelBtn: { ...pixel, flex: 1, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.cardBg },
-    cancelText: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark },
+    cancelText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark },
     confirmBtn: { ...pixel, flex: 1, paddingVertical: spacing.lg, alignItems: 'center', backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    confirmText: { fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary },
+    confirmText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary },
   });
 }

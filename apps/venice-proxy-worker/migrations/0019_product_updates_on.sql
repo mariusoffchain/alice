@@ -1,0 +1,14 @@
+-- Product mail becomes the default rather than a request.
+--
+-- The switch asked people to opt in to a few messages a year about what their
+-- app can now do. Almost nobody moves a switch like that, so the feature
+-- existed and reached no one, and the settings screen carried a control whose
+-- only real function was to look considerate.
+--
+-- The column is not removed, and that is deliberate. The day product mail
+-- actually goes out it has to carry a way to stop it, and that link needs a
+-- place to write the refusal. This is that place; it now starts at yes.
+--
+-- Existing rows move to 1 because they predate the decision: they were not
+-- refusals, they were a default nobody was ever shown.
+UPDATE account_emails SET product_updates = 1;

@@ -1,7 +1,7 @@
 // Venice E2EE cryptographic primitives.
 //
 // Pure functions only: no fetch, no storage, no React. That keeps them testable
-// with `node --test` and identical across web, desktop and React Native — which
+// with `node --test` and identical across web, desktop and React Native, which
 // is why AES-GCM comes from @noble/ciphers (pure JS) rather than Web Crypto,
 // whose SubtleCrypto is not reliably available on React Native.
 //
@@ -98,7 +98,7 @@ export function assertUncompressedPublicKey(hex: string, label = 'public key'): 
  * shared secret used here is its X coordinate (32 bytes), which is what
  * Python's `cryptography` exchange returns and what Venice's own examples are
  * built on. If a real Venice response ever fails to decrypt, this is the first
- * thing to re-check — the alternative convention is to feed the full
+ * thing to re-check, the alternative convention is to feed the full
  * compressed point into HKDF.
  */
 export function deriveSharedKey(secretKey: Uint8Array, peerPublicKey: Uint8Array): Uint8Array {
@@ -177,7 +177,7 @@ export type ParsedEnvelope = {
 };
 
 /**
- * Split a hex envelope. Rejects anything malformed rather than guessing — a
+ * Split a hex envelope. Rejects anything malformed rather than guessing, a
  * response that is not a valid envelope must fail closed, never be shown as if
  * it were plaintext output.
  */
@@ -224,8 +224,8 @@ export function decryptEnvelope(clientSecretKey: Uint8Array, envelopeHex: string
 }
 
 /**
- * Best-effort wipe of a secret key. JavaScript cannot guarantee this — the
- * garbage collector may already have copied the buffer — so it reduces the
+ * Best-effort wipe of a secret key. JavaScript cannot guarantee this, the
+ * garbage collector may already have copied the buffer, so it reduces the
  * window rather than closing it. Kept because Venice's guide asks for it, and
  * documented so nobody mistakes it for a hard guarantee.
  */

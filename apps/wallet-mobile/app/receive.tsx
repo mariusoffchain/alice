@@ -25,7 +25,7 @@ import { CURRENCY_SYMBOL, getFiatCurrency, priceApiUrl, type FiatCurrency } from
 import { WalletAmount } from '@alice-wallet/alice-ui';
 import { BitcoinIcon } from '@alice-wallet/alice-ui';
 import { friendlyNetworkError, friendlySatoraLimitError } from '@alice-wallet/wallet-core';
-import { NETWORK, resolveTransactionExplorer } from '@alice-wallet/wallet-core';
+import { NETWORK, resolveArkadeExplorer, resolveTransactionExplorer } from '@alice-wallet/wallet-core';
 
 const POLL_INTERVAL = 5_000;
 
@@ -70,6 +70,10 @@ export default function ReceiveScreen() {
   const [initialBalance, setInitialBalance] = useState<number | null>(null);
   const [receivedAmount, setReceivedAmount] = useState<number | null>(null);
   const [receivedTx, setReceivedTx] = useState<Transaction | null>(null);
+  // The Arkade txid of the VTXO that paid us: known the moment the funds
+  // land, before the history has caught up, so the success screen can link
+  // to it at once for an Arkade or Lightning receive.
+  const [receivedArkTxid, setReceivedArkTxid] = useState<string | null>(null);
   const [explorerHint, setExplorerHint] = useState('OPEN EXPLORER');
   const [confirmCount, setConfirmCount] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -85,7 +89,7 @@ export default function ReceiveScreen() {
   const successShownRef = useRef(false);
 
   // Started from PixelFill's onReady so the grid is mounted before progress
-  // moves — otherwise the natively driven fill runs ahead of first paint.
+  // moves, otherwise the natively driven fill runs ahead of first paint.
   const startSuccessAnimation = () => {
     successProgress.setValue(0);
     Animated.timing(successProgress, {
@@ -162,7 +166,7 @@ export default function ReceiveScreen() {
               receiveStartedAtRef.current,
             );
             if (received) {
-              await completeReceive(received.value);
+              await completeReceive(received.value, undefined, received.txid);
               return;
             }
           }
@@ -237,7 +241,9 @@ export default function ReceiveScreen() {
     const history = await getTransactionHistory();
     return history
       .filter(t => t.type === 'incoming')
-      .filter(t => t.createdAt >= receiveStartedAtRef.current)
+      // Ten minutes of slack: the payer may have sent before this screen was
+      // opened, and an Arkade timestamp comes from the server's clock.
+      .filter(t => t.createdAt >= receiveStartedAtRef.current - 10 * 60_000)
       .sort((a, b) => {
         const aExact = a.amount === received ? 1 : 0;
         const bExact = b.amount === received ? 1 : 0;
@@ -246,11 +252,12 @@ export default function ReceiveScreen() {
       })[0] ?? null;
   }
 
-  async function completeReceive(received: number, transaction?: Transaction) {
+  async function completeReceive(received: number, transaction?: Transaction, arkTxid?: string) {
     if (successShownRef.current || received <= 0) return;
     successShownRef.current = true;
     setReceivedAmount(received);
     if (transaction) setReceivedTx(transaction);
+    if (arkTxid) setReceivedArkTxid(arkTxid);
 
     if (pollRef.current) {
       clearInterval(pollRef.current);
@@ -326,11 +333,14 @@ export default function ReceiveScreen() {
   }
 
   async function openReceivedTransactionExplorer() {
-    if (!receivedTx) return;
-    const link = resolveTransactionExplorer(receivedTx);
+    const link = receivedTx
+      ? resolveTransactionExplorer(receivedTx)
+      : receivedArkTxid
+        ? resolveArkadeExplorer(receivedArkTxid)
+        : null;
     if (!link) return;
 
-    if (!link.direct) {
+    if (!link.direct && receivedTx) {
       await copyValue(primaryTxid(receivedTx));
       setExplorerHint('ID COPIED. SEARCH IN ARK EXPLORER');
     }
@@ -372,14 +382,9 @@ export default function ReceiveScreen() {
         {/* Amount input */}
         <View style={s.amountSection}>
           <View style={s.amountLabelRow}>
+            {/* The unit already sits inside the field; repeating it here only
+                made the label longer. */}
             <Text style={s.amountLabel}>{receiveMode === 'lightning' ? 'AMOUNT REQUIRED' : 'AMOUNT OPTIONAL'}</Text>
-            <Text style={s.amountLabel}>(</Text>
-            {balanceFormat === 'symbol' ? (
-              <BitcoinIcon size={14} color={colors.muted} />
-            ) : (
-              <Text style={s.amountLabel}>{amountUnitLabel}</Text>
-            )}
-            <Text style={s.amountLabel}>)</Text>
           </View>
           <View style={s.amountRow}>
             <View style={s.amountInputWrap}>
@@ -409,10 +414,12 @@ export default function ReceiveScreen() {
           </View>
         </View>
 
-        {/* Waiting indicator — stays visible until the success overlay covers it */}
+        {/* Waiting indicator, stays visible until the success overlay covers it */}
         {qrValue && !showSuccess && (
           <View style={s.waitingBanner}>
-            <ActivityIndicator size="small" color={colors.primary} style={{ transform: [{ scale: 0.5 }] }} />
+            {/* A scaled-down spinner keeps its full layout box, which pushed the
+                text off its baseline; size the spinner itself instead. */}
+            <ActivityIndicator size={14} color={colors.primary} />
             <Text style={s.waitingText}>{receivedAmount ? 'PAYMENT RECEIVED' : 'WAITING FOR PAYMENT...'}</Text>
           </View>
         )}
@@ -435,7 +442,7 @@ export default function ReceiveScreen() {
               ecl="M"
             />
           ) : error || lightningError ? (
-            <View style={s.qrPlaceholder}><Text style={s.error}>{lightningError ?? error}</Text></View>
+            <View style={s.qrPlaceholder}><Text style={[s.error, { color: colors.danger }]}>{lightningError ?? error}</Text></View>
           ) : (
             <View style={s.qrPlaceholder}>
               {receiveMode === 'lightning' && !lightningInvoice ? (
@@ -554,8 +561,8 @@ export default function ReceiveScreen() {
                   <Text style={s.successLabel}>CONFIRMATIONS</Text>
                   <Text style={[s.successValue, {
                     color: confirmCount === null ? colors.onPrimary
-                      : confirmCount === 0 ? '#d4a017'
-                      : confirmCount >= 6 ? '#2ea043'
+                      : confirmCount === 0 ? colors.warning
+                      : confirmCount >= 6 ? colors.success
                       : colors.onPrimary
                   }]}>
                     {confirmCount === null ? '...' : confirmCount === 0 ? 'Unconfirmed' : `${confirmCount}`}
@@ -563,14 +570,14 @@ export default function ReceiveScreen() {
                 </>
               )}
 
-              {receivedTx?.id && (
+              {(receivedTx?.id || receivedArkTxid) && (
                 <>
                   <Text style={s.successLabel}>TRANSACTION</Text>
                   <TouchableOpacity
                     style={s.successLink}
                     onPress={() => void openReceivedTransactionExplorer()}
                   >
-                    <Text style={s.successAddress}>{primaryTxid(receivedTx)}</Text>
+                    <Text style={s.successAddress}>{receivedTx ? primaryTxid(receivedTx) : receivedArkTxid}</Text>
                     <Text style={s.successLinkHint}>{explorerHint}</Text>
                   </TouchableOpacity>
                 </>
@@ -597,19 +604,19 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', ...pixel, backgroundColor: colors.cardBg },
     backIcon: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary },
-    title: { fontFamily: typography.pixel, fontSize: 10, color: colors.primaryDark, letterSpacing: 3 },
+    title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 3 },
     body: { alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.lg },
-    unifiedTitle: { fontFamily: typography.pixel, fontSize: 10, color: colors.primaryDark, letterSpacing: 2, textAlign: 'center' },
-    label: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 2 },
+    unifiedTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 2, textAlign: 'center' },
+    label: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 2 },
     modeTabs: { flexDirection: 'row', gap: spacing.sm, width: '100%', maxWidth: 320 },
     modeTab: { ...pixel, flex: 1, alignItems: 'center', paddingVertical: spacing.md, backgroundColor: colors.cardBg },
     modeTabActive: { backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    modeTabText: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
+    modeTabText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
     modeTabTextActive: { color: colors.onPrimary },
 
     amountSection: { width: '100%', maxWidth: 320, gap: spacing.xs },
     amountLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    amountLabel: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 2 },
+    amountLabel: { fontFamily: typography.numbers, fontSize: 14, color: colors.muted },
     amountRow: { flexDirection: 'row', alignItems: 'center', minHeight: 56, ...pixel, backgroundColor: colors.cardBg, paddingHorizontal: spacing.md },
     amountInputWrap: { flex: 1, height: 44, justifyContent: 'center' },
     amountInput: {
@@ -623,45 +630,45 @@ function makeStyles(colors: Colors, pixel: Pixel) {
       includeFontPadding: true,
     },
     amountUnitWrap: { minWidth: 48, paddingLeft: spacing.sm, alignItems: 'center', justifyContent: 'center' },
-    amountUnit: { fontFamily: typography.pixel, fontSize: 8, color: colors.muted, letterSpacing: 2 },
+    amountUnit: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 2 },
     waitingBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    waitingText: { fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
+    waitingText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 1 },
 
     qrTapWrap: { alignItems: 'center' },
     qrContainer: { ...pixel, backgroundColor: '#ffffff', padding: spacing.sm },
     qrPlaceholder: { width: 220, height: 220, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.backgroundSoft },
-    qrHint: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
-    placeholderText: { padding: spacing.lg, fontFamily: typography.pixel, fontSize: 7, color: colors.muted, lineHeight: 16, textAlign: 'center' },
+    qrHint: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
+    placeholderText: { padding: spacing.lg, fontFamily: typography.numbers, fontSize: 14, color: colors.muted, lineHeight: 18, textAlign: 'center' },
     error: { fontFamily: typography.numbers, fontSize: 13, color: '#e06060', textAlign: 'center', paddingHorizontal: spacing.md },
     actions: { flexDirection: 'row', gap: spacing.lg },
     actionBtn: { ...pixel, backgroundColor: colors.primary, borderColor: colors.primaryDark, paddingVertical: spacing.md, paddingHorizontal: spacing.xxl },
-    actionBtnText: { fontFamily: typography.pixel, fontSize: 8, color: colors.onPrimary, letterSpacing: 2 },
+    actionBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 2 },
     methods: { width: '100%', maxWidth: 420, marginTop: spacing.sm },
-    methodsTitle: { marginBottom: spacing.sm, fontFamily: typography.pixel, fontSize: 7, color: colors.muted, letterSpacing: 2 },
+    methodsTitle: { marginBottom: spacing.sm, fontFamily: typography.pixel, fontSize: 12, color: colors.muted, letterSpacing: 2 },
     methodRow: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
     methodBorder: { borderTopWidth: 1, borderTopColor: colors.dotted },
     methodDetails: { flex: 1, gap: spacing.xs },
-    methodName: { fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark, letterSpacing: 1 },
+    methodName: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 1 },
     methodAddress: { fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
-    methodAction: { fontFamily: typography.pixel, fontSize: 6, color: colors.primary, letterSpacing: 1 },
-    lightningMeta: { marginTop: spacing.sm, fontFamily: typography.pixel, fontSize: 6, color: colors.muted, letterSpacing: 1 },
+    methodAction: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary, letterSpacing: 1 },
+    lightningMeta: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
     hint: { fontFamily: typography.numbers, fontSize: 13, color: colors.muted, textAlign: 'center', lineHeight: 20, marginTop: spacing.md, paddingHorizontal: spacing.lg },
 
     // Success overlay
     successOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 20, overflow: 'hidden' },
     successContent: { flex: 1 },
     successReceipt: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxxl },
-    successEyebrow: { fontFamily: typography.pixel, fontSize: 11, color: colors.onPrimary, letterSpacing: 3, textAlign: 'center' },
+    successEyebrow: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 3, textAlign: 'center' },
     successAmount: { marginTop: spacing.xxl, fontFamily: typography.numbers, fontSize: 56, lineHeight: 62, color: colors.onPrimary, textAlign: 'center' },
     successAmountRow: { marginTop: spacing.xxl, justifyContent: 'center', alignItems: 'center' },
-    successUnit: { fontFamily: typography.pixel, fontSize: 9, color: colors.onPrimary, letterSpacing: 3 },
+    successUnit: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 3 },
     successDivider: { width: 44, height: 3, marginVertical: spacing.xxxl, backgroundColor: colors.onPrimary },
-    successLabel: { marginTop: spacing.xxxl, fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary, letterSpacing: 2, textAlign: 'center' },
+    successLabel: { marginTop: spacing.xxxl, fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 2, textAlign: 'center' },
     successValue: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 18, textAlign: 'center' },
     successAddress: { marginTop: spacing.sm, maxWidth: 460, fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.onPrimary, textAlign: 'center' },
     successLink: { alignItems: 'center', maxWidth: 460 },
-    successLinkHint: { marginTop: spacing.xs, fontFamily: typography.pixel, fontSize: 6, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
+    successLinkHint: { marginTop: spacing.xs, fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
     successBtn: { ...pixel, backgroundColor: colors.onPrimary, marginHorizontal: spacing.xxl, marginBottom: spacing.xxxl, paddingVertical: spacing.lg, alignItems: 'center' },
-    successBtnText: { fontFamily: typography.pixel, fontSize: 9, color: colors.primary, letterSpacing: 2 },
+    successBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.primary, letterSpacing: 2 },
   });
 }

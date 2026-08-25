@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  displaySatoraStatus,
   mapSatoraPaymentStatus,
   toSatoraPaymentRecord,
   toSatoraSwapRecord,
@@ -225,4 +226,10 @@ test('funded failed Satora Bitcoin receive is refundable and blocks unsafe reset
   assert.deepEqual(getUnsafeResetPayments(refundable ? [refundable] : []), [
     refundable,
   ]);
+});
+
+test('a provider status outside the protocol is displayed as unknown', () => {
+  assert.equal(displaySatoraStatus('serverredeemed'), 'serverredeemed');
+  assert.equal(displaySatoraStatus('<script>alert(1)</script>'), 'unknown');
+  assert.equal(displaySatoraStatus('internal error: token=abc'), 'unknown');
 });

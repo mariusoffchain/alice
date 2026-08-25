@@ -357,6 +357,7 @@ export const ADMIN_DASHBOARD_HTML = `<!doctype html>
     <button data-view="overview">Overview</button>
     <button data-view="analytics">Analytics</button>
     <button data-view="events">Events</button>
+    <button data-view="faucet">Faucet</button>
     <button data-view="accounts">Accounts</button>
     <button data-view="audit">Audit</button>
     <button data-view="promos">Promos</button>
@@ -389,6 +390,12 @@ export const ADMIN_DASHBOARD_HTML = `<!doctype html>
   function fmtTime(ms) {
     if (!ms) return '—';
     return new Date(ms).toLocaleString();
+  }
+
+  // Sats read as amounts, not as raw integers: 2100 is a payout, 2 100 000 is
+  // a float, and the eye should not have to count digits to tell them apart.
+  function sats(n) {
+    return String(n).replace(/\\B(?=(\\d{3})+(?!\\d))/g, ' ');
   }
 
   // The dashboard can be served from a secret path, so it learns where it
@@ -568,92 +575,7 @@ export const ADMIN_DASHBOARD_HTML = `<!doctype html>
     ]);
   }
 
-  function renderOverview() {
-    app.innerHTML = '<p class="muted">Loading…</p>';
-    api('/admin/api/overview').then(function (o) {
-      app.innerHTML = '';
-
-      app.appendChild(h('div', { class: 'grid grid-3' }, [
-        heroCard(
-          o.accounts_created, 'Accounts',
-          'People who created an Alice account with a login. Excludes anonymous app installs.',
-          o.accounts_change_percent,
-        ),
-        heroCard(
-          o.installations_total, 'App installations',
-          'Devices that have opened Alice. ' + o.installations_active_7d
-            + ' active in the last 7 days, ' + o.installations_anonymous
-            + ' still browsing without an account.',
-          o.installations_change_percent,
-        ),
-        heroCard(
-          o.requests_7d, 'AI requests · 7 days',
-          'Private Cloud requests that actually reached Venice and succeeded. ' + o.requests_total + ' since launch.',
-          o.requests_change_percent,
-        ),
-      ]));
-
-      app.appendChild(h('div', { class: 'card' }, [
-        h('h2', { text: 'AI requests per day · 30 days' }),
-        columns(toPoints(o.series.requests), 'requests'),
-      ]));
-
-      app.appendChild(h('div', { class: 'card' }, [
-        h('h2', { text: 'New installations per day · 30 days' }),
-        columns(toPoints(o.series.installations), 'installations'),
-      ]));
-
-      var freeUse = h('table', {}, [
-        h('tr', {}, [
-          h('td', { text: 'AI requests today (24h)' }),
-          h('td', { class: 'num', text: String(o.requests_24h) }),
-        ]),
-        h('tr', {}, [
-          h('td', { text: 'Free requests consumed, all accounts' }),
-          h('td', { class: 'num', text: String(o.free_requests_used_total) }),
-        ]),
-        h('tr', {}, [
-          h('td', { text: 'Accounts that used at least one free request' }),
-          h('td', { class: 'num', text: String(o.accounts_with_free_usage) }),
-        ]),
-        h('tr', {}, [
-          h('td', { text: 'Accounts that used all 21 free requests' }),
-          h('td', { class: 'num', text: String(o.accounts_at_quota) }),
-        ]),
-      ]);
-      app.appendChild(h('div', { class: 'card' }, [
-        h('h2', { text: 'Free quota' }),
-        h('p', { class: 'muted', text: 'Every Alice user gets 21 free Private Cloud requests. These are the numbers that tell you whether 21 is the right figure.' }),
-        freeUse,
-      ]));
-
-      var errorTotal = o.auth_errors_24h + o.email_errors_24h + o.venice_errors_24h;
-      var errorsCard = h('div', { class: 'card' }, [
-        h('h2', { text: 'Errors · last 24 hours' }),
-      ]);
-      if (errorTotal === 0) {
-        errorsCard.appendChild(h('p', { class: 'muted', text: 'No errors in the last 24 hours.' }));
-      } else {
-        errorsCard.appendChild(h('table', {}, [
-          h('tr', {}, [
-            h('td', { text: 'Sign-in and account errors' }),
-            h('td', { class: 'num', text: String(o.auth_errors_24h) }),
-          ]),
-          h('tr', {}, [
-            h('td', { text: 'Login email delivery failures' }),
-            h('td', { class: 'num', text: String(o.email_errors_24h) }),
-          ]),
-          h('tr', {}, [
-            h('td', { text: 'Venice (AI provider) failures' }),
-            h('td', { class: 'num', text: String(o.venice_errors_24h) }),
-          ]),
-        ]));
-      }
-      app.appendChild(errorsCard);
-    }).catch(function (e) { app.innerHTML = ''; app.appendChild(h('p', { class: 'err', text: e.message })); });
-  }
-
-  function statusPill(status) {
+    function statusPill(status) {
     return h('span', { class: 'pill ' + (status === 'active' ? 'active' : 'suspended'), text: status });
   }
 
@@ -775,7 +697,6 @@ export const ADMIN_DASHBOARD_HTML = `<!doctype html>
           h('tr', {}, [h('td', { text: 'Email' }), h('td', { text: a.email_masked || '—' })]),
           h('tr', {}, [h('td', { text: 'Plan' }), h('td', { text: a.plan })]),
           h('tr', {}, [h('td', { text: 'Quota' }), h('td', { text: a.cloud_requests_used + ' / ' + a.cloud_requests_limit + ' (remaining ' + a.cloud_requests_remaining + ')' })]),
-          h('tr', {}, [h('td', { text: 'Deep research credits' }), h('td', { text: String(a.deep_research_credits) })]),
           h('tr', {}, [h('td', { text: 'Last activity' }), h('td', { text: fmtTime(a.last_activity_at) })]),
           h('tr', {}, [h('td', { text: 'Internal id' }), h('td', {}, [h('code', { text: a.internal_id })])]),
         ]),
@@ -958,6 +879,82 @@ export const ADMIN_DASHBOARD_HTML = `<!doctype html>
         columns(toPoints(o.series.installations), 'installations'),
       ]));
 
+      // The account-creation curve: the series was computed by the overview
+      // endpoint all along, this card finally shows it.
+      app.appendChild(h('div', { class: 'card' }, [
+        h('h2', { text: 'New accounts per day · 30 days' }),
+        columns(toPoints(o.series.accounts), 'accounts'),
+      ]));
+
+      // Free vs paid, and what the free tier actually absorbs. Aggregates
+      // only, per the privacy rules; the average is the one number that says
+      // whether 21 free requests is generous or thin.
+      var freePlans = 0;
+      var paidPlans = 0;
+      (o.plans || []).forEach(function (p) {
+        if (p.plan === 'free') freePlans += p.count; else paidPlans += p.count;
+      });
+      var avgFree = o.accounts_with_free_usage > 0
+        ? (o.free_requests_used_total / o.accounts_with_free_usage).toFixed(1)
+        : '0';
+      var atQuotaShare = o.accounts_with_free_usage > 0
+        ? Math.round((o.accounts_at_quota / o.accounts_with_free_usage) * 100) + '%'
+        : '0%';
+      app.appendChild(h('div', { class: 'card' }, [
+        h('h2', { text: 'Free vs paid' }),
+        h('table', {}, [
+          h('tr', {}, [
+            h('td', { text: 'Accounts on the free plan' }),
+            h('td', { class: 'num', text: String(freePlans) }),
+          ]),
+          h('tr', {}, [
+            h('td', { text: 'Accounts on a paid plan' }),
+            h('td', { class: 'num', text: String(paidPlans) }),
+          ]),
+          h('tr', {}, [
+            h('td', { text: 'Free requests per active free account (average)' }),
+            h('td', { class: 'num', text: avgFree + ' / 21' }),
+          ]),
+          h('tr', {}, [
+            h('td', { text: 'Share of free users who spent all 21' }),
+            h('td', { class: 'num', text: atQuotaShare }),
+          ]),
+        ]),
+      ]));
+
+      // APK downloads, from GitHub's public release counters — the one
+      // figure Alice's own database cannot know. Read-only; a GitHub hiccup
+      // only costs the card its numbers.
+      var dlBody = h('p', { class: 'muted', text: 'Asking GitHub…' });
+      app.appendChild(h('div', { class: 'card' }, [
+        h('h2', { text: 'APK downloads (GitHub releases)' }),
+        dlBody,
+      ]));
+      fetch('https://api.github.com/repos/mariusoffchain/alice/releases')
+        .then(function (r) { if (!r.ok) throw new Error('GitHub answered ' + r.status); return r.json(); })
+        .then(function (releases) {
+          var table = h('table', {});
+          var total = 0;
+          releases.forEach(function (rel) {
+            (rel.assets || []).forEach(function (asset) {
+              if (!/\.apk$/.test(asset.name)) return;
+              total += asset.download_count;
+              table.appendChild(h('tr', {}, [
+                h('td', { text: rel.tag_name + ' · ' + asset.name }),
+                h('td', { class: 'num', text: String(asset.download_count) }),
+              ]));
+            });
+          });
+          table.appendChild(h('tr', {}, [
+            h('td', { text: 'Total APK downloads' }),
+            h('td', { class: 'num', text: String(total) }),
+          ]));
+          dlBody.replaceWith(table);
+        })
+        .catch(function (e) {
+          dlBody.textContent = 'GitHub unreachable: ' + e.message;
+        });
+
       var freeUse = h('table', {}, [
         h('tr', {}, [
           h('td', { text: 'AI requests today (24h)' }),
@@ -1130,7 +1127,6 @@ export const ADMIN_DASHBOARD_HTML = `<!doctype html>
           h('tr', {}, [h('td', { text: 'Email' }), h('td', { text: a.email_masked || '—' })]),
           h('tr', {}, [h('td', { text: 'Plan' }), h('td', { text: a.plan })]),
           h('tr', {}, [h('td', { text: 'Quota' }), h('td', { text: a.cloud_requests_used + ' / ' + a.cloud_requests_limit + ' (remaining ' + a.cloud_requests_remaining + ')' })]),
-          h('tr', {}, [h('td', { text: 'Deep research credits' }), h('td', { text: String(a.deep_research_credits) })]),
           h('tr', {}, [h('td', { text: 'Last activity' }), h('td', { text: fmtTime(a.last_activity_at) })]),
           h('tr', {}, [h('td', { text: 'Internal id' }), h('td', {}, [h('code', { text: a.internal_id })])]),
         ]),
@@ -1445,6 +1441,120 @@ export const ADMIN_DASHBOARD_HTML = `<!doctype html>
     load();
   }
 
+  // The test wallet faucet: Alice's own Mutinynet float, and how fast the
+  // learners are drawing it down. Read-only, and deliberately incapable of
+  // showing the recovery phrase or who received what: the API returns
+  // neither, so there is nothing here to leak or to click by accident. The
+  // one address shown is the dispensing wallet's own, which is exactly what
+  // topping it up needs.
+  function renderFaucet() {
+    app.innerHTML = '<p class="muted">Loading…</p>';
+    api('/admin/api/test-wallet-faucet').then(function (f) {
+      app.innerHTML = '';
+
+      var w = f.wallet;
+      var c = f.claims;
+
+      if (!f.configured) {
+        app.appendChild(h('div', { class: 'card' }, [
+          h('h2', { text: 'Faucet is off' }),
+          h('p', { class: 'muted', text: 'No TEST_WALLET_FAUCET_MNEMONIC secret is set, so Alice hands out nothing and the app sends learners to the public Mutinynet faucet instead. See docs/test-wallet-faucet.md to turn it on.' }),
+        ]));
+      }
+      if (f.claimsError) {
+        app.appendChild(h('div', { class: 'card' }, [
+          h('h2', { text: 'Faucet tables missing' }),
+          h('p', { class: 'muted', style: 'color:var(--alice-warn)', text: 'The counters cannot be read: ' + f.claimsError + ' This normally means the faucet migrations have not been applied to this database yet.' }),
+        ]));
+      }
+
+      app.appendChild(h('div', { class: 'card' }, [
+        h('h2', { text: 'Float' }),
+        h('p', { class: 'muted', text: 'Mutinynet coins, worth nothing anywhere. What is bounded here is how fast the wallet empties, not any value.' }),
+        h('div', { class: 'grid' }, [
+          statCard(w ? sats(w.balanceSats) : '—', 'Sats in the wallet'),
+          statCard(w ? w.payoutsLeft : '—', 'Payouts left'),
+          statCard(c ? sats(c.total * f.payoutSats) : '—', 'Sats handed out'),
+          statCard(c ? c.total : '—', 'Learners served'),
+        ]),
+        w && w.low
+          ? h('p', { class: 'muted', style: 'color:var(--alice-warn)', text: 'Below ' + sats(f.lowBalanceSats) + ' sats. Top the wallet up at the address below before it runs dry.' })
+          : null,
+        f.walletError
+          ? h('p', { class: 'err', text: 'The chain could not be read: ' + f.walletError })
+          : null,
+      ]));
+
+      if (w) {
+        var addr = h('code', { text: w.address });
+        // Empty until the address is actually copied: an always-present pill
+        // sits next to the button as a stray empty box.
+        var copied = h('span', { class: 'pill', style: 'visibility:hidden' });
+        app.appendChild(h('div', { class: 'card' }, [
+          h('h2', { text: 'Top-up address' }),
+          h('p', { class: 'muted', text: 'The dispensing wallet\\'s own receiving address. Fund it from faucet.mutinynet.com; every payout leaves from here and its change comes back to the wallet.' }),
+          h('div', { class: 'row' }, [
+            addr,
+            h('button', {
+              class: 'btn',
+              onclick: function () {
+                navigator.clipboard.writeText(w.address).then(function () {
+                  copied.textContent = 'copied';
+                  copied.style.visibility = 'visible';
+                  setTimeout(function () { copied.style.visibility = 'hidden'; }, 1500);
+                });
+              },
+              text: 'Copy',
+            }),
+            copied,
+          ]),
+          h('div', { class: 'grid' }, [
+            statCard(sats(w.confirmedSats), 'Confirmed'),
+            statCard(sats(w.pendingSats), 'Waiting for a block'),
+            statCard(w.coins, 'Coins'),
+            statCard(f.payingOut ? 'busy' : 'idle', 'Right now'),
+          ]),
+        ]));
+      }
+
+      if (c) {
+        var capCard = h('div', { class: 'card' }, [
+          h('h2', { text: 'Today' }),
+          h('p', { class: 'muted', text: 'One payout per installation for life, and ' + f.dailyCap + ' a day platform-wide. The daily cap is the backstop against someone clearing site data to mint a fresh installation.' }),
+        ]);
+        capCard.appendChild(bar(
+          'Daily cap used',
+          c.today,
+          f.dailyCap,
+          c.today >= f.dailyCap ? 'danger' : (c.today > f.dailyCap * 0.7 ? 'warn' : null),
+        ));
+        capCard.appendChild(h('p', { class: 'muted', text: Math.max(0, f.dailyCap - c.today) + ' payouts left today, ' + sats(Math.max(0, f.dailyCap - c.today) * f.payoutSats) + ' sats at most.' }));
+        app.appendChild(capCard);
+
+        app.appendChild(h('div', { class: 'card' }, [
+          h('h2', { text: 'Payouts per day (30d)' }),
+          columns(toPoints(c.byDay), 'payouts'),
+        ]));
+
+        app.appendChild(h('div', { class: 'card' }, [
+          h('h2', { text: 'Take-up' }),
+          h('div', { class: 'grid' }, [
+            statCard(c.today, 'Today'),
+            statCard(c.last7d, 'Last 7 days'),
+            statCard(c.last30d, 'Last 30 days'),
+            statCard(c.total, 'All time'),
+          ]),
+          h('p', { class: 'muted', text: 'First payout ' + fmtTime(c.firstAt) + ', most recent ' + fmtTime(c.lastAt) + '.' }),
+        ]));
+      }
+
+      app.appendChild(h('div', { class: 'card' }, [
+        h('h2', { text: 'What this page cannot show' }),
+        h('p', { class: 'muted', text: 'The recovery phrase never leaves its Worker secret and is not returned by this API. Neither is any payout transaction or recipient: the claims table holds a keyed hash and a timestamp, nothing that points back at a learner or their wallet. Everything above is aggregate, and nothing on this page can move funds.' }),
+      ]));
+    }).catch(function (e) { app.innerHTML = ''; app.appendChild(h('p', { class: 'err', text: e.message })); });
+  }
+
   function render() {
     if (!state.token) { renderLogin(); return; }
     nav.style.display = 'flex';
@@ -1457,6 +1567,7 @@ export const ADMIN_DASHBOARD_HTML = `<!doctype html>
     if (state.view === 'overview') renderOverview();
     else if (state.view === 'analytics') renderAnalytics();
     else if (state.view === 'events') renderEvents();
+    else if (state.view === 'faucet') renderFaucet();
     else if (state.view === 'accounts') renderAccounts();
     else if (state.view === 'account') renderAccountDetail(state.detail);
     else if (state.view === 'audit') renderAudit();

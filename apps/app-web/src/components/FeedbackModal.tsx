@@ -17,8 +17,7 @@ import appWebPackage from '../../package.json';
 import appDesktopPackage from '../../../app-desktop/package.json';
 
 // Dedicated public repo for community bug reports / knowledge suggestions,
-// since the main `alice` repo is private. Revisit once `alice` goes public —
-// issues could move there directly instead of this separate repo.
+// since the main `alice` repo is private. Revisit once `alice` goes public, // issues could move there directly instead of this separate repo.
 const FEEDBACK_REPO = 'mariusoffchain/alice-support-contribute';
 const FEEDBACK_EMAIL = 'report@alicebtc.com';
 
@@ -55,7 +54,7 @@ interface FeedbackModalProps {
 }
 
 export function FeedbackModal({ onClose }: FeedbackModalProps) {
-  const { backendType, backendStatus, deepMode } = useChat();
+  const { backendType, backendStatus } = useChat();
   const [aiContext, setAiContext] = useState<AIReportContext | null>(null);
   const [category, setCategory] = useState<Category>('bug');
   const [title, setTitle] = useState('');
@@ -118,9 +117,6 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
       // would just repeat the mode. Only say it when it adds something.
       aiContext && aiContext.model !== BACKEND_LABELS[backendType] ? `- Model: ${aiContext.model}` : '',
       `- Reasoning: ${aiContext ? REASONING_LABELS[aiContext.preset] : 'Unknown'}`,
-      // Deep is a Private Cloud toggle only, so saying "Off" elsewhere would
-      // read as a setting the reporter could have changed.
-      `- Deep: ${backendType === 'cloud' ? (deepMode ? 'On' : 'Off') : 'Not available on this mode'}`,
       `- Backend status: ${backendStatus.state}`,
       `- URL: ${typeof window !== 'undefined' ? window.location.href : 'Unknown'}`,
       `- User agent: ${typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown'}`,
@@ -326,7 +322,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
             <label
               className="font-pixel tracking-widest cursor-pointer"
               style={{
-                fontSize: 9,
+                fontSize: 10,
                 padding: '9px 10px',
                 border: '2px solid var(--alice-primary)',
                 borderRadius: 2,
@@ -370,7 +366,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
                   onClick={() => handleScreenshotChange(null)}
                   className="font-pixel tracking-widest cursor-pointer"
                   style={{
-                    fontSize: 9,
+                    fontSize: 10,
                     padding: '7px 8px',
                     border: '1px solid var(--alice-border)',
                     borderRadius: 2,

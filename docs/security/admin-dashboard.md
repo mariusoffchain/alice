@@ -18,22 +18,22 @@ analytics or admin SaaS, no new deploy target.
 This is the complete picture of what Alice's server side handles. The
 principle behind it: collect nothing that is not needed to run and improve
 Alice, and nothing personal beyond what an account inherently is. Everything
-below is enumerable — there is no "and miscellaneous logs" bucket.
+below is enumerable, there is no "and miscellaneous logs" bucket.
 
-**1. Can never be collected — impossible by construction.** Wallet recovery
+**1. Can never be collected, impossible by construction.** Wallet recovery
 phrases, wallet keys, balances, transactions, or even the fact that a wallet
 exists: the wallet apps never send any of it to this Worker, and no schema
 column could hold it. Chat prompts and AI responses: encrypted on the device,
 relayed as ciphertext, never readable here. Plaintext passwords: only salted
 hashes exist. Plaintext email addresses at rest: only a keyed one-way HMAC
-(for login lookup) and a masked display label (`ma****@domain.com`) are
+(for login lookup) and a masked display label (`sat****@bitcoin.com`) are
 stored.
 
-**2. Collected by Alice — the exhaustive list.** Account rows (username,
+**2. Collected by Alice, the exhaustive list.** Account rows (username,
 display name, masked email label, HMAC email fingerprint, creation and
 last-use timestamps); password hashes (scrypt or PBKDF2, salted); session
 records (hashed tokens); quota counters and the cloud request ledger
-(confirmed/refunded, day-level — no model name, no content); pseudonymous
+(confirmed/refunded, day-level, no model name, no content); pseudonymous
 installation rows (HMAC of a random install id, platform, app version,
 write-once milestone timestamps); day-level aggregate product counters
 (event × day × platform × version, no user id); technical error telemetry
@@ -41,7 +41,7 @@ write-once milestone timestamps); day-level aggregate product counters
 access denials; promo codes and their redemptions.
 
 **3. Seen in transit but deliberately not kept.** The raw IP address is
-HMAC'd with a day-scoped key for rate limiting, then unrecoverable — no
+HMAC'd with a day-scoped key for rate limiting, then unrecoverable, no
 durable IP record exists. The email address transits once per login to send
 the verification code, and is not stored in clear. Request and response
 bodies are never read into logs; Cloudflare invocation logs are disabled in
@@ -61,8 +61,7 @@ seeds, chat plaintext, or Alice account credentials.
 event streams and behavioural timelines (the schema has no place for them);
 per-model usage; a queryable IP or device-fingerprint table; a "wallet
 created" milestone; timestamps finer than a day in analytics; substring
-search over email addresses. Each of these was considered and rejected —
-adding any of them back is a reviewable schema change, not a toggle.
+search over email addresses. Each of these was considered and rejected, adding any of them back is a reviewable schema change, not a toggle.
 
 ## Access model
 
@@ -75,7 +74,7 @@ There is no "admin flag" anywhere in a client or in a JWT claim. Every
 3. for any state-changing route, requires that row's `role` to be `admin`.
 
 Both checks happen on the server, per request. The dashboard HTML page itself
-carries no privilege — it is a thin client that signs in through the existing
+carries no privilege, it is a thin client that signs in through the existing
 `/auth/password/login` endpoint and then calls
 `/admin/api/*` with the resulting bearer token, exactly like any Alice client
 would call `/account`.
@@ -96,7 +95,7 @@ therefore not enough on its own to destroy data or grant itself company. The
 check is rate-limited per admin so it cannot be used as a password oracle,
 and every failure is recorded.
 
-Denied attempts — not an admin, insufficient role, or a failed re-auth — are
+Denied attempts, not an admin, insufficient role, or a failed re-auth, are
 written to `admin_access_denials` and surfaced at
 `GET /admin/api/access-denials`, so probing the dashboard is visible rather
 than silent.
@@ -132,7 +131,7 @@ is not disclosing it.
 
 ### A secret path
 
-`ADMIN_DASHBOARD_PATH` moves the whole dashboard — shell and API — to a path
+`ADMIN_DASHBOARD_PATH` moves the whole dashboard, shell and API, to a path
 of your choosing, and `/admin` then returns 404. The page derives its API
 base from its own URL, so one variable moves everything.
 
@@ -148,7 +147,7 @@ cannot leave the dashboard reachable at two places or at none.
 ### Reachability
 
 Once deployed, `/admin` is reachable from anywhere on the internet at the
-Worker's URL — it is not a local-only tool. That is what the layers above are
+Worker's URL, it is not a local-only tool. That is what the layers above are
 for: a password with a 15-character minimum, an `admin_users` row, an
 optional `ADMIN_ALLOWED_USERNAMES` gate, password re-auth on destructive
 actions, and recorded denials. For a private beta, putting **Cloudflare
@@ -158,7 +157,7 @@ an attacker then has to pass your IdP before they can even see the form.
 ### Transport hardening
 
 - **No CORS on `/admin/api/*`.** The dashboard is served same-origin by this
-  Worker, so it needs none — and withholding the headers means no other
+  Worker, so it needs none, and withholding the headers means no other
   allowlisted Alice origin (the wallet apps, `localhost` during development)
   can script a request against these endpoints from a user's browser.
   Preflights for `/admin*` are answered without CORS headers too. The normal
@@ -189,14 +188,14 @@ IPs, which Alice deliberately avoids everywhere else.
 ### Bootstrapping the first admin
 
 There is no seed data and no default admin. The whole first run happens in
-the browser — no `curl` needed.
+the browser, no `curl` needed.
 
 **The admin account must have a password.** The dashboard's sign-in form is
 password-based, and every irreversible action (delete an account, grant or
 revoke dashboard access) requires re-entering that same password.
 
 1. **Create a normal Alice account with a password**, in the app or on the
-   web build. Nothing special about it — it is an ordinary account that will
+   web build. Nothing special about it, it is an ordinary account that will
    be marked as admin in step 4. Password rules come from `validatePassword`:
    **15 to 128 characters**. The username is `prefix.suffix#1234`, and note
    that `admin`, `alice`, `support`, `staff`, `security`, `team` and a few
@@ -215,7 +214,7 @@ revoke dashboard access) requires re-entering that same password.
 That is the whole flow. It succeeds exactly once: if `admin_users` already
 has a row, the call returns `409 admin_already_bootstrapped`. Every
 subsequent admin is granted by an existing admin from the Admins tab, which
-requires that admin's password and writes an audit entry — no secret
+requires that admin's password and writes an audit entry, no secret
 involved.
 
 Afterwards, rotate or delete `ADMIN_BOOTSTRAP_SECRET`; it is only useful
@@ -228,8 +227,7 @@ Demoting the last remaining full admin is refused server-side
 ## What the dashboard shows
 
 **Overview** (`GET /admin/api/overview`): accounts created vs. anonymous
-installations (distinguished by the existing `anon_<hash>` user id prefix —
-no new table), confirmed Private Cloud requests over 24h/7d/30d (from the
+installations (distinguished by the existing `anon_<hash>` user id prefix, no new table), confirmed Private Cloud requests over 24h/7d/30d (from the
 existing `cloud_request_ledger`), free-quota consumption and accounts at
 quota, plan breakdown, and auth/email/venice error counts over 24h.
 
@@ -237,24 +235,24 @@ quota, plan breakdown, and auth/email/venice error counts over 24h.
 SUM over rows Alice already stores, collapsed to totals before it leaves the
 database.
 
-- *Retention* — share of installations still seen 1/7/30 days after first
+- *Retention*, share of installations still seen 1/7/30 days after first
   contact, from `installations.first_seen_at` / `last_seen_at`. Cohort
   eligibility is applied per horizon, so a two-day-old install never drags
   down D30.
-- *Activation funnel* — installations → 1st cloud request → 10th → quota
+- *Activation funnel*, installations → 1st cloud request → 10th → quota
   exhausted → account created, from the write-once milestone columns below.
-- *Free quota histogram* — how far into their 21 requests users actually
+- *Free quota histogram*, how far into their 21 requests users actually
   get. This is the number that tells you whether 21 is the right number.
-- *Venice reliability* — confirmed vs. refunded ledger entries. A refund
+- *Venice reliability*, confirmed vs. refunded ledger entries. A refund
   means the upstream call failed and the user was **not** charged.
 - *Errors by code* and *requests per day*.
-- *Platforms and versions* — installation counts per platform/version.
+- *Platforms and versions*, installation counts per platform/version.
 
 **Events** (`GET /admin/api/events`): aggregate product analytics, see
 [Product events](#product-events).
 
 **Accounts** (`GET /admin/api/accounts?q=`): search by username, exact email
-(hashed the same way login does — Alice never stores plaintext email, so
+(hashed the same way login does, Alice never stores plaintext email, so
 there is no substring search over it), or support id. Anonymous
 installations are excluded from this list; they are not accounts.
 
@@ -272,7 +270,7 @@ promo code management.
 **Audit log** (`GET /admin/api/audit-log`): every state-changing admin
 action, newest first, with the acting admin's support id, the action, the
 target's support id (kept even after a deletion), and a small metadata blob
-(the reason string, before/after numbers — never a secret or free-text
+(the reason string, before/after numbers, never a secret or free-text
 content).
 
 ## Look and feel
@@ -282,7 +280,7 @@ screenshot of it can go straight into Alice's communication without looking
 borrowed from a generic admin tool.
 
 - **Palette**: `PALETTES.blue` from `packages/alice-content/src/theme.ts`,
-  transcribed into CSS custom properties — the same values the web app
+  transcribed into CSS custom properties, the same values the web app
   already declares in `globals.css`. Accent tones for status come from the
   other Alice palettes rather than arbitrary colours: `flame` for danger,
   `green` for OK, `bitcoin` for warnings.
@@ -290,8 +288,7 @@ borrowed from a generic admin tool.
   and numbers, matching `typography.pixel` / `typography.numbers`. Both are
   embedded as WOFF2 data URIs, converted from the TTFs in
   `apps/wallet-mobile/assets/fonts` (115KB + 49KB of TTF → 29KB + 12KB). The
-  page's CSP is `default-src 'none'`, so nothing can be fetched from a CDN —
-  the bytes have to travel with the Worker.
+  page's CSP is `default-src 'none'`, so nothing can be fetched from a CDN, the bytes have to travel with the Worker.
 - **Pixel treatment**: 2px borders and a 2px radius everywhere, matching
   `getPixel()`. Charts are drawn as discrete cells (horizontal strips for
   bars, stacked segments for the per-day series) rather than smooth
@@ -314,7 +311,7 @@ far denser text than a wallet screen:
 
 Measured contrast: headline numbers 9.4:1 dark / 14.8:1 light; secondary
 text 3.4:1 dark / 5.3:1 light. The dark secondary figure is the wallet's own
-`muted` on its own background — kept as-is for brand fidelity rather than
+`muted` on its own background, kept as-is for brand fidelity rather than
 nudged to clear AA.
 
 ## Installation milestones
@@ -332,7 +329,7 @@ quota_exhausted_at, account_created_at
 The design principle is **milestones, not an event stream**. Each column
 records "this installation reached step X at time T", written once with
 `COALESCE` and never overwritten. That is enough for funnels, retention and
-cohort analysis, while keeping what Alice stores fully enumerable — there is
+cohort analysis, while keeping what Alice stores fully enumerable, there is
 no per-action log, and no way to reconstruct a behavioural timeline.
 
 `platform` is validated against an allowlist (`ios`, `android`, `web`,
@@ -357,7 +354,7 @@ than a day, and no ordering between events**. A row says "on day D, event E
 happened N times on platform P at version V" and nothing more, so no
 individual behavioural profile can be reconstructed from this table even in
 principle. A session is required to post, purely so the endpoint cannot be
-spammed by unauthenticated traffic — the identity is deliberately not stored
+spammed by unauthenticated traffic, the identity is deliberately not stored
 with the event.
 
 `event_name` is checked against `ALLOWED_EVENT_NAMES` in `src/admin.ts`
@@ -365,7 +362,7 @@ before anything is written. **That allowlist is the control that makes this
 table safe**: without it a client could send arbitrary strings, and an
 event label is exactly the kind of field that ends up carrying a search
 query or a file name. Unknown names are silently dropped. Adding a new event
-means adding it to that set in the Worker — a deliberate, reviewable step.
+means adding it to that set in the Worker, a deliberate, reviewable step.
 
 What you give up with this design is the per-individual funnel ("this user
 clicked A then B"). What you keep is the per-cohort funnel, which is what
@@ -375,7 +372,7 @@ almost every product decision actually needs.
 
 `packages/alice-ai/src/product-events.ts` batches events and flushes at most
 every 10s, on app background (mobile) and on tab hide (web). Failures are
-swallowed — a counter is never worth a retry queue or a broken user action.
+swallowed, a counter is never worth a retry queue or a broken user action.
 `setProductEventsEnabled(false)` stops collection at the source, so a
 user-facing opt-out does not have to trust the server to discard data.
 
@@ -391,29 +388,29 @@ formatting logic lives in `client-info-format.ts` so it is unit tested as a
 leaf module.
 
 `ALICE_PRODUCT_EVENTS` in the client mirrors `ALLOWED_EVENT_NAMES` in the
-Worker. If they drift, the server silently drops the unknown name — benign,
+Worker. If they drift, the server silently drops the unknown name, benign,
 but the event stops counting. The dashboard's Events tab lists the server's
 current allowlist so drift is visible to an operator.
 
 ## What is deliberately never collected or shown
 
-- Prompts, AI responses, or any Private Cloud request/response body — the
+- Prompts, AI responses, or any Private Cloud request/response body, the
   proxy never reads them in the first place (see `docs/security/private-cloud-e2ee.md`).
 - Wallet seeds, wallet private keys, wallet transactions, or even *the fact
-  that a wallet exists* — this Worker has no wallet data at all, the wallet
+  that a wallet exists*, this Worker has no wallet data at all, the wallet
   apps never send it here, and no milestone or event records wallet activity.
 - Per-user click streams, page-view timelines, or session replay. Product
   analytics are aggregate counters only.
 - Passwords, password hashes and session tokens.
 - Raw IP addresses. `technical_events` (auth/email/venice error telemetry)
-  stores only a category, a code, a status, and — only when the request was
-  already authenticated — the acting `user_id`; it is never derived from IP
+  stores only a category, a code, a status, and, only when the request was
+  already authenticated, the acting `user_id`; it is never derived from IP
   or install id, so it adds no new tracking surface.
 - Per-model usage breakdown. `cloud_request_ledger` does not record which
   model a request used, so the dashboard cannot show it either; adding that
   column would be new tracking, which this project avoids by default.
 - Full unmasked email addresses in any list view.
-- The internal `user_id` to end users — it only ever appears to admins, in
+- The internal `user_id` to end users, it only ever appears to admins, in
   the single-account detail view, because operators need a real primary key
   to act on a record via this API.
 
@@ -421,7 +418,7 @@ current allowlist so drift is visible to an operator.
 
 `DELETE /admin/api/accounts/:id` requires the request body's `confirm` field
 to exactly match the account's support id (its username, or its internal id
-if it never set one) — copy-pasted, not just any string — as a strong
+if it never set one), copy-pasted, not just any string, as a strong
 confirmation gate. The action is written to `admin_audit_log` *before* the
 row disappears (so the trail survives), then every row referencing the
 account is deleted in an explicit, ordered batch (promo redemptions, admin
@@ -430,7 +427,7 @@ credentials if present, password credentials, identities, sessions, usage
 counters, entitlements, the
 username reservation is released, and finally the `users` row itself). This
 does not rely on SQLite's `ON DELETE CASCADE` being active for the
-connection — it is correct regardless of D1's per-connection foreign-key
+connection, it is correct regardless of D1's per-connection foreign-key
 pragma state.
 
 ## Environment variables and secrets
@@ -448,7 +445,7 @@ pragma state.
 
 `ADMIN_ALLOWED_USERNAMES` is the answer to "only I should be able to see
 this". With it set, being in the `admin_users` table is no longer
-sufficient — the session's username must also appear in the list. That means
+sufficient, the session's username must also appear in the list. That means
 a rogue promotion, a mistake, or a direct write to D1 by anything other than
 this Worker still grants nothing. Set it to your own username and the
 dashboard is yours alone. Store the value in `.dev.vars`, not in
@@ -536,15 +533,15 @@ node --test "apps/venice-proxy-worker/src/**/*.test.ts"
   "promo codes" here are a manual operator tool for granting extra free
   requests, not a purchase flow.
 
-  The plan is **BTCPay Server only** for the private beta — free to run, no
+  The plan is **BTCPay Server only** for the private beta, free to run, no
   card data anywhere, and a natural fit for a Bitcoin wallet. Stripe is
   deferred until commercialisation is actually decided. Billing work should
   not start before that BTCPay Server exists. When it does, keep a
   `provider` discriminator so Stripe can be added later without rewriting
-  the schema, and never store card data — only an opaque provider token plus
+  the schema, and never store card data, only an opaque provider token plus
   the brand/last-4 the provider echoes back, with the top-up ledger kept
   separate from subscription state.
-- **No per-model usage stat**, by design — `cloud_request_ledger` does not
+- **No per-model usage stat**, by design, `cloud_request_ledger` does not
   record which model served a request, and adding that column would be new
   tracking.
 - **No IP-based abuse dashboard.** Alice intentionally does not persist raw

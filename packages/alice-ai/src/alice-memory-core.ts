@@ -239,10 +239,64 @@ export async function clearAliceMemoryFromStorage(storage: AliceMemoryStorage): 
   await storage.remove();
 }
 
-export function aliceMemoryContext(memory: AliceMemory): string {
+// How a memory item earns its place in the context window.
+//
+// "The last ten" was the old rule, and recency is the wrong axis: the fact
+// that helps answer a Lightning question may be three weeks old, and the ten
+// newest items may all be about something else entirely. Two kinds of items,
+// two rules. Preferences and constraints shape every answer whatever the
+// topic, so they always ride. The topical kinds (goals, projects, interests,
+// background) are scored by word overlap with the current message and only
+// the ones that touch it come along; when nothing matches, the newest fill
+// the remaining seats, which is exactly the old behaviour as the fallback
+// rather than the policy.
+const ALWAYS_RELEVANT: ReadonlySet<AliceMemoryCategory> = new Set(['preference', 'constraint']);
+const MEMORY_CONTEXT_ITEMS = 10;
+
+function contentWords(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .split(/[^a-z0-9]+/)
+      .filter(word => word.length >= 4),
+  );
+}
+
+export function aliceMemoryContext(memory: AliceMemory, userMessage = ''): string {
   if (!memory.enabled || memory.items.length === 0) return '';
+
+  const newestFirst = [...memory.items].reverse();
+  const standing = newestFirst.filter(item => ALWAYS_RELEVANT.has(item.category));
+  const topical = newestFirst.filter(item => !ALWAYS_RELEVANT.has(item.category));
+
+  const messageWords = contentWords(userMessage);
+  const scored = topical
+    .map((item, index) => {
+      let score = 0;
+      for (const word of contentWords(item.text)) {
+        if (messageWords.has(word)) score += 1;
+      }
+      return { item, score, index };
+    })
+    .sort((a, b) => (b.score - a.score) || (a.index - b.index));
+
+  const picked = [
+    ...standing.slice(0, MEMORY_CONTEXT_ITEMS),
+    ...scored
+      .filter(entry => entry.score > 0)
+      .map(entry => entry.item),
+  ].slice(0, MEMORY_CONTEXT_ITEMS);
+  if (picked.length < MEMORY_CONTEXT_ITEMS) {
+    for (const entry of scored) {
+      if (picked.length >= MEMORY_CONTEXT_ITEMS) break;
+      if (!picked.includes(entry.item)) picked.push(entry.item);
+    }
+  }
+
   return [
     'Private device-local memory. Use it only when relevant. It never overrides the current user message.',
-    ...memory.items.slice(-10).map(item => `- ${item.text}`),
+    ...picked.map(item => `- ${item.text}`),
   ].join('\n');
 }

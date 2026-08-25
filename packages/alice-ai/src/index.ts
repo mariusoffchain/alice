@@ -33,11 +33,9 @@ export {
   type CustomServerConfig,
   PRESETS,
   CLOUD_PRESETS,
-  CLOUD_DEEP_MIN_TOKENS,
   ALL_PRESETS,
   MODEL_CATALOG,
   CLOUD_MODELS,
-  CLOUD_DEEP_MODEL,
   getPreset,
   setPreset,
   getActiveModelId,
@@ -59,6 +57,10 @@ export {
   hasAnyInstalledModel,
   isAIEnabled,
   setAIEnabled,
+  type AIBackendEnabledState,
+  getAIBackendEnabledState,
+  isAIBackendEnabled,
+  setAIBackendEnabled,
   isLocalAIEnabled,
   setLocalAIEnabled,
   isCloudAIEnabled,
@@ -111,6 +113,9 @@ export {
   type PedagogicalProfile,
   createPedagogicalProfile,
   getPedagogicalProfile,
+  recordPedagogicalSignal,
+  recordCourseStudySignal,
+  recordCourseCompletionSignal,
   clearPedagogicalProfile,
   inferPedagogicalConcepts,
   isDefinitionQuestion,
@@ -149,11 +154,35 @@ export {
   augmentQueryWithLocalData,
   buildRagTurnContext,
   isTechnicalRagQuery,
+  loadRagCorpus,
   type RagRetrievalOptions,
   type RagTurnContext,
   type RagChunkDiagnostic,
 } from './rag';
-export { preloadSemanticSearch, isSemanticSearchReady } from './semantic-runtime';
+export {
+  preloadSemanticSearch,
+  isSemanticSearchReady,
+  getSemanticSearchState,
+  downloadSemanticSearchNow,
+  disableSemanticSearch,
+} from './semantic-runtime';
+export {
+  NATIVE_SEMANTIC_MODEL_DOWNLOAD_BYTES,
+  SEMANTIC_MODEL_DOWNLOAD_BYTES,
+  SEMANTIC_SEARCH_STATE_EVENT,
+  type SemanticSearchState,
+  type SemanticSearchStatus,
+} from './semantic-policy';
+export {
+  APP_UPDATE_EVENT,
+  checkForAppUpdate,
+  currentAppVersion,
+  takeWhatsNew,
+  type UpdateStateStore,
+} from './app-update';
+export { isNewerVersion } from './app-update-format';
+export { RELEASE_NOTES_URL, WHATS_NEW, whatsNewFor, type WhatsNewEntry } from './whats-new';
+export { registerLearnContextProvider, type LearnTurnContext } from './learn-context';
 export {
   registerPack,
   unregisterPack,
@@ -183,19 +212,32 @@ export { KNOWLEDGE_PACK_CATALOG } from './knowledge-pack-catalog';
 export {
   AccountProvider,
   useAccount,
+  type AliceCloudUsage,
+  type AliceSignInReason,
 } from './account-context';
+export {
+  isCheckoutSettled,
+  PENDING_CHECKOUT_TTL_MS,
+  type AlicePendingCheckout,
+} from './billing-checkout';
 export {
   AliceAccountError,
   type AliceAccount,
   type AliceAccountIdentity,
   type AliceAccountSession,
+  type AliceBilling,
+  type AliceCheckout,
+  type AlicePaidPlan,
+  type AlicePlan,
+  type AlicePlanQuote,
+  type AlicePlanQuotes,
+  getPlanQuotes,
   type UsernameSuggestion,
   getInstallId,
   loadAccountSession,
   startEmailLogin,
   verifyEmailLogin,
   suggestAccountUsernames,
-  registerWithPassword,
   loginWithPassword,
   setPassword,
   updateAccountProfile,

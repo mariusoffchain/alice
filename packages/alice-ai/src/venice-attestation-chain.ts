@@ -1,6 +1,6 @@
 // The full Private Cloud verification chain, composed from the pieces.
 //
-// Order (fail-closed at every step — nothing leaves the device until it passes):
+// Order (fail-closed at every step, nothing leaves the device until it passes):
 //   1. attestation shape + nonce binding
 //   2. parse + DCAP-verify the TDX quote (Intel trust chain), strict TCB
 //   3. reject debug mode
@@ -8,7 +8,7 @@
 //   5. pin measurements to an approved reference (if a policy is anchored)
 //   6. NVIDIA GPU attestation (if required for the model)
 //
-// The result carries an explicit assurance level so callers — and the UI — can
+// The result carries an explicit assurance level so callers, and the UI, can
 // tell "hardware-attested" apart from "fully pinned". The UI must not claim
 // end-to-end encryption below `full`.
 
@@ -52,13 +52,13 @@ export type ChainPolicy = {
   /**
    * When true, an unanchored measurement policy is a hard refusal instead of a
    * lower assurance level. Turn this on once Venice's reference values are
-   * pinned — until then it stays false and the UI stays honest about the level.
+   * pinned, until then it stays false and the UI stays honest about the level.
    */
   requireMeasurementPinning: boolean;
   /**
    * When true, a model whose attestation carries an NVIDIA payload must have it
    * verified, or the session is refused. No fallback. If no verifier is wired,
-   * this refuses — never silently skips.
+   * this refuses, never silently skips.
    */
   requireNvidia: boolean;
   nvidiaVerify?: NvidiaVerifier;

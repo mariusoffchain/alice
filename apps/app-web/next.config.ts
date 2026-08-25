@@ -8,6 +8,10 @@ const internalHost = process.env.TAURI_DEV_HOST;
 
 const nextConfig: NextConfig = {
   output: 'export',
+  // A stray package-lock.json outside the monorepo makes Next infer the wrong
+  // workspace root, which breaks `next build` (PageNotFoundError on /_document).
+  // Pin the root to the monorepo explicitly.
+  outputFileTracingRoot: path.resolve(__dirname, '../..'),
   // Turbopack (used by `next dev`) has its own alias system separate from
   // webpack. Without this, it resolves `react-native` directly and chokes on
   // Flow syntax in the RN source. Mirrors the webpack aliases below exactly.
@@ -45,6 +49,13 @@ const nextConfig: NextConfig = {
     // shipping a key. Only the proxy URL is public.
     EXPO_PUBLIC_VENICE_PROXY_URL: process.env.EXPO_PUBLIC_VENICE_PROXY_URL ?? '',
     EXPO_PUBLIC_VENICE_PCCS_URL: process.env.EXPO_PUBLIC_VENICE_PCCS_URL ?? '',
+    // The build's own version, for client-info headers and the update banner
+    // (a build that does not know its version can never see a newer one).
+    // The monorepo root package.json is the shared release number.
+    EXPO_PUBLIC_ALICE_APP_VERSION:
+      process.env.EXPO_PUBLIC_ALICE_APP_VERSION
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      ?? (require('../../package.json') as { version: string }).version,
     EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED:
       process.env.EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED ?? 'true',
   },

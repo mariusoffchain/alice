@@ -38,7 +38,7 @@ export default function CreditsPage() {
     <>
       <SiteNav />
       <main id="main" className="mx-auto max-w-3xl px-5 py-16">
-        <p className="font-pixel text-[10px] uppercase tracking-widest text-[var(--alice-primary)]">
+        <p className="font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-primary)]">
           Credits
         </p>
         <h1 className="mt-5 text-4xl font-semibold leading-[1.12] sm:text-5xl">

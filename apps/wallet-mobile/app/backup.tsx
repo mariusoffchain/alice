@@ -157,7 +157,7 @@ export default function BackupScreen() {
                 }.`
                 : ''}
             </Text>
-            <Text style={s.warning}>NEVER SHARE THESE WORDS</Text>
+            <Text style={[s.warning, { color: colors.danger }]}>NEVER SHARE THESE WORDS</Text>
             <TouchableOpacity style={s.primaryBtn} onPress={() => void reveal()} disabled={loading || backupComplete === null}>
               <Text style={s.primaryText}>{loading ? 'UNLOCKING...' : backupComplete ? 'REVEAL PHRASE' : 'START BACKUP'}</Text>
             </TouchableOpacity>
@@ -192,7 +192,7 @@ export default function BackupScreen() {
                 );
               })}
             </View>
-            <Text style={s.warning}>ALICE WILL NEVER ASK YOU FOR THESE WORDS</Text>
+            <Text style={[s.warning, { color: colors.danger }]}>ALICE WILL NEVER ASK YOU FOR THESE WORDS</Text>
             {backupComplete ? (
               <TouchableOpacity style={s.primaryBtn} onPress={leaveScreen}>
                 <Text style={s.primaryText}>DONE</Text>
@@ -219,7 +219,7 @@ export default function BackupScreen() {
                     return (
                       <TouchableOpacity
                         key={word}
-                        style={[s.choice, selected && s.choiceSelected, wrong && s.choiceWrong]}
+                        style={[s.choice, selected && s.choiceSelected, wrong && [s.choiceWrong, { backgroundColor: colors.danger, borderColor: colors.danger }]]}
                         onPress={() => selectWord(questionIndex, word)}
                       >
                         <Text style={[s.choiceText, selected && s.choiceTextSelected]}>{word}</Text>
@@ -229,7 +229,7 @@ export default function BackupScreen() {
                 </View>
               </View>
             ))}
-            {verifyError && <Text style={s.error}>Some words are wrong. Try again.</Text>}
+            {verifyError && <Text style={[s.error, { color: colors.danger }]}>Some words are wrong. Try again.</Text>}
             <TouchableOpacity
               style={[s.primaryBtn, verifyAnswers.includes(null) && s.disabled]}
               onPress={() => void confirmVerification()}
@@ -250,7 +250,7 @@ export default function BackupScreen() {
           </>
         )}
 
-        {error && <Text style={s.error}>{error}</Text>}
+        {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
       </ScrollView>
     </SafeAreaView>
   );
@@ -262,13 +262,13 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', ...pixel, backgroundColor: colors.cardBg },
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
-    headerTitle: { fontFamily: typography.pixel, fontSize: 11, color: colors.primaryDark, letterSpacing: 2 },
+    headerTitle: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 2 },
     body: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xxl, paddingBottom: spacing.xxxl },
     title: { maxWidth: 480, fontFamily: typography.pixel, fontSize: 13, lineHeight: 22, color: colors.primaryDark, letterSpacing: 2, textAlign: 'center' },
     description: { marginTop: spacing.lg, maxWidth: 520, fontFamily: typography.numbers, fontSize: 16, lineHeight: 23, color: colors.muted, textAlign: 'center' },
-    warning: { marginTop: spacing.xl, fontFamily: typography.pixel, fontSize: 7, lineHeight: 14, color: '#e06060', letterSpacing: 1, textAlign: 'center' },
+    warning: { marginTop: spacing.xl, fontFamily: typography.pixel, fontSize: 12, lineHeight: 14, color: '#e06060', letterSpacing: 1, textAlign: 'center' },
     primaryBtn: { ...pixel, marginTop: spacing.xxl, paddingHorizontal: spacing.xxl, paddingVertical: spacing.lg, backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    primaryText: { fontFamily: typography.pixel, fontSize: 8, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
+    primaryText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1, textAlign: 'center' },
     disabled: { opacity: 0.4 },
     seedGrid: { width: '100%', maxWidth: 520, marginTop: spacing.xxl, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     seedWord: { ...pixel, width: '48%', minHeight: 52, flexDirection: 'row', alignItems: 'center', padding: spacing.md, backgroundColor: colors.cardBg },
@@ -279,7 +279,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     seedMaskFill: { position: 'absolute', top: 0, bottom: 0, left: 5, right: 5, backgroundColor: colors.muted, opacity: 0.32 },
     seedMaskHighlight: { position: 'absolute', top: 4, bottom: 4, left: 0, right: 0, backgroundColor: colors.cardBg, opacity: 0.38 },
     verifyBlock: { marginTop: spacing.xl, width: '100%', maxWidth: 440 },
-    verifyLabel: { marginBottom: spacing.sm, fontFamily: typography.pixel, fontSize: 8, color: colors.primaryDark },
+    verifyLabel: { marginBottom: spacing.sm, fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark },
     choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     choice: { ...pixel, paddingVertical: spacing.md, paddingHorizontal: spacing.lg, backgroundColor: colors.cardBg },
     choiceSelected: { backgroundColor: colors.primary, borderColor: colors.primaryDark },

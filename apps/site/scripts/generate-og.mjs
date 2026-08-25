@@ -17,8 +17,7 @@ import { fileURLToPath } from 'node:url';
 const APP_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = join(APP_DIR, 'public');
 
-const HERO_TITLE =
-  'Meet Alice. Your private companion, all the way down the Bitcoin rabbit hole.';
+const HERO_TITLE = 'Your Bitcoin questions are nobody’s business.';
 
 const SIZE = { width: 1200, height: 630 };
 const GRID = 78;
@@ -66,11 +65,11 @@ const card = {
             width: 880,
           },
           children: [
-            text('PRIVATE AI · BITCOIN · SELF-CUSTODY', {
+            text('PRIVATE BITCOIN AI · SELF-CUSTODY · OPEN SOURCE', {
               fontFamily: 'PressStart2P',
-              fontSize: 16,
+              fontSize: 13,
               color: PRIMARY,
-              letterSpacing: 3,
+              letterSpacing: 2,
             }),
             text(HERO_TITLE, {
               fontFamily: 'TerminalGrotesque',

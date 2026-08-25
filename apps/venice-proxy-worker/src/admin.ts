@@ -29,6 +29,7 @@ import {
   verifyPasswordFor,
   type AuthenticatedUser,
 } from './account.ts';
+import { testWalletFaucetStatus } from './test-wallet-faucet.ts';
 
 const ADMIN_ACCOUNTS_PAGE_SIZE = 25;
 const ADMIN_AUDIT_PAGE_SIZE = 50;
@@ -338,12 +339,19 @@ export async function adminOverview(request: Request, env: Env) {
     installSeries,
     accountSeries,
   ] = await Promise.all([
+    // An account is a user holding at least one identity. Judging by the id
+    // shape stopped working when creation began graduating the anonymous
+    // user in place, anon_ id and all; the identity's date is the account's
+    // birthday, since that is the moment it became somebody's.
     env.ACCOUNT_DB.prepare(`
       SELECT
         COUNT(*) AS total,
-        SUM(CASE WHEN created_at > ? THEN 1 ELSE 0 END) AS last_7d,
-        SUM(CASE WHEN created_at > ? AND created_at <= ? THEN 1 ELSE 0 END) AS prev_7d
-      FROM users WHERE id NOT LIKE 'anon_%'
+        SUM(CASE WHEN first_at > ? THEN 1 ELSE 0 END) AS last_7d,
+        SUM(CASE WHEN first_at > ? AND first_at <= ? THEN 1 ELSE 0 END) AS prev_7d
+      FROM (
+        SELECT user_id, MIN(created_at) AS first_at
+        FROM user_identities GROUP BY user_id
+      )
     `).bind(now - 7 * day, now - 14 * day, now - 7 * day)
       .first<{ total: number; last_7d: number; prev_7d: number }>(),
 
@@ -354,7 +362,9 @@ export async function adminOverview(request: Request, env: Env) {
     env.ACCOUNT_DB.prepare(`
       SELECT
         (SELECT COUNT(*) FROM installations) AS total,
-        (SELECT COUNT(*) FROM users WHERE id LIKE 'anon_%') AS anonymous,
+        (SELECT COUNT(*) FROM users WHERE NOT EXISTS (
+          SELECT 1 FROM user_identities WHERE user_identities.user_id = users.id
+        )) AS anonymous,
         (SELECT COUNT(*) FROM installations WHERE first_seen_at > ?) AS last_7d,
         (SELECT COUNT(*) FROM installations
           WHERE first_seen_at > ? AND first_seen_at <= ?) AS prev_7d,
@@ -406,8 +416,10 @@ export async function adminOverview(request: Request, env: Env) {
     `).bind(since30).all<{ day: number; count: number }>(),
 
     env.ACCOUNT_DB.prepare(`
-      SELECT CAST(created_at / 86400000 AS INTEGER) AS day, COUNT(*) AS count FROM users
-      WHERE id NOT LIKE 'anon_%' AND created_at > ? GROUP BY day ORDER BY day ASC
+      SELECT CAST(first_at / 86400000 AS INTEGER) AS day, COUNT(*) AS count FROM (
+        SELECT user_id, MIN(created_at) AS first_at
+        FROM user_identities GROUP BY user_id
+      ) WHERE first_at > ? GROUP BY day ORDER BY day ASC
     `).bind(since30).all<{ day: number; count: number }>(),
   ]);
 
@@ -624,7 +636,9 @@ export async function adminListAccounts(request: Request, env: Env) {
     FROM users
     JOIN entitlements ON entitlements.user_id = users.id
     JOIN usage_counters ON usage_counters.user_id = users.id
-    WHERE users.id NOT LIKE 'anon_%'
+    WHERE EXISTS (
+      SELECT 1 FROM user_identities WHERE user_identities.user_id = users.id
+    )
   `;
 
   let rows: { results: AccountListRow[] };
@@ -679,7 +693,9 @@ export async function adminListAccounts(request: Request, env: Env) {
 
 async function resolveAccountId(env: Env, idOrUsername: string): Promise<string> {
   const direct = await env.ACCOUNT_DB.prepare(`
-    SELECT id FROM users WHERE id = ? AND id NOT LIKE 'anon_%'
+    SELECT id FROM users WHERE id = ? AND EXISTS (
+      SELECT 1 FROM user_identities WHERE user_identities.user_id = users.id
+    )
   `).bind(idOrUsername).first<{ id: string }>();
   if (direct) return direct.id;
   const byUsername = await env.ACCOUNT_DB.prepare(`
@@ -721,7 +737,6 @@ export async function adminGetAccount(request: Request, env: Env, idOrUsername: 
     cloud_requests_limit: snapshot.cloud_requests_limit,
     cloud_requests_used: snapshot.cloud_requests_used,
     cloud_requests_remaining: snapshot.cloud_requests_remaining,
-    deep_research_credits: snapshot.deep_research_credits,
     login_methods: snapshot.identities.map(identity => ({
       provider: identity.provider,
       label: identity.display_label,
@@ -1127,6 +1142,21 @@ export async function recordProductEvents(request: Request, env: Env) {
     `).bind(day, name, platform, appVersion, count)),
   );
   return { accepted: counts.size };
+}
+
+/**
+ * The test wallet faucet, as the operator needs to see it: how much float is
+ * left in Alice's dispensing wallet, and how fast learners are taking it.
+ *
+ * Read-only by construction, and read-only about the right things. The
+ * recovery phrase stays in its Worker secret and is never returned, shown or
+ * derivable from anything here; the only address reported is the dispensing
+ * wallet's own, so topping it up needs no secret handling. No claimer, no
+ * payout transaction, nothing that would point at a learner's wallet.
+ */
+export async function adminTestWalletFaucet(request: Request, env: Env) {
+  await requireAdmin(request, env);
+  return testWalletFaucetStatus(env);
 }
 
 export async function adminListEvents(request: Request, env: Env) {

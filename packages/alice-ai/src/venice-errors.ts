@@ -6,6 +6,11 @@ export type VeniceErrorCode =
   | 'missing_api_key'
   | 'account_required'
   | 'free_quota_exhausted'
+  /** A paid plan's monthly allowance is spent. Distinct from the free one:
+   *  the remedy is to wait for the reset or to buy ahead, not to subscribe. */
+  | 'plan_quota_exhausted'
+  /** Cloud+ includes Deep Research; this plan does not. An upgrade, not a wall. */
+  /** Cloud+ does include it, and this month's runs are spent. They come back. */
   | 'plan_restricted'
   | 'auth'
   | 'insufficient_credits'
@@ -36,6 +41,22 @@ export function parseVeniceErrorText(text: string): string {
     if (typeof message === 'string' && message.trim()) return message.trim();
   } catch {}
   return text.trim();
+}
+
+/**
+ * Which allowance ran out, if any.
+ *
+ * A quota error is not a failure the user should read as breakage: it is the
+ * product working as sold, and the only useful response is an offer. Surfaces
+ * use this to show one instead of an error line.
+ */
+export function quotaBlockOf(
+  error: unknown,
+): 'free' | 'plan' | null {
+  if (!(error instanceof VeniceAPIError)) return null;
+  if (error.code === 'free_quota_exhausted') return 'free';
+  if (error.code === 'plan_quota_exhausted') return 'plan';
+  return null;
 }
 
 export function classifyVeniceError(status: number, message: string): VeniceErrorCode {

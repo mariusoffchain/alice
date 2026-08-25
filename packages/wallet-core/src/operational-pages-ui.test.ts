@@ -38,9 +38,12 @@ test('server status uses user-facing labels and a partial state', () => {
 
 test('failed backend cleanup cannot hold the UI indefinitely', () => {
   const source = readFileSync(
-    decodeURIComponent(new URL('./ark.ts', import.meta.url).pathname),
+    decodeURIComponent(new URL('./backend-slot.ts', import.meta.url).pathname),
     'utf8',
   );
-  assert.match(source, /void nextBackend\.dispose\(\)\.catch/);
-  assert.doesNotMatch(source, /await nextBackend\.dispose\(\)\.catch/);
+  // A failed initialisation lets go of its backend without waiting on it,
+  // and every dispose is bounded in time.
+  assert.match(source, /void disposeQuietly\(next\)/);
+  assert.doesNotMatch(source, /await next\.dispose\(\)/);
+  assert.match(source, /withTimeout\(\s*target\.dispose\(\)/);
 });

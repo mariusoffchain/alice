@@ -1,5 +1,5 @@
 /**
- * Network configuration — single source of truth for all environment-specific URLs.
+ * Network configuration, single source of truth for all environment-specific URLs.
  * Reads from environment variables, with sensible Mutinynet defaults.
  */
 
@@ -77,12 +77,18 @@ export const MEMPOOL_EXPLORER =
     ? 'https://mempool.space'
     : 'https://mutinynet.com';
 
+// Alice App, where the Explorer lives. A transaction or an address seen in
+// the wallet opens there rather than on a third-party explorer, so the reader
+// stays inside the same product, with Alice at hand to explain what they see.
+export const ALICE_APP_URL =
+  (process.env.EXPO_PUBLIC_WEB_APP_URL ?? 'https://app.alicebtc.com').replace(/\/+$/, '');
+
 export const ARKADE_INFO_URL = `${ASP_URL}/v1/info`;
 export const BOLTZ_HEALTH_URL = `${BOLTZ_URL}/v2/swap/submarine`;
 export const SATORA_HEALTH_URL = SATORA_URL ? `${SATORA_URL}/health` : null;
 export const ESPLORA_TIP_URL = `${ESPLORA_URL}/blocks/tip/height`;
 
-// IndexedDB name — prefix with network to avoid collisions
+// IndexedDB name, prefix with network to avoid collisions
 export const WEB_DB_NAME = `alice-ark-${NETWORK}`;
 
 // Payment network type (used by payment parser)

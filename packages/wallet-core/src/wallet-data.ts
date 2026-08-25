@@ -1,6 +1,9 @@
 import { WEB_DB_NAME } from './network-config';
 import { ARKADE_CACHE_NAMES } from './arkade-cache-repositories';
 
+/** Web keeps its swap records alongside the wallet database; nothing extra to drop. */
+export async function clearLocalSwapRepository(): Promise<void> {}
+
 export async function clearLocalWalletRepository(): Promise<void> {
   await Promise.all([
     ...[WEB_DB_NAME, 'alice-ark-web'].map(deleteDatabaseBestEffort),

@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next';
 
-// Static marketing site for alicebtc.com. Exported as flat HTML so it can be
+// Static website for alicebtc.com. Exported as flat HTML so it can be
 // hosted anywhere (Vercel/Cloudflare Pages) with no server runtime. It shares
 // no code with the wallet app — no react-native/expo shims are needed here.
 const nextConfig: NextConfig = {

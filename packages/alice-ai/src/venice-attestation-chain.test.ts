@@ -40,7 +40,7 @@ function basePolicy(over: Partial<ChainPolicy> = {}): ChainPolicy {
 
 const ANCHORED: MeasurementPolicy = { references: [{ id: 'venice-gpt-oss', mrTd: MR_TD, rtMr3: RT_MR3 }] };
 
-describe('verifyAttestationChain — success levels', () => {
+describe('verifyAttestationChain, success levels', () => {
   it('reaches attested-unpinned with no measurement policy', async () => {
     const r = await verifyAttestationChain(attestation(), NONCE, basePolicy());
     assert.equal(r.assurance, 'attested-unpinned');
@@ -75,7 +75,7 @@ describe('verifyAttestationChain — success levels', () => {
   });
 });
 
-describe('verifyAttestationChain — fail closed', () => {
+describe('verifyAttestationChain, fail closed', () => {
   it('refuses an empty attestation', async () => {
     await assert.rejects(() => verifyAttestationChain(null, NONCE, basePolicy()), /empty/i);
   });

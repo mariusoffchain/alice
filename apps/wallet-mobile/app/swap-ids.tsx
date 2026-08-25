@@ -42,11 +42,11 @@ function statusLabel(status: PaymentStatus): string {
   return status.toUpperCase();
 }
 
-function statusColor(status: PaymentStatus, primary: string): string {
-  if (status === 'settled' || status === 'refunded') return '#2ea043';
-  if (status === 'expired' || status === 'failed') return '#e06060';
-  if (status === 'refundable') return '#d4a017';
-  return primary;
+function statusColor(status: PaymentStatus, colors: Colors): string {
+  if (status === 'settled' || status === 'refunded') return colors.success;
+  if (status === 'expired' || status === 'failed') return colors.danger;
+  if (status === 'refundable') return colors.warning;
+  return colors.primary;
 }
 
 function shortId(value: string): string {
@@ -154,7 +154,7 @@ export default function SwapIdsScreen() {
         ))}
       </View>
 
-      {error && <Text style={s.error}>{error}</Text>}
+      {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
 
       <FlatList
         data={visible}
@@ -187,7 +187,7 @@ export default function SwapIdsScreen() {
             ['COMPLETION TXID', metadata.completionTxid],
             ['REFUND TXID', metadata.refundTxid],
           ].filter((row): row is [string, string] => Boolean(row[1]));
-          const color = statusColor(item.status, colors.primary);
+          const color = statusColor(item.status, colors);
 
           return (
             <View style={s.card}>
@@ -237,31 +237,31 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     backBtn: { ...pixel, width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardBg },
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
-    title: { fontFamily: typography.pixel, fontSize: 11, color: colors.primaryDark, letterSpacing: 3 },
+    title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 3 },
     notice: { marginHorizontal: spacing.xl, marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: colors.muted, textAlign: 'center' },
     filters: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.lg },
     filterBtn: { ...pixel, minHeight: 38, flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm, backgroundColor: colors.cardBg },
     filterActive: { backgroundColor: colors.primary },
-    filterText: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted },
+    filterText: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
     filterTextActive: { color: colors.onPrimary },
     error: { marginHorizontal: spacing.lg, marginBottom: spacing.md, fontFamily: typography.numbers, fontSize: 14, color: '#e06060' },
     list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl, flexGrow: 1 },
     empty: { marginTop: spacing.xxxl },
-    emptyText: { marginTop: spacing.xxxl, textAlign: 'center', fontFamily: typography.pixel, fontSize: 8, color: colors.muted },
+    emptyText: { marginTop: spacing.xxxl, textAlign: 'center', fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
     card: { ...pixel, marginBottom: spacing.md, backgroundColor: colors.cardBg },
     row: { minHeight: 92, flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md },
     rowBody: { flex: 1 },
     rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-    provider: { flexShrink: 1, fontFamily: typography.pixel, fontSize: 7, color: colors.primaryDark },
-    badge: { borderWidth: 1, borderRadius: 2, paddingHorizontal: spacing.xs, paddingVertical: 3 },
-    badgeText: { fontFamily: typography.pixel, fontSize: 7 },
+    provider: { flexShrink: 1, fontFamily: typography.numbers, fontSize: 15, lineHeight: 19, color: colors.primaryDark },
+    badge: { borderWidth: 1, borderRadius: 2, paddingHorizontal: spacing.xs, paddingVertical: 3, alignItems: 'center', justifyContent: 'center' },
+    badgeText: { fontFamily: typography.pixel, fontSize: 9, lineHeight: 12, letterSpacing: 1, includeFontPadding: false, textAlignVertical: 'center' },
     id: { marginTop: spacing.sm, fontFamily: typography.numbers, fontSize: 15, color: colors.primaryDark },
-    date: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 12, color: colors.muted },
+    date: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 13, color: colors.muted },
     details: { borderTopWidth: 1, borderTopColor: colors.dotted, padding: spacing.md },
     detailRow: { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.dotted },
-    detailLabel: { fontFamily: typography.pixel, fontSize: 7, color: colors.muted },
+    detailLabel: { fontFamily: typography.pixel, fontSize: 12, color: colors.muted },
     detailValue: { marginTop: spacing.xs, fontFamily: typography.numbers, fontSize: 14, lineHeight: 19, color: colors.primaryDark },
     copyBtn: { ...pixel, marginTop: spacing.lg, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.primary, borderColor: colors.primaryDark },
-    copyText: { fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary },
+    copyText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary },
   });
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { SiteNav } from '@/components/SiteNav';
 import { SiteFooter } from '@/components/SiteFooter';
+import { SOURCE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Trust & verification',
@@ -66,17 +67,26 @@ export default function TrustPage() {
     <>
       <SiteNav />
       <main id="main" className="mx-auto max-w-3xl px-5 py-16">
-        <p className="font-pixel text-[10px] uppercase tracking-widest text-[var(--alice-primary)]">
+        <p className="font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-primary)]">
           Trust
         </p>
         <h1 className="mt-5 text-4xl font-semibold leading-[1.12] sm:text-5xl">
           Don’t trust. Verify.
         </h1>
         <p className="mt-5 text-lg leading-relaxed text-[var(--alice-text)]">
-          Alice’s Private Cloud encrypts your messages on your device and only decrypts
-          them inside confidential hardware that the app tries to verify. Here’s exactly
-          what happens, what each party can see, and, honestly, what’s proven today and
-          what isn’t yet.
+          Alice’s Private Cloud runs on{' '}
+          <a
+            href="https://docs.venice.ai/guides/features/tee-e2ee-models"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[var(--alice-primary)] hover:underline"
+          >
+            Venice
+          </a>
+          ’s confidential-compute infrastructure: your messages are encrypted on your
+          device and only decrypted inside confidential hardware that the app tries to
+          verify. Here’s exactly what happens, what each party can see, and, honestly,
+          what’s proven today and what isn’t yet.
         </p>
 
         <div className="mt-6 rounded-[4px] border border-[var(--alice-border)] bg-[var(--alice-card-bg)] p-4 text-sm text-[var(--alice-muted)]">
@@ -154,11 +164,13 @@ export default function TrustPage() {
           <li>DCAP verification reduces, but doesn’t remove, trust in Phala’s availability and Intel’s / NVIDIA’s roots.</li>
           <li>Assistant history is dropped in Private (single-shot turns), since Venice doesn’t encrypt assistant replies.</li>
           <li>Mobile (Android / iOS) enclave verification isn’t runtime-tested yet.</li>
+          <li>We’ve reached out to Venice for the measurement reference values and the attestation-binding confirmation above, and are waiting on their reply.</li>
         </ul>
 
         <p className="mt-12 text-sm text-[var(--alice-muted)]">
-          The full trust model and the source code will be published with the public
-          release, so anyone can check these claims independently.
+          The source code is public under the AGPL, so anyone can check these
+          claims independently:{' '}
+          <a href={SOURCE_URL} className="underline underline-offset-4">read the code</a>.
         </p>
       </main>
       <SiteFooter />

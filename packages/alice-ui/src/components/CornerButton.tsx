@@ -51,5 +51,5 @@ const s = StyleSheet.create({
   flipH: { transform: [{ scaleX: -1 }] },
   flipV: { transform: [{ scaleY: -1 }] },
   flipBoth: { transform: [{ scaleX: -1 }, { scaleY: -1 }] },
-  label: { fontFamily: typography.pixel, fontSize: 10, letterSpacing: 2 },
+  label: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 2 },
 });

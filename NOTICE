@@ -16,6 +16,16 @@ packages/alice-ai/src/generated/ and the precomputed embeddings under
 core-embeddings/ are original Alice Bitcoin works covered by the same
 AGPL-3.0-or-later license as the rest of this repository.
 
+The Learn catalog generated into
+packages/alice-content/src/generated/planb-learn-catalog.ts, and the Learn
+packs built from it, are derivative works of the Plan B Network educational
+corpus (https://github.com/PlanB-Network/bitcoin-educational-content),
+licensed CC BY-SA 4.0. Only the format was changed (Markdown and YAML parsed
+into JSON and TypeScript); no teaching text was rewritten. These derived
+files are distributed under CC BY-SA 4.0, the same license; the generating
+scripts remain AGPL-3.0-or-later. Full attribution:
+https://github.com/mariusoffchain/alice-learn-planb-packs.
+
 Bundled fonts: "Press Start 2P" by CodeMan38 and "Terminal Grotesque" by
-Raphaël Bastide are used under the SIL Open Font License 1.1 — see
+Raphaël Bastide are used under the SIL Open Font License 1.1, see
 licenses/ for the full texts.

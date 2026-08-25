@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 
-const REVIEW_BY = '2026-09-08';
+const REVIEW_BY = '2026-09-19';
 const KNOWN_HIGH_PACKAGES = new Set([
-  // Reviewed 2026-08-09 — see docs/security/dependency-audit.md for the
+  // Reviewed 2026-08-09, see docs/security/dependency-audit.md for the
   // per-chain exposure rationale behind every entry.
   '@expo/cli',
   '@expo/metro',
@@ -15,7 +15,6 @@ const KNOWN_HIGH_PACKAGES = new Set([
   'adm-zip',
   'brace-expansion',
   'expo',
-  'fast-uri',
   'image-size',
   'js-yaml',
   'metro',
@@ -37,10 +36,13 @@ const KNOWN_HIGH_ADVISORIES = new Set([
   1130736, 1130737, 1124064, 1130720, 1136581, 1123911, 1123912, 1124252,
   1124288, 1124066, 1123944, 1130718, 1123259,
   // Added 2026-08-09:
-  1138395, // fast-uri host confusion — reached only by ajv inside expo-build-properties (prebuild)
-  1138808, 1138809, // image-size ICNS/JXL DoS — Metro build-time asset probing of our own assets
-  1138114, 1138115, // js-yaml !!omap quadratic — @expo/xcpretty and babel-jest, build/test only
-  1138813, // nanoid custom-generator loop — we only reach standard nanoid() via postcss/expo-router
+  1138808, 1138809, // image-size ICNS/JXL DoS, Metro build-time asset probing of our own assets
+  1138114, 1138115, // js-yaml !!omap quadratic, @expo/xcpretty and babel-jest, build/test only
+  1138813, // nanoid custom-generator loop, we only reach standard nanoid() via postcss/expo-router
+  // Added 2026-08-16. New advisories published against packages already in the
+  // reviewed baseline; no new dependency introduced them.
+  1139427, // nanoid zero-size generator loop, ships via expo-router, but the size argument is never attacker-reachable
+  1139510, // postcss sourceMappingURL path traversal, same family as 1124252/1130709, build-time only on our own CSS
 ]);
 
 const audit = spawnSync('npm', ['audit', '--json'], { encoding: 'utf8' });

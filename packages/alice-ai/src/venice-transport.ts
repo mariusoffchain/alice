@@ -15,7 +15,7 @@ export class VeniceTransportError extends Error {
 
 /**
  * Venice names its encrypted models `e2ee-*`. Selecting one is what commits us
- * to the E2EE protocol — there is no plaintext path for these models.
+ * to the E2EE protocol, there is no plaintext path for these models.
  */
 export function isE2EEModel(model: string): boolean {
   return model.trim().toLowerCase().startsWith('e2ee-');

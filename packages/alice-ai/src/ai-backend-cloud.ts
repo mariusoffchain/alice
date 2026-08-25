@@ -1,7 +1,7 @@
 import type { AIBackend, AIBackendStatus, AIResponse, SendMessageOptions } from './ai-backend';
 import { sendMessage, usesE2EE, type Message } from './llm';
 import { resolveVeniceTransport } from './venice-transport.ts';
-import { getPreset, CLOUD_PRESETS, CLOUD_DEEP_MIN_TOKENS, getActiveCloudModelId, getCloudVeniceId, getAliceInstructions, CLOUD_DEEP_MODEL } from './ai-preferences';
+import { getPreset, CLOUD_PRESETS, getActiveCloudModelId, getCloudVeniceId, getAliceInstructions } from './ai-preferences';
 import {
   assertPrivateCloudEnabled,
   PRIVATE_CLOUD_DISABLED_MESSAGE,
@@ -73,19 +73,14 @@ export class CloudAIBackend implements AIBackend {
       getAliceInstructions(),
     ]);
     const params = CLOUD_PRESETS[preset];
-    // Deep is meant to produce a long answer, so it never inherits a low
-    // reasoning preset's ceiling.
-    const maxTokens = options?.deep
-      ? Math.max(params.maxTokens, CLOUD_DEEP_MIN_TOKENS)
-      : params.maxTokens;
+    const maxTokens = params.maxTokens;
     const shouldBuffer = requiresBufferedAliceResponse(instructions);
     const responseLanguage = options?.responseLanguage ?? 'en';
-    const model = options?.deep ? CLOUD_DEEP_MODEL : getCloudVeniceId(cloudModelId);
-    // Deep swaps the model, so re-evaluate: it decides whether continuation is
-    // allowed for this answer.
+    const model = getCloudVeniceId(cloudModelId);
+    // Decides whether continuation is allowed for this answer.
     this._e2ee = usesE2EE(model);
     // Withholding onChunk only suppresses the UI stream. The network request
-    // still streams — E2EE rejects stream:false — and the buffering happens
+    // still streams, E2EE rejects stream:false, and the buffering happens
     // client-side, after decryption.
     const result = await sendMessage(withAliceInstructionReminder(
       messages,

@@ -26,7 +26,7 @@ export function SiteFooter() {
             Credits
           </a>
           <a href={APP_URL} className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
-            Open Alice
+            Open web app
           </a>
         </nav>
       </div>
@@ -35,7 +35,7 @@ export function SiteFooter() {
           Alice is educational software, not financial advice. Bitcoin involves risk;
           you are responsible for your own keys and funds.
         </p>
-        <p className="shrink-0 font-pixel text-[9px] uppercase tracking-widest text-[var(--alice-muted)]">
+        <p className="shrink-0 font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-muted)]">
           No tracking · No cookies
         </p>
       </div>

@@ -19,6 +19,7 @@ import {
   reserveArkadeReceiveAddress,
   reserveOnchainReceiveAddress,
   restoreWallet,
+  runRecoveryScan,
   updateReceiveAddress,
   type ReceiveAddressLayer,
   type ReceiveAddressRecord,
@@ -118,7 +119,9 @@ export default function AddressesScreen() {
     setError(null);
     setSuccess(null);
     try {
+      // Both passes, to the end: "complete" must mean the deep window too.
       await restoreWallet();
+      await runRecoveryScan();
       setSuccess('FULL HD ADDRESS RESCAN COMPLETE.');
       setAddresses(await listReceiveAddresses());
     } catch (cause) {
@@ -141,7 +144,7 @@ export default function AddressesScreen() {
           <View style={s.currentCard}>
             <View style={s.currentTop}>
               <Text style={s.network}>{network}</Text>
-              <Text style={s.currentStatus}>CURRENT</Text>
+              <Text style={[s.currentStatus, { color: colors.success }]}>CURRENT</Text>
             </View>
             <Text style={s.currentAddress} selectable>{shortAddress(current.address)}</Text>
             <TextInput
@@ -166,9 +169,7 @@ export default function AddressesScreen() {
               onPress={() => void reserveAndRotate(current)}
               disabled={busyAddress === current.address}
             >
-              {busyAddress === current.address
-                ? <ActivityIndicator size="small" color={colors.onPrimary} />
-                : <Ionicons name="add-circle-outline" size={17} color={colors.onPrimary} />}
+              {busyAddress === current.address && <ActivityIndicator size="small" color={colors.onPrimary} />}
               <Text style={s.generateText}>GENERATE NEW {network} ADDRESS</Text>
             </TouchableOpacity>
           </View>
@@ -224,8 +225,8 @@ export default function AddressesScreen() {
           </Text>
         </View>
 
-        {success && <Text style={s.success}>{success}</Text>}
-        {error && <Text style={s.error}>{error}</Text>}
+        {success && <Text style={[s.success, { color: colors.success }]}>{success}</Text>}
+        {error && <Text style={[s.error, { color: colors.danger }]}>{error}</Text>}
 
         {renderSection('arkade')}
         {renderSection('onchain')}
@@ -275,7 +276,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     title: {
       fontFamily: typography.pixel,
-      fontSize: 11,
+      fontSize: 12,
       color: colors.primaryDark,
       letterSpacing: 2,
     },
@@ -329,12 +330,12 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     network: {
       fontFamily: typography.pixel,
-      fontSize: 8,
+      fontSize: 12,
       color: colors.primaryDark,
     },
     currentStatus: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: '#2ea043',
     },
     currentAddress: {
@@ -367,7 +368,8 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     generateText: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 10,
+      lineHeight: 16,
       color: colors.onPrimary,
       textAlign: 'center',
     },
@@ -379,7 +381,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     emptyText: {
       marginVertical: spacing.xl,
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.muted,
       textAlign: 'center',
     },
@@ -396,7 +398,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     recoveryHeading: {
       fontFamily: typography.pixel,
-      fontSize: 8,
+      fontSize: 12,
       color: colors.primaryDark,
       letterSpacing: 1,
     },
@@ -421,7 +423,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     archiveButtonText: {
       flex: 1,
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.primaryDark,
       textAlign: 'center',
     },

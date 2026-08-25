@@ -2,7 +2,7 @@
 //
 // What this deliberately is NOT: a per-user event stream. The Worker stores
 // only day-resolution counters keyed by (day, event, platform, version), with
-// no user id, no session id and no ordering — so nothing here can build a
+// no user id, no session id and no ordering, so nothing here can build a
 // behavioural profile, no matter how it is called.
 //
 // The event name list below mirrors ALLOWED_EVENT_NAMES in the Worker's
@@ -93,7 +93,7 @@ export async function flushProductEvents(): Promise<void> {
 }
 
 /**
- * Record one product event. Returns immediately — the batch is sent later
+ * Record one product event. Returns immediately, the batch is sent later
  * and failures are swallowed, so a caller never has to await or handle this.
  */
 export function trackProductEvent(event: AliceProductEvent): void {

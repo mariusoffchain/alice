@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useOpenSettings } from '@/lib/settings-url';
 import {
   type AIBackendType,
   type AIPreset,
@@ -38,7 +38,7 @@ type ModelSelectorProps = {
   setBackendType: (type: AIBackendType) => void;
   setAiEnabled: (enabled: boolean) => void;
   compactLabel?: boolean;
-  placement?: 'above' | 'mobile-header';
+  placement?: 'above' | 'mobile-header' | 'below';
 };
 
 export function ModelSelector({
@@ -48,7 +48,7 @@ export function ModelSelector({
   compactLabel = false,
   placement = 'above',
 }: ModelSelectorProps) {
-  const router = useRouter();
+  const openSettings = useOpenSettings();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [hasCustomServer, setHasCustomServer] = useState(false);
@@ -150,7 +150,10 @@ export function ModelSelector({
   const handleLocalModel = async (id: LocalModelId) => {
     setActiveLocalModelState(id);
     await setActiveModelId(id);
-    if (backendType !== 'local') setBackendType('local');
+    // Always re-select: setBackendType re-initializes the engine even when the
+    // type is unchanged, which is what actually reloads llama-server with the
+    // newly chosen model.
+    setBackendType('local');
     setOpen(false);
   };
 
@@ -169,7 +172,7 @@ export function ModelSelector({
 
   const handleAddLocalModel = () => {
     setOpen(false);
-    router.push('/settings');
+    openSettings('ai');
   };
 
   return (
@@ -218,7 +221,11 @@ export function ModelSelector({
 
       {open && (
         <div
-          className={placement === 'mobile-header' ? 'fixed' : 'absolute right-0'}
+          className={
+            placement === 'mobile-header' ? 'fixed'
+              : placement === 'below' ? 'absolute left-0'
+                : 'absolute right-0'
+          }
           style={{
             ...(placement === 'mobile-header'
               ? {
@@ -226,11 +233,17 @@ export function ModelSelector({
                   left: 20,
                   right: 20,
                 }
-              : {
-                  bottom: 'calc(100% + 8px)',
-                  width: 296,
-                  maxWidth: 'calc(100vw - 40px)',
-                }),
+              : placement === 'below'
+                ? {
+                    top: 'calc(100% + 8px)',
+                    width: 296,
+                    maxWidth: 'calc(100vw - 40px)',
+                  }
+                : {
+                    bottom: 'calc(100% + 8px)',
+                    width: 296,
+                    maxWidth: 'calc(100vw - 40px)',
+                  }),
             padding: 8,
             backgroundColor: 'var(--alice-bg-soft)',
             border: '2px solid var(--alice-border)',
@@ -307,7 +320,7 @@ export function ModelSelector({
 
 function MenuSection({ label }: { label: string }) {
   return (
-    <div className="font-pixel tracking-widest" style={{ fontSize: 8, opacity: 0.48, padding: '6px 6px 3px' }}>
+    <div className="font-pixel tracking-widest" style={{ fontSize: 10, opacity: 0.48, padding: '6px 6px 3px' }}>
       {label}
     </div>
   );
@@ -413,7 +426,7 @@ function MenuItem({
         <span
           className="font-pixel shrink-0"
           style={{
-            fontSize: 7,
+            fontSize: 10,
             opacity: active ? 0.92 : 0.55,
             letterSpacing: 0.8,
             maxWidth: 110,
@@ -425,7 +438,7 @@ function MenuItem({
           {active ? 'ACTIVE' : detail}
         </span>
       )}
-      {active && !detail && <span className="font-pixel shrink-0" style={{ fontSize: 8 }}>✓</span>}
+      {active && !detail && <span className="font-pixel shrink-0" style={{ fontSize: 10 }}>✓</span>}
     </button>
   );
 }

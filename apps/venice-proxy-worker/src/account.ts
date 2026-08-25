@@ -1,4 +1,6 @@
 import type { Env } from './index.ts';
+import { accountEmailMasked, rememberAccountEmail, setProductUpdates } from './account-email.ts';
+import { maskEmail } from './email-vault.ts';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { scryptAsync } from '@noble/hashes/scrypt.js';
 
@@ -15,7 +17,14 @@ const IP_ACCOUNT_CREATION_LIMIT = 5;
 const VERIFY_LIMIT = 20;
 const MAX_CODE_ATTEMPTS = 5;
 const FREE_REQUEST_LIMIT = 21;
-const PASSWORD_ITERATIONS = 600_000;
+// 100k, not the 600k OWASP asks of PBKDF2-SHA256, and not by choice: the
+// Workers runtime rejects anything above 100_000 outright, and scrypt in
+// JavaScript burns more CPU than the free plan's 10ms budget, which made
+// sign-in fail with a bare Cloudflare 1102 depending on the day's weather.
+// A password hash that sometimes refuses the right password is worse than a
+// cheaper hash that always answers. The 15-character minimum is what buys
+// the difference back: length is the defence here, not iteration count.
+const PASSWORD_ITERATIONS = 100_000;
 const SCRYPT_N = 32_768;
 const SCRYPT_R = 8;
 const SCRYPT_P = 3;
@@ -74,7 +83,6 @@ type AccountRow = {
   cloud_enabled: number;
   free_cloud_requests_limit: number;
   free_cloud_requests_used: number;
-  deep_research_credits: number;
 };
 
 export type AccountIdentity = {
@@ -102,8 +110,15 @@ export type AccountSnapshot = {
   cloud_requests_limit: number;
   cloud_requests_used: number;
   cloud_requests_remaining: number;
-  deep_research_credits: number;
   has_password: boolean;
+  /**
+   * Whether Alice actually holds a reachable address for this account, as
+   * opposed to only the one-way lookup that signs it in. Screens use it to say
+   * plainly whether a plan running out can be announced at all.
+   */
+  email_reachable: boolean;
+  /** Non-essential mail. Transactional mail does not depend on it. */
+  product_updates: boolean;
   identities: AccountIdentity[];
 };
 
@@ -212,11 +227,9 @@ export function normalizeEmail(input: unknown): string {
   return email;
 }
 
-export function maskEmail(email: string): string {
-  const [local, domain] = email.split('@');
-  const visible = local.length <= 1 ? local : local.slice(0, Math.min(2, local.length));
-  return `${visible}${'*'.repeat(Math.max(1, Math.min(6, local.length - visible.length)))}@${domain}`;
-}
+// Lives with the vault now that it labels an address Alice actually holds.
+// Re-exported here because every caller and test already reaches for it here.
+export { maskEmail } from './email-vault.ts';
 
 export function normalizeUsernamePart(input: unknown, field = 'username'): string {
   if (typeof input !== 'string') {
@@ -451,7 +464,7 @@ function parseInstallId(request: Request): string | null {
   return value;
 }
 
-async function parseJsonBody(request: Request): Promise<Record<string, unknown>> {
+export async function parseJsonBody(request: Request): Promise<Record<string, unknown>> {
   const length = Number(request.headers.get('content-length') ?? '0');
   if (Number.isFinite(length) && length > 8_192) {
     throw new AccountHttpError(413, 'body_too_large', 'Request body is too large.');
@@ -507,13 +520,16 @@ async function registerInstallation(
     platform: null,
     appVersion: null,
   },
+  identified: boolean | null = null,
 ): Promise<void> {
   if (!installId) return;
   const installHash = await hmac(env, `install:${installId}`);
-  // Anonymous users get an `anon_<hmac>` id, so this milestone marks the
-  // first time this installation was tied to a real account. COALESCE keeps
-  // it write-once: a later sign-in never rewrites it.
-  const accountCreatedAt = userId.startsWith('anon_') ? null : now;
+  // The milestone marks the first time this installation was tied to a real
+  // account, and COALESCE keeps it write-once. The id shape stopped being
+  // proof of anything when creation began graduating the anonymous user in
+  // place, so a caller that knows better says so through `identified`; the
+  // prefix only decides for the callers that predate that.
+  const accountCreatedAt = (identified ?? !userId.startsWith('anon_')) ? now : null;
   const statements = [
     env.ACCOUNT_DB.prepare(`
       INSERT INTO installations (
@@ -660,9 +676,34 @@ export async function createAnonymousSession(request: Request, env: Env) {
     );
   }
   const installHash = await hmac(env, `install:${installId}`);
-  const userId = `anon_${await hmac(env, `anonymous:${installId}`)}`;
   const ipBucket = await requestIpBucket(request, env, now);
   await rateLimit(env, ipBucket, 'ip_anonymous_session', 120, now);
+
+  // The anonymous user is derived from the install id, which lives in plain
+  // localStorage. That is fine exactly as long as the user stays anonymous:
+  // the id opens an account that anyone on the machine could open anyway.
+  // The moment an email is linked, that same derivation becomes a skeleton
+  // key: sign out, and the next bare /auth/anonymous call on this machine
+  // would walk straight back into the account, plan, password and all. So a
+  // graduated slot is never reopened; the installation moves to the next
+  // one, and the account it left behind opens only with its own credentials.
+  let userId = '';
+  for (let epoch = 0; ; epoch++) {
+    const seed = epoch === 0 ? `anonymous:${installId}` : `anonymous:${installId}:${epoch}`;
+    const candidate = `anon_${await hmac(env, seed)}`;
+    const graduated = await env.ACCOUNT_DB.prepare(
+      'SELECT 1 AS present FROM user_identities WHERE user_id = ? LIMIT 1',
+    ).bind(candidate).first<{ present: number }>();
+    if (!graduated) {
+      userId = candidate;
+      break;
+    }
+    if (epoch >= 12) {
+      // Twelve accounts created and abandoned from one installation is not a
+      // person losing their password, it is a loop.
+      throw new AccountHttpError(429, 'too_many_accounts', 'Too many accounts from this installation.');
+    }
+  }
 
   await env.ACCOUNT_DB.batch([
     env.ACCOUNT_DB.prepare(`
@@ -673,8 +714,8 @@ export async function createAnonymousSession(request: Request, env: Env) {
     env.ACCOUNT_DB.prepare(`
       INSERT OR IGNORE INTO entitlements (
         user_id, plan, cloud_enabled, free_cloud_requests_limit,
-        deep_research_credits, created_at, updated_at
-      ) VALUES (?, 'free', 1, 0, 0, ?, ?)
+        created_at, updated_at
+      ) VALUES (?, 'free', 1, 0, ?, ?)
     `).bind(userId, now, now),
     env.ACCOUNT_DB.prepare(`
       INSERT OR IGNORE INTO usage_counters (
@@ -740,13 +781,30 @@ export function accountEmailConfigured(env: Env): boolean {
 }
 
 async function sendLoginCode(env: Env, email: string, code: string): Promise<void> {
+  await sendAccountEmail(env, email, {
+    subject: `${code} is your Alice login code`,
+    text: `Your Alice login code is ${code}. It expires in 10 minutes. If you did not request it, you can ignore this email.`,
+    html: `<p>Your Alice login code is:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>It expires in 10 minutes. If you did not request it, you can ignore this email.</p>`,
+  });
+}
+
+/**
+ * Send one transactional email through whichever provider is configured.
+ *
+ * Alice only ever sends mail a user asked for: a login code they just
+ * requested, or a renewal reminder for a plan they bought and an address they
+ * volunteered. There is no bulk path here on purpose.
+ */
+export async function sendAccountEmail(
+  env: Env,
+  email: string,
+  message: { subject: string; text: string; html: string },
+): Promise<void> {
+  const { subject, text, html } = message;
   const from = env.AUTH_EMAIL_FROM?.trim();
   if (!from) {
     throw new AccountHttpError(500, 'email_not_configured', 'Login email is not configured.');
   }
-  const subject = `${code} is your Alice login code`;
-  const text = `Your Alice login code is ${code}. It expires in 10 minutes. If you did not request it, you can ignore this email.`;
-  const html = `<p>Your Alice login code is:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>It expires in 10 minutes. If you did not request it, you can ignore this email.</p>`;
   const provider = env.AUTH_EMAIL_PROVIDER?.trim().toLowerCase() || 'cloudflare';
 
   try {
@@ -776,7 +834,7 @@ async function sendLoginCode(env: Env, email: string, code: string): Promise<voi
         throw new AccountHttpError(
           502,
           'email_delivery_failed',
-          'Alice could not send a login code. Try again later.',
+          'Alice could not send this email. Try again later.',
         );
       }
       return;
@@ -801,7 +859,7 @@ async function sendLoginCode(env: Env, email: string, code: string): Promise<voi
     throw new AccountHttpError(
       502,
       'email_delivery_failed',
-      'Alice could not send a login code. Try again later.',
+      'Alice could not send this email. Try again later.',
     );
   }
 }
@@ -942,6 +1000,9 @@ export async function verifyEmailLogin(
   const linkIdentityAlreadyPresent = Boolean(
     linkUserId && identity?.user_id === linkUserId,
   );
+  // Read before the synthesis below rewrites `identity` for the link flow:
+  // afterwards nothing can tell a fresh link from a repeated one.
+  const emailWasUnknown = !identity;
   if (!identity) {
     if (linkUserId) {
       identity = { id: uuid(), user_id: linkUserId };
@@ -953,7 +1014,28 @@ export async function verifyEmailLogin(
       'This email is already linked to another Alice account.',
     );
   }
-  if (!identity && !linkUserId) {
+  // Null here means null and no link user, since the branch above assigns one
+  // whenever there is a link user. Written this way rather than with the extra
+  // condition so the invariant is the compiler's too, not just the reader's.
+  if (!identity) {
+    // Signing in used to create the account it could not find, which meant
+    // any address that received a code became an Alice account whether its
+    // owner wanted one or not. Creation is a decision, and it has its own
+    // flow: an anonymous session that links this email deliberately. Sign-in
+    // only opens doors that already exist. Saying so leaks nothing: the only
+    // person who can reach this line is holding a valid code, and therefore
+    // the inbox itself.
+    throw new AccountHttpError(
+      404,
+      'account_not_found',
+      'No Alice account uses this email address.',
+    );
+  }
+  if (emailWasUnknown && linkUserId) {
+    // This is the moment an account is actually created: an anonymous user
+    // takes its first identity. The per-IP creation limit lives here now that
+    // sign-in no longer creates anything, and it runs before the code is
+    // consumed so a refused attempt does not burn it.
     await rateLimit(
       env,
       ipBucket,
@@ -962,6 +1044,27 @@ export async function verifyEmailLogin(
       now,
       ACCOUNT_CREATION_WINDOW_MS,
     );
+  }
+
+  // A password, once set, is asked for at every sign-in. The code alone stops
+  // being a key and becomes the reset path: proving the inbox lets you choose
+  // a new password, in the same breath, never skip it. Checked before the
+  // code is consumed so the refusal costs nothing and the same code still
+  // serves the retry that carries a new password.
+  const newPassword = body.new_password === undefined || body.new_password === null
+    ? null
+    : validatePassword(body.new_password);
+  if (!linkUserId && identity && newPassword === null) {
+    const guarded = await env.ACCOUNT_DB.prepare(`
+      SELECT user_id FROM password_credentials WHERE user_id = ?
+    `).bind(identity.user_id).first<{ user_id: string }>();
+    if (guarded) {
+      throw new AccountHttpError(
+        403,
+        'password_required',
+        'This account has a password. Sign in with it, or reset it here with a new one.',
+      );
+    }
   }
 
   const consumed = await env.ACCOUNT_DB.prepare(`
@@ -973,35 +1076,7 @@ export async function verifyEmailLogin(
     throw new AccountHttpError(400, 'invalid_code', 'The login code is invalid or expired.');
   }
 
-  if (!identity) {
-    const userId = uuid();
-    const identityId = uuid();
-    await env.ACCOUNT_DB.batch([
-      env.ACCOUNT_DB.prepare(`
-        INSERT INTO users (
-          id, status, username, display_name, created_at, updated_at
-        ) VALUES (?, 'active', NULL, NULL, ?, ?)
-      `).bind(userId, now, now),
-      env.ACCOUNT_DB.prepare(`
-        INSERT INTO user_identities (
-          id, user_id, provider, provider_subject, display_label,
-          verified_at, created_at, last_used_at
-        ) VALUES (?, ?, 'email', ?, ?, ?, ?, ?)
-      `).bind(identityId, userId, emailLookup, maskEmail(email), now, now, now),
-      env.ACCOUNT_DB.prepare(`
-        INSERT INTO entitlements (
-          user_id, plan, cloud_enabled, free_cloud_requests_limit,
-          deep_research_credits, created_at, updated_at
-        ) VALUES (?, 'free', 1, ?, 0, ?, ?)
-      `).bind(userId, 0, now, now),
-      env.ACCOUNT_DB.prepare(`
-        INSERT INTO usage_counters (
-          user_id, free_cloud_requests_used, version, updated_at
-        ) VALUES (?, 0, 0, ?)
-      `).bind(userId, now),
-    ]);
-    identity = { id: identityId, user_id: userId };
-  } else if (linkUserId && !linkIdentityAlreadyPresent) {
+  if (linkUserId && !linkIdentityAlreadyPresent) {
     const inserted = await env.ACCOUNT_DB.prepare(`
       INSERT INTO user_identities (
         id, user_id, provider, provider_subject, display_label,
@@ -1032,15 +1107,77 @@ export async function verifyEmailLogin(
   }
 
   if (linkUserId) {
+    // The address was just proved by a code, so it is verified by definition.
+    await rememberAccountEmail(env, linkUserId, email, { verified: true, now });
+    if (emailWasUnknown) {
+      // The graduation is this installation's account-creation milestone,
+      // and nothing else will ever stamp it: the user keeps its anonymous id
+      // for life, so the shape-based default would file it under nobody.
+      await registerInstallation(
+        env, linkUserId, installId, now, false, installMeta(request), true,
+      );
+    }
     return { account: await getAccountSnapshot(env, linkUserId) };
   }
   if (!identity) {
     throw new AccountHttpError(500, 'account_creation_failed', 'Alice could not create this account.');
   }
+  if (newPassword !== null) {
+    // The reset promised above: the inbox was proved, the new password rides
+    // the same request, and the old one stops working in the same instant.
+    const salt = new Uint8Array(16);
+    crypto.getRandomValues(salt);
+    const passwordHash = await derivePasswordHash(newPassword, salt);
+    await env.ACCOUNT_DB.prepare(`
+      INSERT INTO password_credentials (
+        user_id, password_hash, algorithm, iterations,
+        scrypt_n, scrypt_r, scrypt_p, salt,
+        created_at, updated_at, last_used_at
+      ) VALUES (?, ?, 'pbkdf2-sha256', ?, NULL, NULL, NULL, ?, ?, ?, NULL)
+      ON CONFLICT (user_id) DO UPDATE SET
+        password_hash = excluded.password_hash,
+        algorithm = excluded.algorithm,
+        iterations = excluded.iterations,
+        scrypt_n = excluded.scrypt_n,
+        scrypt_r = excluded.scrypt_r,
+        scrypt_p = excluded.scrypt_p,
+        salt = excluded.salt,
+        updated_at = excluded.updated_at
+    `).bind(
+      identity.user_id,
+      passwordHash,
+      PASSWORD_ITERATIONS,
+      bytesToBase64Url(salt),
+      now,
+      now,
+    ).run();
+  }
+  // Written on every code login, not only at creation. Accounts made before
+  // Alice kept an address repair themselves the next time their owner signs
+  // in, with nothing to ask: they type the address to log in anyway.
+  await rememberAccountEmail(env, identity.user_id, email, { verified: true, now });
   await registerInstallation(env, identity.user_id, installId, now, true, installMeta(request));
   const tokens = await createSession(env, identity.user_id, now, identity.id);
   const account = await getAccountSnapshot(env, identity.user_id);
   return { ...tokens, account };
+}
+
+/**
+ * The one thing an account holder chooses about mail.
+ *
+ * There is no endpoint to set the address itself, deliberately. The address is
+ * whichever one signs the account in, proved by a code, which is what keeps
+ * "where Alice writes" and "who owns this account" from drifting apart. Adding
+ * or changing it goes through the same verification as any other identity.
+ */
+export async function updateEmailPreferences(request: Request, env: Env) {
+  const user = await authenticate(request, env);
+  const body = await parseJsonBody(request);
+  if (typeof body.product_updates !== 'boolean') {
+    throw new AccountHttpError(400, 'invalid_preference', 'Choose whether to receive product updates.');
+  }
+  await setProductUpdates(env, user.userId, body.product_updates);
+  return getAccountSnapshot(env, user.userId);
 }
 
 export async function startEmailIdentityLink(request: Request, env: Env) {
@@ -1051,6 +1188,34 @@ export async function startEmailIdentityLink(request: Request, env: Env) {
 export async function verifyEmailIdentityLink(request: Request, env: Env) {
   const user = await authenticate(request, env);
   return verifyEmailLogin(request, env, user.userId);
+}
+
+/**
+ * The parts a username is built from, before any name has been typed.
+ *
+ * The picker needs the middle words and the number the moment it opens, not
+ * once someone has finished typing: a number that appears only after the name
+ * looks like a consequence of the name, and it is not one. The number is drawn
+ * here and belongs to that screen from then on.
+ *
+ * Availability is not checked, because there is nothing to check yet: a
+ * username only exists once a name is attached to it. The collision is one
+ * chance in ten thousand per name, and the create call catches it and says so
+ * rather than pretending it cannot happen.
+ */
+export async function usernameVocabulary(request: Request, env: Env) {
+  const now = Date.now();
+  await rateLimit(
+    env,
+    await requestIpBucket(request, env, now),
+    'ip_username_suggestions',
+    60,
+    now,
+  );
+  return {
+    suffixes: [...USERNAME_SUFFIXES],
+    discriminator: String(randomUint32() % 10_000).padStart(4, '0'),
+  };
 }
 
 export async function suggestUsernames(request: Request, env: Env) {
@@ -1064,92 +1229,55 @@ export async function suggestUsernames(request: Request, env: Env) {
     60,
     now,
   );
+  // Two shapes for two screens. The default is five shuffled picks. With
+  // `all`, every suffix comes back once, in its declared order, and they all
+  // share ONE set of digits: the picker reads left to right as name, then a
+  // middle word to scroll through, then a number that is already decided and
+  // does not flinch while the person browses. Digits that changed with every
+  // choice would make the number look like part of the choice, and it is not.
+  const wantAll = body.all === true;
   const suffixes = [...USERNAME_SUFFIXES];
-  for (let index = suffixes.length - 1; index > 0; index -= 1) {
-    const swap = randomUint32() % (index + 1);
-    [suffixes[index], suffixes[swap]] = [suffixes[swap], suffixes[index]];
+  if (wantAll) {
+    for (let attempt = 0; attempt < 32; attempt += 1) {
+      const discriminator = String(randomUint32() % 10_000).padStart(4, '0');
+      const usernames = suffixes.map(suffix => `${prefix}.${suffix}#${discriminator}`);
+      const placeholders = usernames.map(() => '?').join(', ');
+      const taken = await env.ACCOUNT_DB.prepare(`
+        SELECT 1 AS found FROM users WHERE username IN (${placeholders})
+        UNION ALL
+        SELECT 1 AS found FROM username_history
+        WHERE username IN (${placeholders}) AND reserved_until > ?
+        LIMIT 1
+      `).bind(...usernames, ...usernames, now).first<{ found: number }>();
+      if (!taken) {
+        return {
+          display_name: normalizeDisplayName(body.display_name, String(body.prefix).trim()),
+          suggestions: suffixes.map(suffix => ({
+            username: `${prefix}.${suffix}#${discriminator}`,
+            prefix,
+            suffix,
+          })),
+        };
+      }
+    }
+    // 32 misses across 10,000 discriminators means the namespace around this
+    // prefix is genuinely crowded; fall through to per-suffix digits rather
+    // than failing the screen.
+  }
+  if (!wantAll) {
+    for (let index = suffixes.length - 1; index > 0; index -= 1) {
+      const swap = randomUint32() % (index + 1);
+      [suffixes[index], suffixes[swap]] = [suffixes[swap], suffixes[index]];
+    }
   }
   const suggestions = [];
-  for (const suffix of suffixes.slice(0, 5)) {
+  for (const suffix of (wantAll ? suffixes : suffixes.slice(0, 5))) {
     suggestions.push(await createAvailableUsername(env, prefix, suffix));
   }
   return {
     display_name: normalizeDisplayName(body.display_name, String(body.prefix).trim()),
     suggestions,
   };
-}
-
-export async function registerPasswordAccount(request: Request, env: Env) {
-  const now = Date.now();
-  const body = await parseJsonBody(request);
-  const password = validatePassword(body.password);
-  const profile = await selectAvailableUsername(
-    env,
-    body.prefix,
-    body.suffix,
-    body.username,
-  );
-  const displayName = normalizeDisplayName(body.display_name, String(body.prefix).trim());
-  const ipBucket = await requestIpBucket(request, env, now);
-  await rateLimit(
-    env,
-    ipBucket,
-    'ip_account_create',
-    IP_ACCOUNT_CREATION_LIMIT,
-    now,
-    ACCOUNT_CREATION_WINDOW_MS,
-  );
-  await rateLimit(
-    env,
-    await hmac(env, `password-register:${profile.prefix}`),
-    'password_register',
-    EMAIL_SEND_LIMIT,
-    now,
-  );
-
-  const salt = new Uint8Array(16);
-  crypto.getRandomValues(salt);
-  const passwordHash = await deriveScryptHash(password, salt);
-  const userId = uuid();
-  await env.ACCOUNT_DB.batch([
-    env.ACCOUNT_DB.prepare(`
-      INSERT INTO users (
-        id, status, username, display_name, created_at, updated_at
-      ) VALUES (?, 'active', ?, ?, ?, ?)
-    `).bind(userId, profile.username, displayName, now, now),
-    env.ACCOUNT_DB.prepare(`
-      INSERT INTO password_credentials (
-        user_id, password_hash, algorithm, iterations,
-        scrypt_n, scrypt_r, scrypt_p, salt,
-        created_at, updated_at, last_used_at
-      ) VALUES (?, ?, 'scrypt', NULL, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      userId,
-      passwordHash,
-      SCRYPT_N,
-      SCRYPT_R,
-      SCRYPT_P,
-      bytesToBase64Url(salt),
-      now,
-      now,
-      now,
-    ),
-    env.ACCOUNT_DB.prepare(`
-      INSERT INTO entitlements (
-        user_id, plan, cloud_enabled, free_cloud_requests_limit,
-        deep_research_credits, created_at, updated_at
-      ) VALUES (?, 'free', 1, 0, 0, ?, ?)
-    `).bind(userId, now, now),
-    env.ACCOUNT_DB.prepare(`
-      INSERT INTO usage_counters (
-        user_id, free_cloud_requests_used, version, updated_at
-      ) VALUES (?, 0, 0, ?)
-    `).bind(userId, now),
-  ]);
-
-  await registerInstallation(env, userId, parseInstallId(request), now, true, installMeta(request));
-  const tokens = await createSession(env, userId, now);
-  return { ...tokens, account: await getAccountSnapshot(env, userId) };
 }
 
 export async function loginWithPassword(request: Request, env: Env) {
@@ -1225,9 +1353,26 @@ export async function loginWithPassword(request: Request, env: Env) {
     );
   }
 
-  await env.ACCOUNT_DB.prepare(`
-    UPDATE password_credentials SET last_used_at = ? WHERE user_id = ?
-  `).bind(now, userId).run();
+  if (credential.algorithm === 'scrypt') {
+    // A surviving scrypt row is a live grenade: verifying it is the very
+    // computation that blows the CPU budget, so each login it survives is
+    // the last one it should ever serve. Re-derive with the cheap hash while
+    // the correct password is in hand; the next login never runs scrypt.
+    const salt = new Uint8Array(16);
+    crypto.getRandomValues(salt);
+    const rehash = await derivePasswordHash(password, salt);
+    await env.ACCOUNT_DB.prepare(`
+      UPDATE password_credentials
+      SET password_hash = ?, algorithm = 'pbkdf2-sha256', iterations = ?,
+          scrypt_n = NULL, scrypt_r = NULL, scrypt_p = NULL, salt = ?,
+          updated_at = ?, last_used_at = ?
+      WHERE user_id = ?
+    `).bind(rehash, PASSWORD_ITERATIONS, bytesToBase64Url(salt), now, now, userId).run();
+  } else {
+    await env.ACCOUNT_DB.prepare(`
+      UPDATE password_credentials SET last_used_at = ? WHERE user_id = ?
+    `).bind(now, userId).run();
+  }
   await registerInstallation(env, userId, parseInstallId(request), now, true, installMeta(request));
   const tokens = await createSession(env, userId, now);
   return { ...tokens, account: await getAccountSnapshot(env, userId) };
@@ -1259,7 +1404,8 @@ export async function setAccountPassword(request: Request, env: Env) {
   }
   const salt = new Uint8Array(16);
   crypto.getRandomValues(salt);
-  const passwordHash = await deriveScryptHash(password, salt);
+  // Native WebCrypto, not scrypt-in-JavaScript: see PASSWORD_ITERATIONS.
+  const passwordHash = await derivePasswordHash(password, salt);
   await env.ACCOUNT_DB.batch([
     env.ACCOUNT_DB.prepare(`
       UPDATE users
@@ -1271,7 +1417,7 @@ export async function setAccountPassword(request: Request, env: Env) {
         user_id, password_hash, algorithm, iterations,
         scrypt_n, scrypt_r, scrypt_p, salt,
         created_at, updated_at, last_used_at
-      ) VALUES (?, ?, 'scrypt', NULL, ?, ?, ?, ?, ?, ?, NULL)
+      ) VALUES (?, ?, 'pbkdf2-sha256', ?, NULL, NULL, NULL, ?, ?, ?, NULL)
       ON CONFLICT (user_id) DO UPDATE SET
         password_hash = excluded.password_hash,
         algorithm = excluded.algorithm,
@@ -1284,9 +1430,7 @@ export async function setAccountPassword(request: Request, env: Env) {
     `).bind(
       user.userId,
       passwordHash,
-      SCRYPT_N,
-      SCRYPT_R,
-      SCRYPT_P,
+      PASSWORD_ITERATIONS,
       bytesToBase64Url(salt),
       now,
       now,
@@ -1541,8 +1685,8 @@ async function createUserWithIdentity(
     env.ACCOUNT_DB.prepare(`
       INSERT INTO entitlements (
         user_id, plan, cloud_enabled, free_cloud_requests_limit,
-        deep_research_credits, created_at, updated_at
-      ) VALUES (?, 'free', 1, 0, 0, ?, ?)
+        created_at, updated_at
+      ) VALUES (?, 'free', 1, 0, ?, ?)
     `).bind(userId, now, now),
     env.ACCOUNT_DB.prepare(`
       INSERT INTO usage_counters (
@@ -1723,7 +1867,6 @@ export async function getAccountSnapshot(env: Env, userId: string): Promise<Acco
       entitlements.plan AS plan,
       entitlements.cloud_enabled AS cloud_enabled,
       entitlements.free_cloud_requests_limit AS free_cloud_requests_limit,
-      entitlements.deep_research_credits AS deep_research_credits,
       usage_counters.free_cloud_requests_used AS free_cloud_requests_used
     FROM users
     JOIN entitlements ON entitlements.user_id = users.id
@@ -1765,13 +1908,14 @@ export async function getAccountSnapshot(env: Env, userId: string): Promise<Acco
       last_used_at: passwordCredential.last_used_at,
     });
   }
+  const contact = await accountEmailMasked(env, userId);
   return {
     user_id: row.user_id,
     is_anonymous: identities.length === 0,
     status: row.status,
     username: row.username,
     display_name: row.display_name,
-    email_masked: row.email_masked,
+    email_masked: contact?.masked ?? row.email_masked,
     plan: row.plan,
     cloud_enabled: row.cloud_enabled === 1,
     cloud_requests_limit: row.free_cloud_requests_limit,
@@ -1780,8 +1924,9 @@ export async function getAccountSnapshot(env: Env, userId: string): Promise<Acco
       0,
       row.free_cloud_requests_limit - row.free_cloud_requests_used,
     ),
-    deep_research_credits: row.deep_research_credits,
     has_password: Boolean(passwordCredential),
+    email_reachable: contact !== null,
+    product_updates: contact?.product_updates ?? false,
     identities,
   };
 }
@@ -1896,13 +2041,39 @@ export async function reserveFreeRequest(
     );
   }
 
+  // Whether this call is the one that opened the row, or a second call
+  // carrying a request id that already exists.
+  const fresh = (results[0].meta.changes ?? 0) === 1;
+
+  // A replayed id whose answer was already delivered is not a retry.
+  //
+  // The idempotency here was built for the honest case: a stream that dies
+  // mid-answer, retried with the same id, must not be charged twice. It did
+  // that correctly. What it did not do was tell that case apart from a client
+  // sending one id forever, and the caller never looked at the duplicate flag
+  // it was handed. The counters stayed still while every replay went upstream,
+  // so twenty-one free requests bought an unlimited number of them, and a paid
+  // allowance bought an unlimited number of those. Alice paid Venice for all
+  // of it.
+  //
+  // 'confirmed' is exactly "the relay answered this one already", so it is the
+  // line: a row still 'reserved' belongs to a request that never delivered,
+  // and retrying that is the case the design was for.
+  if (!fresh && ledger.status === 'confirmed') {
+    throw new AccountHttpError(
+      409,
+      'request_id_replayed',
+      'This Alice request identifier was already answered. Send a new one.',
+    );
+  }
+
   const account = await getAccountSnapshot(env, userId);
   return {
     ledgerId: ledger.id,
     remaining: account.cloud_requests_remaining,
     used: account.cloud_requests_used,
     limit: account.cloud_requests_limit,
-    duplicate: (results[1].meta.changes ?? 0) === 0,
+    duplicate: !fresh,
   };
 }
 

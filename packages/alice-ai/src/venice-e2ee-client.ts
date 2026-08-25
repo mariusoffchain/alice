@@ -4,9 +4,9 @@
 // Metro (llm.ts passes expo/fetch). Nothing here reads storage or React state.
 //
 // Two encryption directions, easy to conflate:
-//   request  — a fresh ephemeral key per message, encrypted TO the model key
+//   request, a fresh ephemeral key per message, encrypted TO the model key
 //              from the attestation; that public key rides inside its envelope.
-//   response — the TEE encrypts TO the client session key advertised in
+//   response, the TEE encrypts TO the client session key advertised in
 //              X-Venice-TEE-Client-Pub-Key, with its own ephemeral per chunk.
 // The response session key is therefore intentionally different from every
 // request-message key. Its public half goes in the header and its secret half
@@ -57,7 +57,7 @@ export type AttestationResult = {
 /**
  * How conversation history is handled under E2EE.
  *
- * Venice encrypts `user` and `system` messages only — `assistant` messages
+ * Venice encrypts `user` and `system` messages only, `assistant` messages
  * travel as plaintext. Sending prior Alice replies would therefore leak them to
  * the proxy and to Venice, which is exactly what this mode exists to prevent.
  * 'drop' is the safe default: E2EE turns are single-shot, with no assistant
@@ -161,7 +161,7 @@ export async function fetchAndVerifyAttestation(
 }
 
 /**
- * Build the request message list. Encrypts every user/system message — Venice
+ * Build the request message list. Encrypts every user/system message, Venice
  * rejects the request outright if any of them is left in the clear while the
  * E2EE headers are present.
  */
@@ -216,7 +216,7 @@ export type E2EERequestOptions = {
 };
 
 /**
- * Run one E2EE chat completion. Always streams — Venice rejects
+ * Run one E2EE chat completion. Always streams, Venice rejects
  * `stream: false` on E2EE models, and there is deliberately no non-streaming
  * branch here to fall back to.
  */
@@ -358,7 +358,7 @@ export async function readEncryptedStream(
     }
 
     // Fail closed: decryptEnvelope authenticates (AES-GCM) and throws on any
-    // failure — a plaintext chunk, a short/non-hex value, a bad tag, or a chunk
+    // failure, a plaintext chunk, a short/non-hex value, a bad tag, or a chunk
     // encrypted to a different session. The throw aborts the whole stream, so no
     // unauthenticated content is ever emitted.
     const decryptionStarted = Date.now();

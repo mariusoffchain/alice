@@ -88,8 +88,8 @@ export default function SupportScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
-        <View style={s.warning}>
-          <Text style={s.warningTitle}>KEEP YOUR WALLET PRIVATE</Text>
+        <View style={[s.warning, { borderColor: colors.danger }]}>
+          <Text style={[s.warningTitle, { color: colors.danger }]}>KEEP YOUR WALLET PRIVATE</Text>
           <Text style={s.warningText}>
             Never include your recovery phrase, private keys, API keys, or sensitive screenshots.
           </Text>
@@ -181,7 +181,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
       backgroundColor: colors.cardBg,
       borderColor: '#e06060',
     },
-    warningTitle: { fontFamily: typography.pixel, fontSize: 8, color: '#e06060', letterSpacing: 1 },
+    warningTitle: { fontFamily: typography.pixel, fontSize: 12, color: '#e06060', letterSpacing: 1 },
     warningText: {
       marginTop: spacing.sm,
       fontFamily: typography.numbers,
@@ -207,7 +207,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     segmentActive: { backgroundColor: colors.primary },
     segmentText: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.muted,
       letterSpacing: 1,
       textAlign: 'center',
@@ -243,7 +243,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     primaryButtonText: {
       fontFamily: typography.pixel,
-      fontSize: 8,
+      fontSize: 12,
       color: colors.onPrimary,
       letterSpacing: 1,
     },
@@ -260,7 +260,7 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     },
     secondaryButtonText: {
       fontFamily: typography.pixel,
-      fontSize: 7,
+      fontSize: 12,
       color: colors.primary,
       letterSpacing: 1,
       textAlign: 'center',

@@ -130,3 +130,38 @@ test('clearing removes the whole personal memory store', async () => {
   await clearAliceMemoryFromStorage(fixture.storage);
   assert.equal(fixture.value(), null);
 });
+
+test('memory context picks by relevance, not by recency', () => {
+  // Nine fresh decoys about an unrelated topic, one old fact about the
+  // question being asked. The old rule (last ten) would have drowned it.
+  const items = [
+    { id: 'lightning', category: 'interest' as const, text: 'Runs a Lightning routing node at home', createdDay: '2026-07-01', updatedDay: '2026-07-01' },
+    ...Array.from({ length: 10 }, (_, i) => ({
+      id: `garden-${i}`,
+      category: 'project' as const,
+      text: `Working on garden irrigation sensors, step ${i}`,
+      createdDay: '2026-08-19',
+      updatedDay: '2026-08-19',
+    })),
+  ];
+  const memory = { ...createAliceMemory(), items };
+  const context = aliceMemoryContext(memory, 'How should I manage my Lightning channel liquidity?');
+  assert.match(context, /Lightning routing node/);
+});
+
+test('preferences and constraints ride along whatever the topic', () => {
+  const items = [
+    { id: 'concise', category: 'preference' as const, text: 'Prefers concise answers', createdDay: '2026-06-01', updatedDay: '2026-06-01' },
+    ...Array.from({ length: 10 }, (_, i) => ({
+      id: `topic-${i}`,
+      category: 'interest' as const,
+      text: `Curious about topic number ${i}`,
+      createdDay: '2026-08-19',
+      updatedDay: '2026-08-19',
+    })),
+  ];
+  const memory = { ...createAliceMemory(), items };
+  // The question shares no words with the preference; it must be there anyway.
+  const context = aliceMemoryContext(memory, 'What is a UTXO?');
+  assert.match(context, /Prefers concise answers/);
+});

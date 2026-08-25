@@ -3,7 +3,7 @@ import type { AliceMemory, AliceMemoryCandidate } from './alice-memory-core.ts';
 import { composeGenerationHistory } from './generation-context.ts';
 import type { SupportedLanguage } from './language-policy.ts';
 import type { Message } from './llm.ts';
-import type { PedagogicalProfile } from './pedagogical-profile-core.ts';
+import { inferPedagogicalConcepts, type PedagogicalProfile } from './pedagogical-profile-core.ts';
 import type { RagTurnContext } from './rag.ts';
 import {
   directPersonalAcknowledgement,
@@ -40,7 +40,7 @@ export type TurnPreparationServices = {
   getMemory(): Promise<AliceMemory>;
   rememberMemoryCandidates(candidates: AliceMemoryCandidate[]): Promise<AliceMemory>;
   pedagogicalContext(profile: PedagogicalProfile, message: string, language: SupportedLanguage): string;
-  memoryContext(memory: AliceMemory): string;
+  memoryContext(memory: AliceMemory, userMessage: string): string;
   memoryCaptureInstruction: string;
 };
 
@@ -98,20 +98,43 @@ export async function prepareAliceTurn(input: {
     measured(() => services.recordPedagogicalSignal(input.userMessage)),
     measured(() => retrievalQuery
       ? services.retrieveKnowledge(retrievalQuery)
-      : Promise.resolve({ ragContext: null, localContext: null, diagnostics: [] })),
+      : Promise.resolve({ ragContext: null, localContext: null, learnContext: null, diagnostics: [] })),
     measured(() => plan.explicitMemoryCandidates.length > 0
       ? services.rememberMemoryCandidates(plan.explicitMemoryCandidates)
       : services.getMemory()),
   ]);
+
+  // The pedagogical context is keyed on concepts inferred from the message.
+  // A follow-up like "so how do I actually do it?" carries no keywords, and a
+  // profile that only speaks when the current sentence names a topic goes
+  // silent exactly when continuity matters. When the message infers nothing,
+  // fall back to the concepts of the recent user turns; the definition-question
+  // heuristic still reads the real message, never the stitched history.
+  const conceptSource = inferPedagogicalConcepts(input.userMessage).length > 0
+    ? input.userMessage
+    : input.history
+      .filter(message => message.role === 'user')
+      .slice(-3)
+      .map(message => message.content)
+      .concat(input.userMessage)
+      .join('\n');
 
   const history = composeGenerationHistory(
     input.history,
     retrieval.value,
     plan.kind === 'personal-statement' || plan.asksAboutUserMemory
       ? ''
-      : services.pedagogicalContext(pedagogy.value, input.userMessage, input.targetLanguage),
+      : services.pedagogicalContext(pedagogy.value, conceptSource, input.targetLanguage),
     input.assistantHistoryDropped,
-    input.backendType === 'local' ? services.memoryContext(memory.value) : '',
+    // Memory rides on every backend since 2026-08-20. It used to be injected
+    // on the local model only, while the capture instruction still went to the
+    // cloud: Alice was asked to extract memories there that she would never be
+    // shown again, which is why cloud answers read as if she had learned
+    // nothing. The items were extracted from conversations that already
+    // transit the same end-to-end encrypted enclave, so showing them back
+    // adds no exposure a cloud conversation had not already accepted; they
+    // remain on-device, inspectable and erasable in "What Alice knows".
+    services.memoryContext(memory.value, input.userMessage),
     memory.value.enabled ? services.memoryCaptureInstruction : '',
     turnResponseDirective(plan, input.targetLanguage),
     plan.needsConversationContext,

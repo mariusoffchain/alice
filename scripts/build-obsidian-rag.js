@@ -47,7 +47,7 @@ function stripFrontmatter(markdown) {
 
 function extractTitle(markdown, fallback) {
   const match = markdown.match(/^#\s+(.+)$/m);
-  return match ? match[1].trim() : fallback;
+  return sanitizePublicText(match ? match[1].trim() : fallback);
 }
 
 function extractSection(markdown, headings) {
@@ -70,9 +70,52 @@ function extractBulletLines(section) {
 }
 
 function toSentence(text) {
-  const clean = text.replace(/\s+/g, ' ').trim();
+  const clean = sanitizePublicText(text).replace(/\s+/g, ' ').trim();
   if (!clean) return '';
   return /[.!?]$/.test(clean) ? clean : `${clean}.`;
+}
+
+// Alice never writes em dashes, and a model imitates the typography of the
+// notes it is given: a corpus full of them teaches her the habit. The vault is
+// written freely, so the rule is enforced here, at ingestion, rather than by
+// asking the author to punctuate for the machine. A dash between spaces reads
+// as a comma; a dash glued to words (an interval, a compound) becomes a plain
+// hyphen.
+function normalizeDashes(text) {
+  return text
+    .replace(/\s+[—–]\s+/g, ', ')
+    .replace(/[—–]/g, '-');
+}
+
+function publicWikilinkLabel(link) {
+  const [target, alias] = link.split('|', 2);
+  const label = alias || path.basename(target);
+  return label.replace(/\.md$/i, '').trim();
+}
+
+function sanitizePublicText(text) {
+  return normalizeDashes(text)
+    .replace(/\[\[([^\]]+)\]\]/g, (_match, link) => publicWikilinkLabel(link));
+}
+
+function sanitizePublicKeyword(keyword) {
+  if (/^(?:00 Inbox|10 Projects|20 Content Engine|30 Knowledge|40 Research|50 Operations|70 Daily|80 System|99 Archive)\//i.test(keyword)) {
+    return publicWikilinkLabel(keyword);
+  }
+  return sanitizePublicText(keyword);
+}
+
+const PRIVATE_EDITORIAL_CONTEXT = /\bMarius\b|Offchain Media|dans l['’]Inbox|archiv[ée].*\bInbox\b|Marius\s*\/\s*Cryptoast/i;
+
+function stripPrivateEditorialContext(text) {
+  const clean = sanitizePublicText(text).trim();
+  if (!PRIVATE_EDITORIAL_CONTEXT.test(clean)) return clean;
+
+  const publicSentences = clean
+    .split(/(?<=[.!?])\s+/)
+    .filter(sentence => !PRIVATE_EDITORIAL_CONTEXT.test(sentence));
+  const result = publicSentences.join(' ').trim();
+  return PRIVATE_EDITORIAL_CONTEXT.test(result) ? '' : result;
 }
 
 function inferLevel(entry) {
@@ -87,7 +130,7 @@ function inferLevel(entry) {
 }
 
 function keywordVariants(text) {
-  const clean = text.trim();
+  const clean = normalizeDashes(text).trim();
   if (!clean) return [];
   const ascii = clean.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const lower = clean.toLowerCase();
@@ -214,7 +257,7 @@ function translateFrenchToken(token) {
 }
 
 function translateFrenchPhrase(phrase) {
-  const parts = phrase.split(/(\s+|[-—])/);
+  const parts = phrase.split(/(\s+|[--])/);
   let translatedAny = false;
   const translated = parts.map(part => {
     if (!/[A-Za-zÀ-ÿ]/.test(part)) return part;
@@ -233,7 +276,8 @@ function inferKeywords(entry, title, markdown) {
   source.push(path.basename(entry.path, path.extname(entry.path)));
 
   const relatedSection = extractSection(markdown, ['Related Notes', 'Related PlanB Notes', 'Related Notes from This Extraction']);
-  const relatedMatches = Array.from(relatedSection.matchAll(/\[\[([^\]]+)\]\]/g)).map(match => match[1]);
+  const relatedMatches = Array.from(relatedSection.matchAll(/\[\[([^\]]+)\]\]/g))
+    .map(match => publicWikilinkLabel(match[1]));
   source.push(...relatedMatches.slice(0, 8));
 
   const summary = extractSection(markdown, ['Summary', 'Résumé']);
@@ -245,14 +289,21 @@ function inferKeywords(entry, title, markdown) {
     .filter((value) => value !== null);
   source.push(...englishVariants);
 
-  return Array.from(new Set(source.flatMap(keywordVariants).filter(isUsefulKeyword))).slice(0, 24);
+  return Array.from(new Set(
+    source
+      .filter(value => !PRIVATE_EDITORIAL_CONTEXT.test(value))
+      .flatMap(keywordVariants)
+      .filter(isUsefulKeyword),
+  )).slice(0, 24);
 }
 
 function buildContent(markdown) {
-  const summary = extractSection(markdown, ['Summary', 'Résumé']);
+  const summary = stripPrivateEditorialContext(extractSection(markdown, ['Summary', 'Résumé']));
   const keyPoints = extractSection(markdown, ['Key Points', 'Points clés', 'Points cles']);
-  const whyItMatters = extractSection(markdown, ['Why It Matters', 'Pourquoi c\'est important']);
-  const courseInsight = extractSection(markdown, ['Course Insight']);
+  const whyItMatters = stripPrivateEditorialContext(
+    extractSection(markdown, ['Why It Matters', 'Pourquoi c\'est important']),
+  );
+  const courseInsight = stripPrivateEditorialContext(extractSection(markdown, ['Course Insight']));
   const practicalTakeaways = extractSection(markdown, ['Practical Takeaways']);
 
   const segments = [];
@@ -261,7 +312,10 @@ function buildContent(markdown) {
   const pointLines = [
     ...extractBulletLines(keyPoints),
     ...extractBulletLines(practicalTakeaways),
-  ].slice(0, 6);
+  ]
+    .map(stripPrivateEditorialContext)
+    .filter(Boolean)
+    .slice(0, 6);
   if (pointLines.length > 0) {
     segments.push(`Key points: ${pointLines.map(toSentence).join(' ')}`);
   }
@@ -285,6 +339,8 @@ function main() {
   const translationCache = loadTranslationCache();
   const generatedChunks = [];
   const missingFiles = [];
+  // Notes found on disk but yielding nothing readable (see buildContent).
+  const unreadableNotes = [];
 
   for (const entry of manifest.entries) {
     const absolutePath = path.isAbsolute(entry.path) ? entry.path : path.join(PROJECT_ROOT, entry.path);
@@ -299,7 +355,18 @@ function main() {
     const title = extractTitle(markdown, fallbackTitle);
     const content = buildContent(markdown);
 
-    if (!content) continue;
+    // A note whose sections this parser does not recognise yields no content,
+    // and used to vanish here without a word: that is how 12 `canonique`
+    // notes (Alice's product limits, known risks, AI modes) were absent from
+    // the corpus while sitting on disk, each ~9 KB. buildContent only reads
+    // Summary / Key Points / Why It Matters / Course Insight / Practical
+    // Takeaways, so a note written with its own headings is silently lost.
+    // Say it out loud instead: the operator can then rewrite the note or
+    // teach the parser its structure.
+    if (!content) {
+      unreadableNotes.push({ path: entry.vault_relative_path ?? entry.path, status: entry.status });
+      continue;
+    }
 
     const id = `obsidian-${entry.id}`;
     const locale = inferLocale(`${title}\n${content}`);
@@ -317,7 +384,7 @@ function main() {
       surface: entry.surface,
       theme: entry.theme,
       retrievalWeight: entry.retrieval_weight,
-      sourcePath: entry.vault_relative_path,
+      sourcePath: `alice-corpus/${entry.id}`,
       locale,
       sourceLocale: locale,
       translationStatus: 'source',
@@ -330,7 +397,9 @@ function main() {
         id: `${id}__${cached.locale}`,
         conceptId: id,
         title: cached.title,
-        keywords: Array.isArray(cached.keywords) ? cached.keywords : inferKeywords(entry, cached.title, cached.content),
+        keywords: Array.isArray(cached.keywords)
+          ? cached.keywords.map(sanitizePublicKeyword)
+          : inferKeywords(entry, cached.title, cached.content),
         level: inferLevel(entry),
         content: cached.content,
         phase: entry.phase,
@@ -339,13 +408,37 @@ function main() {
         surface: entry.surface,
         theme: entry.theme,
         retrievalWeight: entry.retrieval_weight,
-        sourcePath: entry.vault_relative_path,
+        sourcePath: `alice-corpus/${entry.id}`,
         locale: cached.locale,
         sourceLocale: locale,
         translationStatus: cached.status === 'reviewed' ? 'reviewed' : 'machine',
         sourceHash: hash,
       });
     }
+  }
+
+  const incomplete = generatedChunks.filter(chunk => (
+    !chunk.conceptId
+    || !['fr', 'en'].includes(chunk.locale)
+    || !['fr', 'en'].includes(chunk.sourceLocale)
+    || !chunk.translationStatus
+    || !chunk.sourceHash
+  ));
+  if (incomplete.length > 0) {
+    throw new Error(`${incomplete.length} generated chunks are missing language metadata.`);
+  }
+  const privateContext = generatedChunks.filter(chunk => (
+    PRIVATE_EDITORIAL_CONTEXT.test(chunk.title)
+    || PRIVATE_EDITORIAL_CONTEXT.test(chunk.content)
+    || chunk.keywords.some(keyword => PRIVATE_EDITORIAL_CONTEXT.test(keyword))
+    || /(?:00 Inbox|10 Projects|20 Content Engine|30 Knowledge|40 Research|50 Operations|70 Daily|80 System|99 Archive)\//i.test(chunk.sourcePath)
+    || chunk.keywords.some(keyword => /(?:00 Inbox|10 Projects|20 Content Engine|30 Knowledge|40 Research|50 Operations|70 Daily|80 System|99 Archive)\//i.test(keyword))
+  ));
+  if (privateContext.length > 0) {
+    throw new Error(
+      `${privateContext.length} generated chunks still expose private editorial or vault context: `
+      + privateContext.map(chunk => chunk.id).join(', '),
+    );
   }
 
   const lines = [];
@@ -395,20 +488,28 @@ function main() {
     counts[chunk.locale] = (counts[chunk.locale] ?? 0) + 1;
     return counts;
   }, {});
-  const incomplete = generatedChunks.filter(chunk => (
-    !chunk.conceptId
-    || !['fr', 'en'].includes(chunk.locale)
-    || !['fr', 'en'].includes(chunk.sourceLocale)
-    || !chunk.translationStatus
-    || !chunk.sourceHash
-  ));
-  if (incomplete.length > 0) {
-    throw new Error(`${incomplete.length} generated chunks are missing language metadata.`);
-  }
   console.log(`Corpus languages: fr=${localeCounts.fr ?? 0}, en=${localeCounts.en ?? 0}.`);
   console.log(`Validated language metadata and source hashes for ${generatedChunks.length} chunks.`);
   if (missingFiles.length > 0) {
-    console.warn(`Skipped ${missingFiles.length} missing files.`);
+    console.warn(`\nSkipped ${missingFiles.length} missing files (path in the manifest, nothing on disk):`);
+    for (const path of missingFiles) console.warn(`  - ${path}`);
+  }
+  if (unreadableNotes.length > 0) {
+    // Loud on purpose, and loudest for canonical notes: losing one of those
+    // means Alice cannot state a product limit she is supposed to know.
+    const canonical = unreadableNotes.filter(note => note.status === 'canonique');
+    console.warn(
+      `\n${unreadableNotes.length} notes were read but yielded no content`
+      + `${canonical.length > 0 ? `, including ${canonical.length} CANONIQUE` : ''}.`,
+    );
+    console.warn('  They have none of the sections this script reads:');
+    console.warn('  Summary / Résumé, Key Points / Points clés, Why It Matters, Course Insight, Practical Takeaways.');
+    for (const note of unreadableNotes.slice(0, 20)) {
+      console.warn(`  - [${note.status}] ${note.path}`);
+    }
+    if (unreadableNotes.length > 20) {
+      console.warn(`  ... and ${unreadableNotes.length - 20} more.`);
+    }
   }
 }
 

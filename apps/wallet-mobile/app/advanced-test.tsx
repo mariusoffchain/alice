@@ -42,35 +42,35 @@ export default function AdvancedTestScreen() {
       {/* Removing the menu entry is not enough: the route stays reachable
           through a deep link. Refuse to arm anything outside a dev build. */}
       {!__DEV__ ? (
-        <View style={s.testCard}>
-          <Text style={s.testTitle}>NOT AVAILABLE</Text>
+        <View style={[s.testCard, { borderColor: colors.warning }]}>
+          <Text style={[s.testTitle, { color: colors.warning }]}>NOT AVAILABLE</Text>
           <Text style={s.testDescription}>
             This developer tool is not part of distributed builds.
           </Text>
         </View>
       ) : SWAP_PROVIDER !== 'boltz' ? (
-        <View style={s.testCard}>
-          <Text style={s.testTitle}>NOT AVAILABLE</Text>
+        <View style={[s.testCard, { borderColor: colors.warning }]}>
+          <Text style={[s.testTitle, { color: colors.warning }]}>NOT AVAILABLE</Text>
           <Text style={s.testDescription}>
             This legacy test only supports Boltz swaps.
           </Text>
         </View>
       ) : Platform.OS === 'web' ? (
-        <View style={s.testCard}>
-          <Text style={s.testTitle}>REFUND TEST</Text>
+        <View style={[s.testCard, { borderColor: colors.warning }]}>
+          <Text style={[s.testTitle, { color: colors.warning }]}>REFUND TEST</Text>
           <Text style={s.testDescription}>
             Arms the next on-chain swap once. Automatic claim is paused after funding so the swap can expire and be refunded.
           </Text>
           <TouchableOpacity
-            style={[s.testBtn, refundTestArmed && s.testBtnArmed]}
+            style={[s.testBtn, refundTestArmed && [s.testBtnArmed, { backgroundColor: colors.warning, borderColor: colors.warningInk }]]}
             onPress={() => void toggleRefundTest()}
           >
             <Text style={s.testBtnText}>{refundTestArmed ? 'ARMED · TAP TO CANCEL' : 'ARM NEXT SWAP'}</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={s.testCard}>
-          <Text style={s.testTitle}>NO WEB TESTS</Text>
+        <View style={[s.testCard, { borderColor: colors.warning }]}>
+          <Text style={[s.testTitle, { color: colors.warning }]}>NO WEB TESTS</Text>
           <Text style={s.testDescription}>Refund test mode is only available in the PWA for now.</Text>
         </View>
       )}
@@ -86,10 +86,10 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
     title: { fontFamily: typography.pixel, fontSize: 12, color: colors.primaryDark, letterSpacing: 3 },
     testCard: { ...pixel, marginHorizontal: spacing.lg, marginTop: spacing.xl, padding: spacing.lg, backgroundColor: colors.cardBg, borderColor: '#d4a017' },
-    testTitle: { fontFamily: typography.pixel, fontSize: 9, color: '#d4a017', letterSpacing: 1 },
+    testTitle: { fontFamily: typography.pixel, fontSize: 12, color: '#d4a017', letterSpacing: 1 },
     testDescription: { marginTop: spacing.md, fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: colors.muted },
     testBtn: { ...pixel, marginTop: spacing.lg, paddingVertical: spacing.md, alignItems: 'center', backgroundColor: colors.primary, borderColor: colors.primaryDark },
     testBtnArmed: { backgroundColor: '#d4a017', borderColor: '#8f6d0a' },
-    testBtnText: { fontFamily: typography.pixel, fontSize: 7, color: colors.onPrimary, letterSpacing: 1 },
+    testBtnText: { fontFamily: typography.pixel, fontSize: 12, color: colors.onPrimary, letterSpacing: 1 },
   });
 }

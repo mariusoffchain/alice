@@ -7,9 +7,11 @@ REGULAR_LIST="$(mktemp)"
 trap 'rm -f "$LIST" "$REGULAR_LIST"' EXIT
 
 cd "$ROOT"
+node scripts/check-release-version.mjs
 {
   find packages -type f -name '*.test.ts' -print0
   find apps/venice-proxy-worker/src -type f -name '*.test.ts' -print0
+  find apps/app-web/src -type f -name '*.test.ts' -print0
   find apps/wallet-mobile -maxdepth 1 -type f -name '*.test.ts' -print0
 } > "$LIST"
 
@@ -30,6 +32,7 @@ done < <(find apps/venice-proxy-worker/src -type f -name '*.test.ts' | sort)
 
 {
   find packages -type f -name '*.test.ts' -print0
+  find apps/app-web/src -type f -name '*.test.ts' -print0
   find apps/wallet-mobile -maxdepth 1 -type f -name '*.test.ts' -print0
 } > "$REGULAR_LIST"
 xargs -0 -n 10 node --test --test-concurrency=4 < "$REGULAR_LIST"

@@ -1,0 +1,160 @@
+'use client';
+
+import { useEffect } from 'react';
+
+// What an unsigned build does to a first-time visitor, said before it happens
+// rather than after.
+//
+// Alice ships without a code-signing certificate: Apple charges yearly for
+// one, Windows certificates cost more, and neither is worth buying before we
+// know anyone runs those builds. The cost is not technical, it is a scary
+// screen at the worst possible moment: someone who has just decided to try a
+// Bitcoin wallet is told their computer protected them from it.
+//
+// Saying it first turns an alarm into a formality. It also happens to be the
+// honest thing: the warning is real, it is our doing, and the visitor deserves
+// to know why before they click, not to discover it alone.
+//
+// Linux and the web surfaces show nothing, because nothing happens there.
+
+export type DownloadPlatform = 'android' | 'windows' | 'macos';
+
+type Notice = {
+  title: string;
+  /** Verbatim, so the visitor recognises the screen when it appears. */
+  screen: string;
+  why: string;
+  steps: string[];
+};
+
+const NOTICES: Record<DownloadPlatform, Notice> = {
+  android: {
+    title: 'Android will warn you before installing',
+    screen: '“For your security, your phone is not allowed to install unknown apps from this source.”',
+    why: 'Alice is not on the Play Store yet, so you are installing the file directly. Android asks for permission the first time any app does that.',
+    steps: [
+      'Open the downloaded file.',
+      'When Android asks, allow installs from your browser or file manager.',
+      'Come back to the file and install.',
+    ],
+  },
+  windows: {
+    title: 'Windows will show a blue warning',
+    screen: '“Windows protected your PC”, with only a “Don’t run” button in sight.',
+    why: 'The installer is not signed with a paid certificate. That certificate proves who published the file, and nothing about what the file does, so its absence is not a verdict on Alice. We have not bought one yet.',
+    steps: [
+      'Click “More info”, the small grey link.',
+      'Then click “Run anyway”.',
+    ],
+  },
+  macos: {
+    title: 'macOS will refuse to open Alice at first',
+    screen: '“Alice cannot be opened because the developer cannot be verified.”',
+    why: 'Apple signing is in progress but not ready. Until then macOS treats every unsigned app the same way, whoever wrote it.',
+    steps: [
+      'Right-click the Alice app, then choose Open.',
+      'Confirm once. macOS remembers, and normal double-clicks work afterwards.',
+    ],
+  },
+};
+
+export function DownloadNotice({
+  platform,
+  href,
+  verifyHref,
+  onCancel,
+}: {
+  platform: DownloadPlatform;
+  href: string;
+  verifyHref: string;
+  onCancel: () => void;
+}) {
+  const notice = NOTICES[platform];
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCancel();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8 overflow-y-auto"
+      style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+      onClick={onCancel}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={notice.title}
+        onClick={event => event.stopPropagation()}
+        className="w-full max-w-lg rounded-[6px] border-2 p-6"
+        style={{
+          borderColor: 'var(--alice-border)',
+          backgroundColor: 'var(--alice-bg)',
+        }}
+      >
+        <p className="font-pixel text-[11px] uppercase tracking-widest text-[var(--alice-primary)]">
+          Before you download
+        </p>
+        <h2 className="mt-3 text-xl font-semibold text-[var(--alice-heading)] sm:text-2xl">
+          {notice.title}
+        </h2>
+
+        <p
+          className="mt-4 rounded-[4px] border-l-2 px-4 py-3 text-[15px] leading-relaxed"
+          style={{
+            borderColor: 'var(--alice-primary)',
+            backgroundColor: 'var(--alice-bg-soft)',
+            color: 'var(--alice-text)',
+          }}
+        >
+          {notice.screen}
+        </p>
+
+        <p className="mt-4 leading-relaxed text-[var(--alice-text)]">{notice.why}</p>
+
+        <ol className="mt-4 flex list-decimal flex-col gap-2 pl-5 leading-relaxed text-[var(--alice-text)]">
+          {notice.steps.map(step => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+
+        <p className="mt-5 text-sm leading-relaxed text-[var(--alice-muted)]">
+          Alice is open source, and every release publishes the checksum of each
+          file. You can verify that what you downloaded is exactly what we
+          published:{' '}
+          <a
+            href={verifyHref}
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+            style={{ color: 'var(--alice-primary)' }}
+          >
+            release notes and checksums
+          </a>
+          .
+        </p>
+
+        <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="cursor-pointer bg-transparent px-3 py-2 text-sm text-[var(--alice-muted)]"
+          >
+            Cancel
+          </button>
+          <a
+            href={href}
+            onClick={onCancel}
+            className="cta cta-solid px-5 py-2.5 text-sm"
+          >
+            Download anyway
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -11,6 +11,7 @@ export type KnowledgeConcept =
   | 'privacy'
   | 'scaling-ark'
   | 'scaling-covenants'
+  | 'sidechains'
   | 'history-philosophy';
 
 export type FamiliarityState = 'unseen' | 'introduced' | 'exploring' | 'familiar';
@@ -58,7 +59,11 @@ const CONCEPTS: ConceptDefinition[] = [
   { id: 'lightning-routing', patterns: [/routage lightning/, /lightning routing/, /liquidit[eé] lightning/, /channel liquidity/, /htlc/, /watchtower/, /force close/] },
   { id: 'privacy', patterns: [/vie priv[eé]e/, /privacy/, /coinjoin/, /payjoin/, /\bkyc\b/, /anonym/, /reutilisation d.?adresse/, /address reuse/] },
   { id: 'scaling-ark', patterns: [/\bark\b/, /arkade/, /\bvtxo\b/, /\basp\b/] },
-  { id: 'scaling-covenants', patterns: [/covenant/, /miniscript/, /taproot/, /tapscript/, /sidechain/, /chaine laterale/, /cha[iî]ne lat[eé]rale/] },
+  { id: 'scaling-covenants', patterns: [/covenant/, /miniscript/, /taproot/, /tapscript/] },
+  // Split out of scaling-covenants the day the Liquid courses needed a home:
+  // a federation sidechain and a covenant proposal are different ideas, and a
+  // profile that filed both under one label could not tell them apart.
+  { id: 'sidechains', patterns: [/sidechain/, /chaine laterale/, /cha[iî]ne lat[eé]rale/, /liquid/, /l-btc/, /elements/, /peg-?in/, /peg-?out/, /federation/] },
   { id: 'history-philosophy', patterns: [/censure/, /censorship/, /souverainet[eé]/, /philosoph/, /histoire de bitcoin/, /satoshi/, /libert[eé] monetaire/, /monetary freedom/] },
 ];
 
@@ -77,6 +82,7 @@ export const KNOWLEDGE_CONCEPT_LABELS: Record<KnowledgeConcept, string> = {
   privacy: 'Bitcoin privacy',
   'scaling-ark': 'Ark and Arkade',
   'scaling-covenants': 'Covenants and Bitcoin scaling',
+  sidechains: 'Liquid and sidechains',
   'history-philosophy': 'Bitcoin history and philosophy',
 };
 
@@ -224,6 +230,93 @@ async function save(storage: PedagogicalProfileStorage, profile: PedagogicalProf
     // Personalization never interrupts a chat response if secure storage is unavailable.
   }
   return profile;
+}
+
+/**
+ * What finishing course material teaches the profile.
+ *
+ * Chat signals are guesses inferred from questions; a read chapter is a fact,
+ * and a finished course is a strong one. Reading bumps the same counters a
+ * technical question would. Completion sets the familiarity itself: finishing
+ * a beginner course makes its concepts 'exploring', anything above makes them
+ * 'familiar'. That reuses the declaredFamiliarity slot deliberately: working
+ * through an advanced course is at least as strong a statement as typing
+ * "I know this", and the profile already promises to treat that slot as
+ * authoritative. It never downgrades: a familiar concept stays familiar when a
+ * beginner course about it is finished later.
+ */
+export function recordCourseStudy(
+  profile: PedagogicalProfile,
+  concepts: KnowledgeConcept[],
+  now = new Date(),
+): PedagogicalProfile {
+  if (concepts.length === 0) return profile;
+  const day = todayLocal(now);
+  const nextConcepts = { ...profile.concepts };
+  for (const concept of concepts) {
+    const current = nextConcepts[concept] ?? emptyProgress();
+    nextConcepts[concept] = {
+      signals: Math.min(MAX_COUNTER, current.signals + 1),
+      explorationSignals: Math.min(MAX_COUNTER, current.explorationSignals + 1),
+      lastActiveDay: day,
+      declaredFamiliarity: current.declaredFamiliarity ?? null,
+    };
+  }
+  return { version: 3, concepts: nextConcepts, updatedDay: day };
+}
+
+const FAMILIARITY_RANK: Record<Exclude<FamiliarityState, 'unseen'>, number> = {
+  introduced: 1,
+  exploring: 2,
+  familiar: 3,
+};
+
+export function recordCourseCompletion(
+  profile: PedagogicalProfile,
+  concepts: KnowledgeConcept[],
+  courseLevel: string,
+  now = new Date(),
+): PedagogicalProfile {
+  if (concepts.length === 0) return profile;
+  const reached: Exclude<FamiliarityState, 'unseen'> =
+    courseLevel === 'beginner' ? 'exploring' : 'familiar';
+  const day = todayLocal(now);
+  const nextConcepts = { ...profile.concepts };
+  for (const concept of concepts) {
+    const current = nextConcepts[concept] ?? emptyProgress();
+    const kept = current.declaredFamiliarity
+      && FAMILIARITY_RANK[current.declaredFamiliarity] >= FAMILIARITY_RANK[reached]
+      ? current.declaredFamiliarity
+      : reached;
+    nextConcepts[concept] = {
+      signals: Math.min(MAX_COUNTER, current.signals + 1),
+      explorationSignals: Math.min(MAX_COUNTER, current.explorationSignals + 1),
+      lastActiveDay: day,
+      declaredFamiliarity: kept,
+    };
+  }
+  return { version: 3, concepts: nextConcepts, updatedDay: day };
+}
+
+export async function recordCourseStudyInStorage(
+  concepts: KnowledgeConcept[],
+  storage: PedagogicalProfileStorage,
+): Promise<PedagogicalProfile> {
+  const profile = await getPedagogicalProfileFromStorage(storage);
+  const next = recordCourseStudy(profile, concepts);
+  if (next !== profile) await storage.write(JSON.stringify(next));
+  return next;
+}
+
+export async function recordCourseCompletionInStorage(
+  concepts: KnowledgeConcept[],
+  courseLevel: string,
+  storage: PedagogicalProfileStorage,
+): Promise<PedagogicalProfile> {
+  const profile = await getPedagogicalProfileFromStorage(storage);
+  const next = recordCourseCompletion(profile, concepts, courseLevel);
+  if (next !== profile) await storage.write(JSON.stringify(next));
+  return next;
 }
 
 export async function getPedagogicalProfileFromStorage(storage: PedagogicalProfileStorage): Promise<PedagogicalProfile> {

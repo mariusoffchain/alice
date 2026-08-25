@@ -64,6 +64,7 @@ function deriveLayer(tx: { key: { arkTxid: string; boardingTxid: string } }): Tr
 }
 
 export class ArkadeWebBackend implements WalletBackend {
+  private readonly transactionTimes = new TransactionTimeCache();
   private wallet: Wallet | null = null;
   private cacheMnemonic: string | null = null;
   private walletMnemonic: string | null = null;
@@ -146,6 +147,10 @@ export class ArkadeWebBackend implements WalletBackend {
     await this.requireWallet().restore({ gapLimit: RECEIVE_RESTORE_GAP_LIMIT });
   }
 
+  deepScan(): Promise<void> {
+    return this.restore();
+  }
+
   getAddress(): Promise<string> {
     return this.requireWallet().getAddress();
   }
@@ -179,18 +184,23 @@ export class ArkadeWebBackend implements WalletBackend {
   }
 
   async getTransactionHistory(): Promise<Transaction[]> {
-    return (await this.requireWallet().getTransactionHistory()).map(transaction => ({
-      id: transaction.key.arkTxid || transaction.key.commitmentTxid || transaction.key.boardingTxid,
-      type: transaction.type === TxType.TxReceived ? 'incoming' as const : 'outgoing' as const,
-      layer: deriveLayer(transaction),
-      amount: transaction.amount,
-      settled: transaction.settled,
-      status: deriveStatus(transaction),
-      createdAt: transaction.createdAt,
-      arkTxid: transaction.key.arkTxid,
-      commitmentTxid: transaction.key.commitmentTxid,
-      boardingTxid: transaction.key.boardingTxid,
-    }));
+    return (await this.requireWallet().getTransactionHistory()).map(transaction => {
+      const id = transaction.key.arkTxid
+        || transaction.key.commitmentTxid
+        || transaction.key.boardingTxid;
+      return {
+        id,
+        type: transaction.type === TxType.TxReceived ? 'incoming' as const : 'outgoing' as const,
+        layer: deriveLayer(transaction),
+        amount: transaction.amount,
+        settled: transaction.settled,
+        status: deriveStatus(transaction),
+        createdAt: this.transactionTimes.resolve(id, transaction.createdAt),
+        arkTxid: transaction.key.arkTxid,
+        commitmentTxid: transaction.key.commitmentTxid,
+        boardingTxid: transaction.key.boardingTxid,
+      };
+    });
   }
 
   async getVtxos(): Promise<VtxoInfo[]> {

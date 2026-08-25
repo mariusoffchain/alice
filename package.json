@@ -1,6 +1,6 @@
 {
   "name": "alice-wallet",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "AGPL-3.0-or-later",
   "private": true,
   "engines": {
@@ -13,6 +13,8 @@
   "scripts": {
     "build:obsidian-rag": "node scripts/build-obsidian-rag.js",
     "test": "bash scripts/run-tests.sh",
+    "check:types": "tsc --noEmit --incremental false -p apps/app-web/tsconfig.json && tsc --noEmit --incremental false -p apps/site/tsconfig.json && tsc --noEmit --incremental false -p apps/wallet-mobile/tsconfig.json && npm run typecheck --workspace @alice-wallet/venice-proxy-worker",
+    "check:release-version": "node scripts/check-release-version.mjs",
     "check:npm-audit": "node scripts/check-npm-audit.mjs"
   },
   "overrides": {
@@ -32,5 +34,8 @@
     "@tailwindcss/oxide-linux-x64-gnu": "4.3.2",
     "@tailwindcss/oxide-wasm32-wasi": "4.3.2",
     "lightningcss-linux-x64-gnu": "1.32.0"
+  },
+  "dependencies": {
+    "@ledgerhq/ledger-bitcoin": "file:apps/app-web/src/stubs/ledger-bitcoin"
   }
 }

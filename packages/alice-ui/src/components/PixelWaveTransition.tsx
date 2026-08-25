@@ -166,5 +166,5 @@ export function PixelWaveTransition({
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', left: 0, top: 0, overflow: 'hidden', zIndex: 30 },
-  clip: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  clip: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden' },
 });

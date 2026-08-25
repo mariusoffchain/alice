@@ -4,7 +4,7 @@
 
 /**
  * The platforms Alice reports. Must stay in sync with KNOWN_PLATFORMS in the
- * Worker's account.ts — anything not on that server-side list is dropped
+ * Worker's account.ts, anything not on that server-side list is dropped
  * rather than stored.
  */
 export type AlicePlatform =

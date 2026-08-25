@@ -24,6 +24,13 @@ class FakeStatement {
   }
 
   async first() {
+    // The relay now takes a rate-limit slot before it does anything else.
+    // The real table returns the running count; a stub that answers nothing
+    // reads as "refused", which is the safe direction but not the one these
+    // tests are about.
+    if (this.query.includes('auth_rate_limits')) {
+      return { request_count: (globalThis as any).__rateCount ?? 1 };
+    }
     if (this.query.includes('sessions.id AS session_id')) {
       return {
         session_id: 'session-test',
@@ -34,6 +41,20 @@ class FakeStatement {
     }
     if (this.query.includes('FROM cloud_request_ledger')) {
       return { id: 'ledger-test', status: 'reserved', units: 1 };
+    }
+    // The chat route asks which plan meters this request before relaying it.
+    // A free account keeps the request counter; the byte meter is exercised
+    // in the billing suite against a real database.
+    if (this.query.includes('FROM entitlements')) {
+      return {
+        plan: 'free',
+        plan_expires_at: null,
+        cloud_enabled: 1,
+        free_cloud_requests_limit: 21,
+        input_bytes_limit: 0,
+        output_bytes_limit: 0,
+        deep_research_credits: 0,
+      };
     }
     if (this.query.includes('users.id AS user_id')) {
       return {
@@ -134,6 +155,95 @@ function chatRequest(body: unknown, headers: Record<string, string> = E2EE_HEADE
 const VALID_BODY = { model: 'e2ee-gpt-oss-120b-p', stream: true, max_tokens: 1000, messages: [{ role: 'user', content: 'deadbeef' }] };
 
 const PCCS_ENV: Env = { ...ENV, PCCS_UPSTREAM: 'https://pccs.upstream.test' };
+
+import { maxRequestBytes } from './index.ts';
+
+describe('how large a request may be', () => {
+  const env = {
+    FREE_CLOUD_MAX_REQUEST_BYTES: '262144',
+    PAID_CLOUD_MAX_REQUEST_BYTES: '524288',
+    DEEP_RESEARCH_MAX_TOKENS: '500000',
+    BYTES_PER_TOKEN: '3.7',
+  } as unknown as Env;
+
+  it('gives a paid plan the larger limit', () => {
+    assert.equal(maxRequestBytes(env, 'cloud'), 524_288);
+  });
+
+  it('keeps the free plan on its own smaller limit', () => {
+    assert.equal(maxRequestBytes(env, 'free'), 262_144);
+  });
+});
+
+describe('the payment-host alert door', () => {
+  it('does not exist when no secret is configured', async () => {
+    const res = await worker.fetch(
+      new Request('https://proxy.test/ops/tunnel-alert/anything', { method: 'POST' }),
+      ENV,
+    );
+    assert.equal(res.status, 404, 'an unconfigured alert route must not stand open');
+  });
+
+  it('refuses a wrong secret with the same 404, telling an attacker nothing', async () => {
+    const res = await worker.fetch(
+      new Request('https://proxy.test/ops/tunnel-alert/wrong', { method: 'POST' }),
+      { ...ENV, OPS_ALERT_SECRET: 'right' },
+    );
+    assert.equal(res.status, 404);
+  });
+
+  it('is POST-only: a crawler following the URL cannot trigger a probe', async () => {
+    const res = await worker.fetch(
+      new Request('https://proxy.test/ops/tunnel-alert/right', { method: 'GET' }),
+      { ...ENV, OPS_ALERT_SECRET: 'right' },
+    );
+    assert.notEqual(res.status, 200);
+  });
+});
+
+describe('the released version door', () => {
+  it('answers publicly, cacheable, with the release constant', async () => {
+    const res = await worker.fetch(new Request('https://proxy.test/app-version', { method: 'GET' }), ENV);
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('Cache-Control') ?? '', /max-age/);
+    const body = await res.json() as { version: string };
+    assert.match(body.version, /^\d+\.\d+\.\d+$/);
+  });
+});
+
+describe('the ceiling on the money route', () => {
+  it('shields the key on the attestation door too', async () => {
+    // Attestation does not bill, but it goes upstream wearing the Venice key:
+    // hammering it makes Venice's rate limiting the key's problem. Refused
+    // before any upstream call, like the chat route.
+    (globalThis as any).__rateCount = 481;
+    const calls = stubUpstream(() => new Response('{}', { status: 200 }));
+    const res = await worker.fetch(new Request(
+      'https://proxy.test/api/v1/tee/attestation?model=e2ee-gpt-oss-120b-p&nonce=' + 'ab'.repeat(16),
+      { headers: ACCOUNT_HEADERS },
+    ), ENV);
+    delete (globalThis as any).__rateCount;
+
+    assert.equal(res.status, 429);
+    assert.equal(calls.length, 0, 'Venice must never be contacted');
+  });
+
+  it('refuses a session that has burned through its hourly slots', async () => {
+    // Everything else guarding this route bounds what an account may have:
+    // twenty-one requests, a month of bytes. Nothing bounded how fast it could
+    // ask, so a session that slipped past those budgets had Alice's Venice
+    // balance and nothing in between. The refusal must land before the key is
+    // ever attached, so no call is made and nothing is charged.
+    (globalThis as any).__rateCount = 241;
+    const calls = stubUpstream(() => new Response('{}', { status: 200 }));
+    const res = await worker.fetch(chatRequest(VALID_BODY), ENV);
+    delete (globalThis as any).__rateCount;
+
+    assert.equal(res.status, 429);
+    assert.equal(((await res.json()) as any).error.code, 'rate_limited');
+    assert.equal(calls.length, 0, 'Venice must never be contacted');
+  });
+});
 
 describe('PCCS collateral relay', () => {
   it('forwards an allowed path to the fixed upstream, no key attached', async () => {
@@ -294,7 +404,15 @@ describe('chat relay', () => {
     const res = await worker.fetch(chatRequest(VALID_BODY), ENV, ctx);
 
     assert.equal(res.status, 200);
-    assert.equal(backgroundWrites.length, 1);
+    // Two of them, and both must outlive the response: the usage milestone,
+    // and the byte measurement. Neither may be dropped when the handler
+    // returns, which is the whole point of the execution context.
+    assert.equal(backgroundWrites.length, 2);
+
+    // The measurement resolves only once the body has gone past, because that
+    // is when its figure exists. Draining the response is what a client does,
+    // and without it this would wait forever.
+    await res.text();
     await Promise.all(backgroundWrites);
   });
 
@@ -415,11 +533,43 @@ describe('CORS', () => {
     const headers = corsHeaders('https://alice.example', ENV);
     assert.notEqual(headers['Access-Control-Allow-Origin'], '*');
   });
+
+  it('allows every method a browser route actually uses', () => {
+    // Setting a password and saving a username are PUTs; removing an identity
+    // is a DELETE. A method missing from this list dies in preflight as a
+    // "network error", with nothing in the server logs because the blocked
+    // request is never sent. That is exactly how it shipped broken once.
+    const allowed = corsHeaders('https://alice.example', ENV)['Access-Control-Allow-Methods'];
+    for (const method of ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']) {
+      assert.ok(allowed.includes(method), `${method} missing from ${allowed}`);
+    }
+  });
 });
 
 describe('routing', () => {
   it('404s anything else', async () => {
     const res = await worker.fetch(new Request('https://proxy.test/api/v1/models'), ENV);
     assert.equal(res.status, 404);
+  });
+});
+
+describe('deep research web search', () => {
+  it('turns Venice web search on for a Deep Research run, and only there', async () => {
+    // The switch bills per request, so who sets it matters as much as that it
+    // is set: Alice sets it, having checked the plan and charged the run.
+    const deepBody = JSON.stringify({
+      model: 'e2ee-gpt-oss-120b-p',
+      stream: true,
+      max_tokens: 8192,
+      messages: [{ role: 'user', content: 'deadbeef' }],
+      // A client trying to switch it on itself must not be obeyed.
+      venice_parameters: { enable_web_search: 'on', enable_web_scraping: true },
+    });
+    const sanitized = sanitizeChatBody(deepBody);
+    assert.equal(
+      'venice_parameters' in JSON.parse(sanitized.body),
+      false,
+      'the client never gets to set a billable switch',
+    );
   });
 });

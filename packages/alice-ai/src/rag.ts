@@ -1,4 +1,8 @@
-import { GENERATED_OBSIDIAN_KNOWLEDGE_BASE } from './generated/obsidian-rag';
+// NOTE: the generated Obsidian corpus (~2.6 MB of text) is deliberately NOT
+// imported statically: it is dynamic-imported below so bundlers put it in its
+// own lazy chunk instead of the first load of every page. Only its type is
+// referenced here.
+import type { GENERATED_OBSIDIAN_KNOWLEDGE_BASE as GeneratedCorpus } from './generated/obsidian-rag';
 import { getChatStorageSummary, type ChatStorageCipher } from './chat-storage';
 import { isDefinitionQuestion } from './pedagogical-profile';
 import { ALICE_LOCAL_DATA_KNOWLEDGE } from './product-knowledge';
@@ -41,6 +45,9 @@ export type RagRetrievalOptions = {
 export type RagTurnContext = {
   ragContext: string | null;
   localContext: string | null;
+  /** Course excerpt from the Learn library, when a course speaks to the
+      question (learn-context.ts). Formatted "label\nexcerpt". */
+  learnContext: string | null;
   diagnostics?: RagChunkDiagnostic[];
 };
 
@@ -1169,7 +1176,7 @@ const STATIC_KNOWLEDGE_BASE: KnowledgeChunk[] = [
     keywords: ['alice surfaces', 'surfaces alice', 'alice app wallet site', 'difference app wallet', 'différence app wallet', 'alicebtc.com', 'app.alicebtc.com', 'wallet.alicebtc.com'],
     level: 'beginner',
     content:
-      'Alice can appear across several product surfaces that share the same personality and safety rules but do not have the same permissions. alicebtc.com is the public website and trust entry point. app.alicebtc.com is the main conversational and learning surface. wallet.alicebtc.com is the operational Bitcoin wallet surface. The website and app should not pretend to know wallet state unless explicit wallet context is available.',
+      'Alice can appear across several product surfaces that share the same personality and safety rules but do not have the same permissions. alicebtc.com is the public website and trust entry point. app.alicebtc.com is the main conversational and learning surface, holding the chat plus Explorer, Learn and the Playground. wallet.alicebtc.com is the operational Bitcoin wallet surface, and there is an Android app. The website and app should not pretend to know wallet state unless explicit wallet context is available.',
   },
   {
     id: 'alice-app-surface',
@@ -1177,7 +1184,96 @@ const STATIC_KNOWLEDGE_BASE: KnowledgeChunk[] = [
     keywords: ['alice app', 'app alice', 'app.alicebtc.com', 'conversation alice', 'learning app', 'application alice'],
     level: 'beginner',
     content:
-      'Alice App at app.alicebtc.com is the main conversational and pedagogical surface. It is best for longer conversations, Bitcoin learning, exploring topics, structuring ideas, non-sensitive tools, and progressive personalization. It does not replace the wallet, control funds, or know wallet balances or history without explicit context.',
+      'Alice App at app.alicebtc.com is the main conversational and pedagogical surface. Besides the chat it holds three sections: Explorer, Learn and the Playground. It is best for longer conversations, Bitcoin learning, exploring topics, structuring ideas, non-sensitive tools, and progressive personalization. It does not replace the wallet, control funds, or know wallet balances or history without explicit context.',
+  },
+  // The three sections Alice App gained in 0.2.0. Without these entries Alice
+  // cannot answer "what is the Playground?" about her own app, which is the
+  // first thing a new user asks. Kept factual and free of any claim about
+  // wallet state, like every surface note above.
+  // What a new user asks in their first minutes, and what Alice had no
+  // grounded answer for: the account, the free quota, the price, where the
+  // conversations live, where her own answers come from, and how she updates.
+  // Deliberately free of figures that move (plan prices) except the one that
+  // is a product promise (21 free requests).
+  {
+    id: 'alice-account',
+    title: 'The Alice account',
+    keywords: ['alice account', 'compte alice', 'do i need an account', 'faut-il un compte', 'sign in', 'se connecter', 'create account', 'creer un compte', 'login', 'password alice'],
+    level: 'beginner',
+    content:
+      'An Alice account is optional and exists for one purpose: managing Private Cloud usage. It is an email address, a username and a password, and signing in can also be done with a code sent by email. The wallet itself never needs an account: keys, balances and history stay on the device either way. Alice stores a one-way fingerprint of the email rather than the address in clear, and shows a masked form of it.',
+  },
+  {
+    id: 'alice-free-quota',
+    title: 'Free Private Cloud requests',
+    keywords: ['free requests', 'requetes gratuites', '21 free', 'combien gratuit', 'how many free', 'quota', 'limite gratuite', 'free tier'],
+    level: 'beginner',
+    content:
+      'Every Alice user gets 21 free Private Cloud requests, and no account is required to use them. The remaining balance is visible in the app. Local AI, where a model runs on the device, does not consume this quota at all and has no limit. When the free requests run out, Alice keeps working on Local AI or a custom server, and a paid plan raises the Private Cloud allowance.',
+  },
+  {
+    id: 'alice-paid-plan',
+    title: 'Paying for Alice',
+    keywords: ['price', 'prix', 'cost', 'combien ca coute', 'how much', 'subscription', 'abonnement', 'paid plan', 'plan payant', 'upgrade', 'btcpay', 'pay in bitcoin'],
+    level: 'beginner',
+    content:
+      'Alice is free to use, and a paid plan buys a larger Private Cloud allowance with a more capable model. Plans are paid in bitcoin through BTCPay, and prices are set in satoshis so they do not move with the exchange rate; an approximate euro figure is shown as a landmark, not as the price. Nothing else in Alice is behind a payment: the wallet, the Playground, Learn and Explorer are free, and Local AI never costs anything.',
+  },
+  {
+    id: 'alice-conversation-storage',
+    title: 'Where Alice conversations are stored',
+    keywords: ['conversation history', 'historique', 'are my chats private', 'mes conversations sont-elles privees', 'chat storage', 'stockage des conversations', 'delete conversations', 'supprimer mes conversations'],
+    level: 'beginner',
+    content:
+      'Conversations with Alice are stored on the device, never on a server, and the app keeps a bounded number of recent sessions that the user can delete at any time. In the desktop app they are encrypted with a key held by the operating system keychain; on the web and in the mobile app they live in the local storage of the app or browser, so device security protects them. Private Cloud requests travel encrypted and are not logged, so the history exists on the device only.',
+  },
+  {
+    id: 'alice-knowledge-source',
+    title: 'Where Alice answers come from',
+    keywords: ['how do you know', 'comment tu sais', 'your sources', 'tes sources', 'knowledge base', 'base de connaissances', 'are you reliable', 'es-tu fiable', 'hallucination'],
+    level: 'beginner',
+    content:
+      'Alice answers from a Bitcoin knowledge base that ships inside the app, written and reviewed for this purpose, which is why her answers should stay consistent rather than improvised. For a given question she searches that base by keywords and by meaning at once, and when a question matches a course, the relevant chapter of the Plan B Network library in the Learn section is read as well. She should say plainly when something is outside what she knows instead of guessing, and she never has access to wallet keys or balances unless the user shares that context.',
+  },
+  {
+    id: 'alice-app-updates',
+    title: 'Updating Alice',
+    keywords: ['update', 'mise a jour', 'new version', 'nouvelle version', 'latest version', 'derniere version', 'upgrade app'],
+    level: 'beginner',
+    content:
+      'Alice tells the user inside the app when a newer version is released, with a discreet strip rather than an interruption. On the web and the installable PWA, reloading the page is enough to run the new version. The desktop app and the Android APK are updated by downloading the new build. After an update, the app shows once what the new version brings, and the full detail lives in the public release notes.',
+  },
+  {
+    id: 'wallet-send-max',
+    title: 'Sending the full balance',
+    keywords: ['send max', 'tout envoyer', 'envoyer le maximum', 'empty the wallet', 'vider le wallet', 'max button', 'bouton max', 'send everything'],
+    level: 'beginner',
+    content:
+      'The MAX button in Alice Wallet sends the entire spendable balance: the network fee is taken from the amount rather than added on top, since there would be nothing left to pay it with. The amount shown after MAX is therefore what actually arrives at the destination. Fees depend on the size of the transaction, and each additional output makes it slightly larger, so a wallet holding many small coins pays more to move the same value.',
+  },
+  {
+    id: 'alice-explorer-section',
+    title: 'Explorer section in Alice App',
+    keywords: ['explorer', 'block explorer', 'explorateur', 'voir une transaction', 'see a transaction', 'lookup address', 'chercher une adresse', 'txid', 'xpub explorer'],
+    level: 'beginner',
+    content:
+      'Explorer is the section of Alice App that looks up on-chain data: blocks, transactions, addresses and xpubs, on Bitcoin mainnet and on the Mutinynet test network. Alice explains what each field means instead of showing raw hexadecimal, and a lookup can be opened from a chat answer. Explorer reads public chain data only: it never needs the user keys and never moves funds.',
+  },
+  {
+    id: 'alice-learn-section',
+    title: 'Learn section in Alice App',
+    keywords: ['learn', 'courses', 'cours', 'apprendre', 'quiz', 'tutorials', 'tutoriels', 'plan b network', 'plan b academy', 'bitcoin course'],
+    level: 'beginner',
+    content:
+      'Learn is the section of Alice App that holds a library of Bitcoin courses and tutorials, with quizzes, from Plan B Network (Plan B Academy), used under the CC BY-SA 4.0 licence. English and French ship inside the app, and 27 more languages can be downloaded from the reading-language picker. Alice never rewrites the teaching text: she explains it when the reader gets stuck, and can point at the exact chapter that answers a question.',
+  },
+  {
+    id: 'alice-playground-section',
+    title: 'Playground section in Alice App',
+    keywords: ['playground', 'practice wallet', 'wallet d entrainement', 'training sats', 'sats d entrainement', 'test wallet', 'practise sending', 's entrainer', 'faucet'],
+    level: 'beginner',
+    content:
+      'The Playground is the section of Alice App where a user practises real wallet moves with no risk: it runs a practice wallet on Mutinynet, a Bitcoin test network whose coins have no monetary value. It offers the same steps as a real wallet, receiving, sending, backing up the recovery phrase and coin control, and a faucet grants practice coins once per installation. Nothing in the Playground touches mainnet or real funds; Alice Wallet is the surface for real bitcoin.',
   },
   {
     id: 'alice-website-surface',
@@ -1201,7 +1297,7 @@ const STATIC_KNOWLEDGE_BASE: KnowledgeChunk[] = [
     keywords: ['alice memory', 'what alice remembers', 'learning profile', 'pedagogical profile', 'profil pedagogique', 'profil pédagogique', 'niveau bitcoin', 'preferences reponse', 'préférences réponse'],
     level: 'beginner',
     content:
-      'Alice memory is local-only during the beta and has two separately controllable parts. About You contains short, explicit, useful facts such as preferences, projects, goals, interests, background, or constraints. Learning contains bounded familiarity signals for a maintained Bitcoin concept map. A user declaration about their own knowledge is authoritative until they state otherwise or delete it. Every item can be reviewed and forgotten, and everything can be cleared at once. The memory never contains message text, financial activity, direct identifiers, precise location, sensitive personal attributes, seed phrases, private keys, addresses, balances, or transaction history. Saved memories are used by Local AI only and are not sent to Private Cloud or custom endpoints during the beta. Retrieved knowledge remains the only source of factual content.',
+      'Alice memory is local-only during the beta and has two separately controllable parts. About You contains short, explicit, useful facts such as preferences, projects, goals, interests, background, or constraints. Learning contains bounded familiarity signals for a maintained Bitcoin concept map. A user declaration about their own knowledge is authoritative until they state otherwise or delete it. Every item can be reviewed and forgotten, and everything can be cleared at once. The memory never contains message text, financial activity, direct identifiers, precise location, sensitive personal attributes, seed phrases, private keys, addresses, balances, or transaction history. Saved memories personalize both Local AI and Private Cloud answers: with Private Cloud they travel inside the same end-to-end encrypted envelope as the messages, readable only by the attested enclave, and they are never sent to custom endpoints. Retrieved knowledge remains the only source of factual content.',
   },
   {
     id: 'alice-poc-limits',
@@ -1269,56 +1365,97 @@ const STATIC_KNOWLEDGE_BASE: KnowledgeChunk[] = [
   },
 ];
 
-const GENERATED_KNOWLEDGE_BASE: KnowledgeChunk[] = GENERATED_OBSIDIAN_KNOWLEDGE_BASE.map(chunk => ({
-  id: chunk.id,
-  title: chunk.title,
-  keywords: [...chunk.keywords],
-  level: chunk.level,
-  content: chunk.content,
-  retrievalWeight: chunk.retrievalWeight,
-  sourcePath: chunk.sourcePath,
-  theme: chunk.theme,
-  conceptId: chunk.conceptId,
-  locale: chunk.locale,
-  sourceLocale: chunk.sourceLocale,
-  translationStatus: chunk.translationStatus,
-  sourceHash: chunk.sourceHash,
-  phase: chunk.phase,
-  priority: chunk.priority,
-  status: chunk.status,
-  surface: chunk.surface,
+const STATIC_CORE_CHUNKS: KnowledgeChunk[] = STATIC_KNOWLEDGE_BASE.map(chunk => ({
+  ...chunk,
+  conceptId: chunk.conceptId ?? chunk.id,
+  locale: chunk.locale ?? 'en' as const,
+  sourceLocale: chunk.sourceLocale ?? 'en' as const,
+  translationStatus: chunk.translationStatus ?? 'source' as const,
 }));
 
-const VALIDATED_GENERATED_KNOWLEDGE = GENERATED_KNOWLEDGE_BASE.filter(chunk => chunk.status === 'valide');
-const SECONDARY_GENERATED_KNOWLEDGE = GENERATED_KNOWLEDGE_BASE.filter(chunk => chunk.status !== 'valide');
-
+// The static base is available immediately; the heavy generated corpus joins
+// it as soon as its lazy chunk lands (typically milliseconds from cache).
 registerPack({
   id: 'core',
   version: '1.0.0',
   language: 'multi',
   source: 'bundled',
-  chunks: [
-    ...STATIC_KNOWLEDGE_BASE.map(chunk => ({
-      ...chunk,
-      conceptId: chunk.conceptId ?? chunk.id,
-      locale: chunk.locale ?? 'en' as const,
-      sourceLocale: chunk.sourceLocale ?? 'en' as const,
-      translationStatus: chunk.translationStatus ?? 'source' as const,
-    })),
-    ...VALIDATED_GENERATED_KNOWLEDGE,
-  ],
+  chunks: STATIC_CORE_CHUNKS,
 });
 
-// Keep the complete editorial corpus available for future opt-in packs without
-// making every request search thousands of secondary notes by default.
-registerPack({
-  id: 'obsidian-secondary',
-  version: '1.0.0',
-  language: 'multi',
-  source: 'bundled',
-  enabledByDefault: false,
-  chunks: SECONDARY_GENERATED_KNOWLEDGE,
-});
+function mapGeneratedChunk(chunk: (typeof GeneratedCorpus)[number]): KnowledgeChunk {
+  return {
+    id: chunk.id,
+    title: chunk.title,
+    keywords: [...chunk.keywords],
+    level: chunk.level,
+    content: chunk.content,
+    retrievalWeight: chunk.retrievalWeight,
+    sourcePath: chunk.sourcePath,
+    theme: chunk.theme,
+    conceptId: chunk.conceptId,
+    locale: chunk.locale,
+    sourceLocale: chunk.sourceLocale,
+    translationStatus: chunk.translationStatus,
+    sourceHash: chunk.sourceHash,
+    phase: chunk.phase,
+    priority: chunk.priority,
+    status: chunk.status,
+    surface: chunk.surface,
+  };
+}
+
+/**
+ * Loads and registers the generated corpus once, on the first call, and hands
+ * back the same promise afterwards. Not started at module evaluation: parsing
+ * 2 000+ chunks holds the JS thread for a noticeable moment, and on a phone
+ * that moment used to land on the user's first taps after launch. Surfaces
+ * start it when they see fit (the web app at mount, the wallet after its
+ * first interactions) and every hybrid retrieval awaits it, so an early
+ * question simply pays the load once instead of answering from less.
+ */
+let corpusLoad: Promise<void> | null = null;
+export function loadRagCorpus(): Promise<void> {
+  corpusLoad ??= loadCorpusPacks().catch(() => { /* corpus unavailable: the static base still serves */ });
+  return corpusLoad;
+}
+
+async function loadCorpusPacks(): Promise<void> {
+  const { GENERATED_OBSIDIAN_KNOWLEDGE_BASE } = await import('./generated/obsidian-rag');
+  const generated = GENERATED_OBSIDIAN_KNOWLEDGE_BASE.map(mapGeneratedChunk);
+  registerPack({
+    id: 'core',
+    version: '1.0.0',
+    language: 'multi',
+    source: 'bundled',
+    chunks: [...STATIC_CORE_CHUNKS, ...generated.filter(chunk => chunk.status === 'valide')],
+  });
+  // Alice's own public documentation, so a question about the project is
+  // answered from the files that ship with it: how to report a vulnerability,
+  // what the licence allows, what the seed restores, how the beta channel
+  // works. A separate pack rather than more core chunks, because this is
+  // project knowledge and not Bitcoin knowledge: its retrieval weights sit
+  // below the core's, so it can never outrank a Bitcoin answer on a Bitcoin
+  // question. Regenerate with scripts/build-docs-rag.js.
+  const { GENERATED_DOCS_KNOWLEDGE_BASE } = await import('./generated/docs-rag');
+  registerPack({
+    id: 'alice-docs',
+    version: '1.0.0',
+    language: 'en',
+    source: 'bundled',
+    chunks: [...GENERATED_DOCS_KNOWLEDGE_BASE],
+  });
+  // Keep the complete editorial corpus available for future opt-in packs without
+  // making every request search thousands of secondary notes by default.
+  registerPack({
+    id: 'obsidian-secondary',
+    version: '1.0.0',
+    language: 'multi',
+    source: 'bundled',
+    enabledByDefault: false,
+    chunks: generated.filter(chunk => chunk.status !== 'valide'),
+  });
+}
 
 const ADVANCED_LAYER_2_TERMS = ['ark', 'arkade', 'vtxo', 'vutxo', 'asp', 'lightning', 'layer 2', 'layer-2', 'l2'];
 
@@ -1485,7 +1622,7 @@ export function isTechnicalRagQuery(query: string): boolean {
  * when the embedding model/index has finished loading; pure lexical
  * otherwise. The fusion only ever adds chunks the lexical path also deems
  * plausible or that pass the same MIN_MATCH_SCORE-shaped bar via semantic
- * similarity — it never bypasses the payment-authority framing below.
+ * similarity, it never bypasses the payment-authority framing below.
  */
 async function hybridSelectedChunks(
   query: string,
@@ -1515,6 +1652,7 @@ async function hybridSelectedChunks(
 }
 
 export async function retrieveContextHybrid(query: string, options?: RagRetrievalOptions): Promise<string | null> {
+  await loadRagCorpus();
   return (await retrieveContextHybridWithDiagnostics(query, options)).context;
 }
 
@@ -1522,6 +1660,7 @@ export async function retrieveContextHybridWithDiagnostics(
   query: string,
   options?: RagRetrievalOptions,
 ): Promise<{ context: string | null; diagnostics: RagChunkDiagnostic[] }> {
+  await loadRagCorpus();
   const selected = await hybridSelectedChunks(
     query,
     resolveContextChunkLimit(options),
@@ -1573,10 +1712,22 @@ export async function buildRagTurnContext(
   storageCipher?: ChatStorageCipher,
   options?: RagRetrievalOptions,
 ): Promise<RagTurnContext> {
-  const retrieval = await retrieveContextHybridWithDiagnostics(userMessage, options);
+  await loadRagCorpus();
+  // The Learn library is asked in parallel with retrieval: when a course
+  // speaks to the question, its chapter rides along as extra context, on
+  // every backend, the local model reads the same course the user could
+  // open, from the same on-device pack.
+  const [retrieval, learn] = await Promise.all([
+    retrieveContextHybridWithDiagnostics(userMessage, options),
+    (async () => {
+      const { learnContextFor } = await import('./learn-context');
+      return learnContextFor(userMessage);
+    })(),
+  ]);
   const ragContext = retrieval.context;
+  const learnContext = learn ? `${learn.label}\n${learn.excerpt}` : null;
   if (!shouldIncludeLocalChatSummary(userMessage)) {
-    return { ragContext, localContext: null, diagnostics: retrieval.diagnostics };
+    return { ragContext, localContext: null, learnContext, diagnostics: retrieval.diagnostics };
   }
 
   try {
@@ -1587,9 +1738,9 @@ export async function buildRagTurnContext(
       `Approximate local conversation storage: ${summary.estimatedBytes} bytes.`,
       'The summary contains no message text. Do not claim to have inspected conversation contents.',
     ].join(' ');
-    return { ragContext, localContext, diagnostics: retrieval.diagnostics };
+    return { ragContext, localContext, learnContext, diagnostics: retrieval.diagnostics };
   } catch {
-    return { ragContext, localContext: null, diagnostics: retrieval.diagnostics };
+    return { ragContext, localContext: null, learnContext, diagnostics: retrieval.diagnostics };
   }
 }
 

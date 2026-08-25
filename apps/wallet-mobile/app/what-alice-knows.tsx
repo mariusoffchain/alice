@@ -90,7 +90,7 @@ export default function WhatAliceKnowsScreen() {
         <View style={s.memoryControl}>
           <View style={s.controlCopy}>
             <Text style={s.itemTitle}>MEMORY</Text>
-            <Text style={s.hint}>Useful details are stored on this device. Saved memories are not sent to Private Cloud.</Text>
+            <Text style={s.hint}>Useful details are stored on this device. With Private Cloud, the relevant ones travel inside the same end-to-end encrypted envelope as your messages, readable only by the attested enclave.</Text>
           </View>
           <PixelToggle
             value={memory?.enabled ?? true}
@@ -117,7 +117,7 @@ export default function WhatAliceKnowsScreen() {
                 onPress={() => { void forgetAliceMemoryItem(item.id).then(setMemory); }}
                 style={s.forgetButton}
               >
-                <Text style={s.forgetText}>FORGET</Text>
+                <Text style={[s.forgetText, { color: colors.danger }]}>FORGET</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -141,7 +141,7 @@ export default function WhatAliceKnowsScreen() {
                   onPress={() => { void forgetPedagogicalConcept(concept).then(setLearning); }}
                   style={s.forgetButton}
                 >
-                  <Text style={s.forgetText}>FORGET</Text>
+                  <Text style={[s.forgetText, { color: colors.danger }]}>FORGET</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -152,8 +152,8 @@ export default function WhatAliceKnowsScreen() {
           Alice never saves message text, seeds, private keys, addresses, balances, transactions, direct identifiers, precise location, or sensitive personal attributes in this memory.
         </Text>
 
-        <TouchableOpacity style={s.resetButton} onPress={forgetEverything}>
-          <Text style={s.resetText}>FORGET EVERYTHING</Text>
+        <TouchableOpacity style={[s.resetButton, { borderColor: colors.danger }]} onPress={forgetEverything}>
+          <Text style={[s.resetText, { color: colors.danger }]}>FORGET EVERYTHING</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -166,24 +166,24 @@ function makeStyles(colors: Colors, pixel: Pixel) {
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
     backBtn: { ...pixel, width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cardBg },
     backIcon: { fontFamily: typography.pixel, fontSize: 18, color: colors.primary },
-    title: { flex: 1, fontFamily: typography.pixel, fontSize: 9, letterSpacing: 1, textAlign: 'center', color: colors.primaryDark },
+    title: { flex: 1, fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, textAlign: 'center', color: colors.primaryDark },
     body: { padding: spacing.lg, paddingBottom: spacing.xxxl },
     memoryControl: { ...pixel, backgroundColor: colors.cardBg, padding: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     controlCopy: { flex: 1 },
-    sectionTitle: { fontFamily: typography.pixel, fontSize: 7, letterSpacing: 1, color: colors.muted, marginTop: spacing.xxl, marginBottom: spacing.sm },
+    sectionTitle: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, color: colors.muted, marginTop: spacing.xxl, marginBottom: spacing.sm },
     section: { ...pixel, backgroundColor: colors.cardBg, paddingHorizontal: spacing.lg },
     itemRow: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
     itemBorder: { borderTopWidth: 1, borderTopColor: colors.dotted },
     itemCopy: { flex: 1 },
-    itemTitle: { fontFamily: typography.pixel, fontSize: 9, letterSpacing: 1, color: colors.primaryDark },
+    itemTitle: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, color: colors.primaryDark },
     itemText: { fontFamily: typography.numbers, fontSize: 15, lineHeight: 21, color: colors.text },
-    itemMeta: { fontFamily: typography.pixel, fontSize: 6, letterSpacing: 1, color: colors.muted, marginBottom: spacing.xs },
+    itemMeta: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, color: colors.muted, marginBottom: spacing.xs },
     hint: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 19, color: colors.muted, marginTop: spacing.xs },
     empty: { fontFamily: typography.numbers, fontSize: 14, lineHeight: 20, color: colors.muted, paddingVertical: spacing.lg },
     forgetButton: { paddingVertical: spacing.sm, paddingLeft: spacing.sm },
-    forgetText: { fontFamily: typography.pixel, fontSize: 6, letterSpacing: 1, color: '#e06060' },
+    forgetText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, color: '#e06060' },
     privacyCopy: { fontFamily: typography.numbers, fontSize: 13, lineHeight: 19, color: colors.muted, marginTop: spacing.xl },
     resetButton: { ...pixel, borderColor: '#e06060', borderWidth: 2, marginTop: spacing.xxl, paddingVertical: spacing.lg, alignItems: 'center' },
-    resetText: { fontFamily: typography.pixel, fontSize: 8, letterSpacing: 1, color: '#e06060' },
+    resetText: { fontFamily: typography.pixel, fontSize: 12, letterSpacing: 1, color: '#e06060' },
   });
 }

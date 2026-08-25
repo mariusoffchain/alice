@@ -46,7 +46,7 @@ function privateCloudHistory(history: Message[], needsConversationContext: boole
   return [
     {
       role: 'user',
-      content: `[Encrypted reference transcript — already answered]\n${transcript}`,
+      content: `[Encrypted reference transcript, already answered]\n${transcript}`,
     },
     latest,
   ];
@@ -71,6 +71,11 @@ export function composeGenerationHistory(
 
   const internalContext = [
     context.ragContext ? `[Retrieved knowledge]\n${context.ragContext}` : null,
+    // Course text is teaching material, quoted with its source: Alice explains
+    // it and may point the user at the course, she never claims it as hers.
+    context.learnContext
+      ? `[Course excerpt, Plan B Academy, CC BY-SA 4.0. Ground your answer in it when relevant and name the course; the user can open it in the Learn section.]\n${context.learnContext}`
+      : null,
     context.localContext ? `[Device-local summary]\n${context.localContext}` : null,
     pedagogicalContext ? `[Pedagogical context]\n${pedagogicalContext}` : null,
     memoryContext ? `[Personal memory]\n${memoryContext}` : null,

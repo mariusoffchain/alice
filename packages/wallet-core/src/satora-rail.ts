@@ -1,6 +1,5 @@
 import type { IWallet } from '@arkade-os/sdk';
 import { decodeInvoice } from '@arkade-os/boltz-swap';
-import { bech32 } from '@scure/base';
 import { Client } from '@satora/swap';
 import { ASP_URL, ESPLORA_URL, SATORA_URL } from './network-config.ts';
 import type { PaymentRail } from './payment-rail.ts';
@@ -12,12 +11,16 @@ import type {
   ReceivePaymentResponse,
 } from './payment-types.ts';
 import {
+  displaySatoraStatus,
   hasSatoraFundingEvidence,
   toSatoraPaymentRecord,
   toSatoraSwapRecord,
   type SatoraSwapSnapshot,
 } from './satora-payment-record.ts';
-import { quoteArkToLightningWithSatora } from './satora-quote.ts';
+import { absoluteBolt11Expiry, quoteArkToLightningWithSatora } from './satora-quote.ts';
+import { SatoraRefusalError, satoraCall } from './satora-error-message.ts';
+
+export { absoluteBolt11Expiry };
 import { deriveSatoraXprv } from './satora-key-derivation.ts';
 import {
   createAliceSatoraStorage,
@@ -79,7 +82,8 @@ export interface SatoraClientLike {
     lightningInvoice: string;
   }): Promise<CreateSwapResult>;
   createLightningToArkadeSwap(options: {
-    satsReceive: number;
+    // Amount the Arkade side receives; Satora adds its fees on the invoice.
+    targetAmountSats: number;
     targetAddress: string;
     invoiceDescription?: string;
   }): Promise<CreateReceiveSwapResult>;
@@ -117,30 +121,6 @@ type InvoiceDecoder = (invoice: string) => {
   amountSats: number;
   expiry: number;
 };
-
-function bolt11Timestamp(invoice: string): number {
-  const decoded = bech32.decode(
-    invoice.toLowerCase() as `${string}1${string}`,
-    5_000,
-  );
-  if (decoded.words.length < 7) {
-    throw new Error('Satora returned a Lightning invoice without a timestamp.');
-  }
-  return decoded.words.slice(0, 7).reduce(
-    (timestamp, word) => timestamp * 32 + word,
-    0,
-  );
-}
-
-export function absoluteBolt11Expiry(
-  invoice: string,
-  decodedExpiry: number,
-): number {
-  const timestamp = bolt11Timestamp(invoice);
-  return decodedExpiry >= timestamp
-    ? decodedExpiry
-    : timestamp + decodedExpiry;
-}
 
 function decodeSatoraInvoice(invoice: string): ReturnType<InvoiceDecoder> {
   const decoded = decodeInvoice(invoice);
@@ -280,9 +260,9 @@ export class SatoraPaymentRail implements PaymentRail {
         throw new Error('Satora fees changed. Review and confirm the updated quote.');
       }
 
-      const created = await this.client.createArkadeToLightningSwap({
+      const created = await satoraCall('send', () => this.client.createArkadeToLightningSwap({
         lightningInvoice: route.destination,
-      });
+      }));
       const sourceAmountSats = wholeSats(
         created.response.source_amount,
         'source amount',
@@ -296,7 +276,7 @@ export class SatoraPaymentRail implements PaymentRail {
         || targetAmountSats !== freshQuote.receiveAmountSats
       ) {
         throw new Error(
-          'The Satora swap does not match the confirmed payment details. No funds were sent.',
+          `Satora priced the swap differently from the quote you confirmed (${sourceAmountSats.toLocaleString('en-US')} sats to send instead of ${freshQuote.sendAmountSats.toLocaleString('en-US')}). No funds were sent. Try again for a fresh quote.`,
         );
       }
       if (!created.response.arkade_vhtlc_address.trim()) {
@@ -352,7 +332,7 @@ export class SatoraPaymentRail implements PaymentRail {
           invoice: route.destination,
           fundingAddress: created.response.arkade_vhtlc_address,
           fundingTxid,
-          providerStatus: created.response.status,
+          providerStatus: displaySatoraStatus(String(created.response.status ?? 'pending')),
           sendAmountSats: sourceAmountSats,
         },
       };
@@ -379,11 +359,12 @@ export class SatoraPaymentRail implements PaymentRail {
     }
 
     const targetAddress = request.targetArkadeAddress ?? await this.wallet.getAddress();
-    const created = await this.client.createLightningToArkadeSwap({
-      satsReceive: request.amountSats,
+    const requestedSats = request.amountSats;
+    const created = await satoraCall('receive', () => this.client.createLightningToArkadeSwap({
+      targetAmountSats: requestedSats,
       targetAddress,
       invoiceDescription: request.description,
-    });
+    }));
     const sourceAmountSats = wholeSats(
       created.response.source_amount,
       'Lightning invoice amount',
@@ -453,10 +434,11 @@ export class SatoraPaymentRail implements PaymentRail {
     }
 
     const targetAddress = request.targetArkadeAddress ?? await this.wallet.getAddress();
-    const created = await this.client.createBitcoinToArkadeSwap({
-      satsReceive: request.amountSats,
+    const satsReceive = request.amountSats;
+    const created = await satoraCall('receive', () => this.client.createBitcoinToArkadeSwap({
+      satsReceive,
       targetAddress,
-    });
+    }));
     const sourceAmountSats = wholeSats(
       created.response.source_amount,
       'Bitcoin payment amount',
@@ -546,8 +528,9 @@ export class SatoraPaymentRail implements PaymentRail {
     const destinationAddress = storedDirection === 'btc_to_arkade'
       ? await this.wallet.getBoardingAddress()
       : await this.wallet.getAddress();
-    const result = await this.client.refundSwap(paymentId, { destinationAddress });
-    if (!result.success) throw new Error(result.message);
+    const result = await satoraCall('refund', () => this.client.refundSwap(paymentId, { destinationAddress }));
+    // result.message is the server's wording: classified, never shown.
+    if (!result.success) throw new SatoraRefusalError(result.message ?? '', undefined, 'refund');
     const refundTxid = result.txId?.trim();
     if (!refundTxid || result.broadcast === false) {
       throw new Error(
@@ -565,7 +548,7 @@ export class SatoraPaymentRail implements PaymentRail {
         } as unknown as typeof latest.response,
       );
     }
-    await this.client.getSwap(paymentId, { updateStorage: true }).catch(() => null);
+    await satoraCall('status', () => this.client.getSwap(paymentId, { updateStorage: true })).catch(() => null);
     const refreshed = await this.swapStorage.get(paymentId);
     const payment = refreshed ? toSatoraPaymentRecord(refreshed) : null;
     if (!payment) {
@@ -588,7 +571,7 @@ export class SatoraPaymentRail implements PaymentRail {
   }
 
   private async refreshStoredSwap(stored: SatoraStoredSwap): Promise<void> {
-    await this.client.getSwap(stored.swapId, { updateStorage: true }).catch(() => null);
+    await satoraCall('status', () => this.client.getSwap(stored.swapId, { updateStorage: true })).catch(() => null);
     const latest = await this.swapStorage.get(stored.swapId);
     if (!latest) return;
     const response = snapshot(latest);
@@ -611,9 +594,9 @@ export class SatoraPaymentRail implements PaymentRail {
     this.inFlightClaims.add(stored.swapId);
     try {
       const destinationAddress = await this.wallet.getAddress();
-      const claim = await this.client.claimArkade(stored.swapId, {
+      const claim = await satoraCall('status', () => this.client.claimArkade(stored.swapId, {
         destinationAddress,
-      });
+      }));
       if (claim.success && claim.txId?.trim()) {
         const claimed = await this.swapStorage.get(stored.swapId);
         if (claimed) {
@@ -625,10 +608,10 @@ export class SatoraPaymentRail implements PaymentRail {
             } as unknown as typeof claimed.response,
           );
         }
-        await this.client.getSwap(
+        await satoraCall('status', () => this.client.getSwap(
           stored.swapId,
           { updateStorage: true },
-        ).catch(() => null);
+        )).catch(() => null);
       }
     } catch {
       // A server status can arrive before the Arkade indexer sees the VHTLC.
