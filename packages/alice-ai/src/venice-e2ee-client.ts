@@ -28,6 +28,7 @@ import {
   type AssuranceLevel,
   type ChainPolicy,
 } from './venice-attestation-chain.ts';
+import { failureDetail } from './venice-failure.ts';
 import type { Message } from './llm';
 
 export type FetchLike = (url: string, init?: any) => Promise<any>;
@@ -100,6 +101,20 @@ function resolveFetch(transport: VeniceE2EETransport): FetchLike {
 }
 
 /**
+ * How a failure inside the verification chain reaches the user.
+ *
+ * Only a service that answered "I am struggling" earns "try again shortly".
+ * A request that never completed says so, and everything else is a refusal:
+ * for the user's privacy nothing was sent, and repeating it will not help.
+ */
+const CHAIN_CODE_MAP: Record<string, string> = {
+  collateral_unavailable: 'attestation_unavailable',
+  collateral_unreachable: 'attestation_blocked',
+  collateral_refused: 'attestation_invalid',
+  quote_invalid: 'attestation_invalid',
+};
+
+/**
  * Fetch the TEE attestation and verify it before trusting any key from it.
  *
  * Venice's JSON `verified` flag is deliberately ignored. The client verifies
@@ -120,10 +135,12 @@ export async function fetchAndVerifyAttestation(
       headers: { ...authHeaders(transport) },
     });
   } catch (err) {
-    throw new VeniceE2EEError(
-      `Could not reach the attestation service: ${err instanceof Error ? err.message : 'network error'}`,
-      { code: 'attestation_unavailable' },
-    );
+    // The request never left, or never came back. Not the same thing as the
+    // service being busy, and not something waiting will repair.
+    throw new VeniceE2EEError('Could not reach the attestation service.', {
+      code: 'attestation_blocked',
+      detail: failureDetail({ stage: 'attestation', url, error: err }),
+    });
   }
 
   if (!response.ok) {
@@ -134,6 +151,7 @@ export async function fetchAndVerifyAttestation(
     throw new VeniceE2EEError(error.message, {
       status: error.status,
       code: response.status >= 500 ? 'attestation_unavailable' : 'attestation_invalid',
+      detail: failureDetail({ stage: 'attestation', url, status: response.status }),
     });
   }
 
@@ -150,10 +168,13 @@ export async function fetchAndVerifyAttestation(
     return await verifyAttestationChain(data, nonce, policy);
   } catch (err) {
     if (err instanceof VeniceE2EEError) {
-      const unavailable = err.message.startsWith('Could not fetch DCAP collateral:');
+      // Read the code the DCAP layer set, rather than matching on its wording.
+      // The previous test was a string prefix, so any rephrasing downstream
+      // silently turned a blocked request into "verification failed".
       throw new VeniceE2EEError(err.message, {
         status: err.status,
-        code: unavailable ? 'attestation_unavailable' : 'attestation_invalid',
+        code: CHAIN_CODE_MAP[err.code ?? ''] ?? 'attestation_invalid',
+        detail: err.detail,
       });
     }
     throw err;

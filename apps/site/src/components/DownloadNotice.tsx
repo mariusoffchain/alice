@@ -49,11 +49,13 @@ const NOTICES: Record<DownloadPlatform, Notice> = {
   },
   macos: {
     title: 'macOS will refuse to open Alice at first',
-    screen: '“Alice cannot be opened because the developer cannot be verified.”',
-    why: 'Apple signing is in progress but not ready. Until then macOS treats every unsigned app the same way, whoever wrote it.',
+    screen: '“Alice” Not Opened. “Apple could not verify ‘Alice’ is free of malware that may harm your Mac or compromise your privacy.”',
+    why: 'Apple signing is in progress but not ready, and macOS says this about every unsigned app, whoever wrote it. The dialog itself offers no way through: the only buttons are Done and Move to Bin. The permission is given in System Settings instead.',
     steps: [
-      'Right-click the Alice app, then choose Open.',
-      'Confirm once. macOS remembers, and normal double-clicks work afterwards.',
+      'Drag Alice into Applications, then open it once. On the warning, click Done, never Move to Bin.',
+      'Open the Apple menu, then System Settings, then Privacy and Security.',
+      'Scroll down to Security. A line says Alice was blocked, with an Open Anyway button. Click it, authenticate, then confirm Open.',
+      'That line only stays for a while after a blocked launch. If it is not there, open Alice again and come back to this screen.',
     ],
   },
 };

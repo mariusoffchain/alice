@@ -17,7 +17,12 @@ export type VeniceErrorCode =
   | 'model_unavailable'
   | 'rate_limit'
   | 'provider_unavailable'
+  /** The verification service answered that it is having trouble. Transient. */
   | 'attestation_unavailable'
+  /** The verification request never completed: offline, or blocked before it
+   *  left the device. Distinct from the above because waiting does not fix it,
+   *  and on a packaged build the cause is usually ours, not the user's. */
+  | 'attestation_blocked'
   | 'attestation_invalid'
   | 'network'
   | 'api_error';
@@ -25,12 +30,15 @@ export type VeniceErrorCode =
 export class VeniceAPIError extends Error {
   readonly code: VeniceErrorCode;
   readonly status?: number;
+  /** Closed-vocabulary technical cause, safe to display. See venice-failure.ts. */
+  readonly detail?: string;
 
-  constructor(code: VeniceErrorCode, message: string, status?: number) {
+  constructor(code: VeniceErrorCode, message: string, status?: number, detail?: string) {
     super(message);
     this.name = 'VeniceAPIError';
     this.code = code;
     this.status = status;
+    this.detail = detail;
   }
 }
 

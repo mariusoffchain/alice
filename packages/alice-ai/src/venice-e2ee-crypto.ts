@@ -42,12 +42,21 @@ let runtimeSelfTestPassed = false;
 export class VeniceE2EEError extends Error {
   readonly status?: number;
   readonly code?: string;
+  /**
+   * One line of closed-vocabulary technical cause, safe to show and to log:
+   * see venice-failure.ts. Absent when nothing useful could be said.
+   */
+  readonly detail?: string;
 
-  constructor(message: string, options: { status?: number; code?: string } = {}) {
+  constructor(
+    message: string,
+    options: { status?: number; code?: string; detail?: string } = {},
+  ) {
     super(message);
     this.name = 'VeniceE2EEError';
     this.status = options.status;
     this.code = options.code;
+    this.detail = options.detail;
   }
 }
 

@@ -135,8 +135,21 @@ plaintext response chunk.
 
 Local and Custom AI are unaffected and keep working. The user sees a clear
 message such as **"Private Cloud verification failed. No message was sent."**
-Technical detail stays in developer logs and contains no secret, prompt,
-response, or key.
+
+A refusal says which of three things happened, because the remedies differ and
+telling everyone to wait is false for two of them:
+
+| Code | When | What the user is told |
+| --- | --- | --- |
+| `attestation_unavailable` | the service answered that it is struggling (HTTP 5xx) | try again shortly |
+| `attestation_blocked` | the request never completed: offline, or stopped before leaving the device | nothing was sent, check the connection or what is in the way |
+| `attestation_invalid` | it completed and the answer could not be used | verification failed, nothing was sent |
+
+Each carries one line of technical cause, built by
+`packages/alice-ai/src/venice-failure.ts` and shown under the message so a
+tester can report it. The line is a closed vocabulary, `stage`, `host`,
+`status`, `kind`, `error`, `hint`, and never a server message, a URL query, a
+prompt, a response or a key.
 
 ## Assurance levels
 

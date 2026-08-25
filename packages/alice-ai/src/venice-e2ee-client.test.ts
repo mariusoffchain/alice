@@ -435,8 +435,14 @@ describe('streamE2EEChatCompletion', () => {
       ),
       (err: unknown) => {
         assert.ok(err instanceof VeniceE2EEError);
-        assert.equal(err.code, 'attestation_unavailable');
-        assert.match(err.message, /Failed to fetch/i);
+        // A request that never completed is not a busy service: telling the
+        // user to try again shortly would be a lie, so it has its own code.
+        assert.equal(err.code, 'attestation_blocked');
+        // The cause moves to the detail line, where the vocabulary is closed.
+        assert.equal(
+          err.detail,
+          'stage=attestation host=proxy.test kind=unreachable error=TypeError hint=blocked-or-offline',
+        );
         return true;
       },
     );

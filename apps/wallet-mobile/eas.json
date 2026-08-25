@@ -33,7 +33,7 @@
         "EXPO_PUBLIC_ARKADE_EXPLORER": "https://arkade.space",
         "EXPO_PUBLIC_VENICE_PROXY_URL": "https://proxy.alicebtc.com",
         "EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED": "true",
-        "EXPO_PUBLIC_ALICE_APP_VERSION": "0.2.0"
+        "EXPO_PUBLIC_ALICE_APP_VERSION": "0.2.1"
       }
     },
     "beta": {

@@ -7,8 +7,11 @@ testers using a fresh wallet and small amounts only.
 
 Alice's source lives at <https://github.com/mariusoffchain/alice>.
 
-- Version: `0.2.0`
-- Source: public tag `v0.2.0` in <https://github.com/mariusoffchain/alice>.
+- Version: `0.2.1` for the desktop apps, `0.2.0` for the Android APK. The
+  0.2.1 repairs are desktop-only, so the published APK is unchanged and its
+  checksum and signature below still apply.
+- Source: public tags `v0.2.1` (desktop) and `v0.2.0` (Android) in
+  <https://github.com/mariusoffchain/alice>.
 - Android: the official APK, its version code and its SHA-256 are published
   together in the GitHub Release attached to that tag.
 
@@ -81,7 +84,7 @@ APK forwarded by an unknown person.
 - Alice Mutinynet: <https://mutinynet.alicebtc.com>
 - Android: APK distributed directly through the closed-beta channel
 
-Desktop installers are attached to the `0.2.0` GitHub Release. The first beta
+Desktop installers are attached to the `0.2.1` GitHub Release. The first beta
 can be distributed before trusted Apple and Windows certificates are available.
 
 ## Updating Alice Wallet from 0.1.0
@@ -91,7 +94,7 @@ it installs as a separate app next to 0.1.0 rather than over it. Back up
 your recovery phrase from 0.1.0 first, install 0.2.0, import the phrase,
 check your balance, then uninstall 0.1.0.
 
-## Installing Alice Desktop 0.2.0
+## Installing Alice Desktop 0.2.1
 
 The GitHub Release contains a universal macOS DMG, a Windows MSI, a Linux
 AppImage and a Debian package. It also contains one build information file per
@@ -99,16 +102,35 @@ platform. Read its `signing` line before installing. Early beta builds can be
 published without a trusted certificate. This is expected to produce the
 warnings described below, but it does not replace checksum verification.
 
-Compare the downloaded installer with `SHA256SUMS-desktop-v0.2.0.txt` from the
+Compare the downloaded installer with `SHA256SUMS-desktop-v0.2.1.txt` from the
 same release before opening it.
 
 ### macOS
 
 Open the DMG and drag Alice into Applications. A build without an Apple
 Developer ID uses an ad hoc signature for Apple Silicon compatibility, so
-macOS can say that the developer cannot be verified. In Applications,
-right-click Alice, choose **Open**, then confirm **Open**. This explicit action
-only bypasses the warning for this application.
+macOS refuses to open it the first time. On macOS 15 and later the dialog is
+**"Alice" Not Opened**, saying that Apple could not verify the app is free of
+malware, and it offers only **Done** and **Move to Bin**. The right-click
+**Open** shortcut of earlier macOS versions no longer bypasses this.
+
+Grant the permission from the settings instead:
+
+1. Open Alice once from Applications, then click **Done** on the warning.
+   Never choose Move to Bin.
+2. Open the Apple menu, then **System Settings**, then **Privacy & Security**.
+3. Scroll to **Security**. A line reports that Alice was blocked, with an
+   **Open Anyway** button. Click it, authenticate, then confirm **Open**.
+
+The button is shown only for a while after a blocked launch. If it is gone,
+open Alice again and return to the settings. Once granted, the permission is
+remembered and normal double-clicks work.
+
+The same permission can be given from a terminal, on the copy in Applications:
+
+```bash
+xattr -d com.apple.quarantine /Applications/Alice.app
+```
 
 When the `APPLE_CERTIFICATE` and `APPLE_CERTIFICATE_PASSWORD` secrets are
 available, the release workflow signs the application with that identity. If
@@ -134,14 +156,14 @@ Linux shows no comparable platform signature warning for these files. For the
 AppImage, make it executable and run it:
 
 ```bash
-chmod +x Alice_0.2.0_*.AppImage
-./Alice_0.2.0_*.AppImage
+chmod +x Alice_0.2.1_*.AppImage
+./Alice_0.2.1_*.AppImage
 ```
 
 On Debian or Ubuntu, install the local package with:
 
 ```bash
-sudo apt install ./Alice_0.2.0_*.deb
+sudo apt install ./Alice_0.2.1_*.deb
 ```
 
 ## Publishing the Android 0.2.0 APK

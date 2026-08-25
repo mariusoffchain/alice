@@ -12,6 +12,15 @@ export const RELEASE_NOTES_URL = 'https://github.com/mariusoffchain/alice/releas
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: '0.2.1',
+    highlights: [
+      'The Explorer works in the installed desktop app: it could not reach the chain at all before.',
+      'Learn cover art loads in the desktop app.',
+      'Private Cloud now says which of three things went wrong instead of always asking you to wait.',
+      'macOS: the install steps match what macOS actually shows you.',
+    ],
+  },
+  {
     version: '0.2.0',
     highlights: [
       'Explorer: blocks, transactions and addresses, explained by Alice.',
