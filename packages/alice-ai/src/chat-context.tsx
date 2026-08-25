@@ -122,7 +122,26 @@ function currentInterfaceLanguage(): string {
   }
 }
 
+/**
+ * The one technical line a failure is allowed to show, when it carries one.
+ *
+ * Alice has no diagnostics screen, so until now a beta tester could report
+ * nothing beyond the sentence they were shown, and three different causes wear
+ * the same sentence. This appends a closed-vocabulary line they can copy into
+ * a report: no server text, no prompt, no key, nothing derived from a message.
+ */
+function technicalDetailOf(err: unknown): string | null {
+  if (err instanceof VeniceAPIError && err.detail) return err.detail;
+  return null;
+}
+
 function userFacingSendError(err: unknown, backendType: AIBackendType): string {
+  const message = sendErrorText(err, backendType);
+  const detail = technicalDetailOf(err);
+  return detail ? `${message}\n\n\`${detail}\`` : message;
+}
+
+function sendErrorText(err: unknown, backendType: AIBackendType): string {
   if (err instanceof WrongResponseLanguageError) return err.message;
   if (err instanceof VeniceAPIError) {
     if (err.code === 'account_required') {
@@ -160,6 +179,14 @@ function userFacingSendError(err: unknown, backendType: AIBackendType): string {
     }
     if (err.code === 'attestation_unavailable') {
       return 'Private Cloud security verification is temporarily unavailable. Try again shortly.';
+    }
+    if (err.code === 'attestation_blocked') {
+      // Deliberately not "try again shortly": the request did not complete, so
+      // either this device cannot reach the service, or something on the way is
+      // stopping it. Repeating it changes nothing until that does.
+      return 'Alice could not reach the Private Cloud security check from this device,'
+        + ' so nothing was sent. Check your connection, or any VPN, firewall or'
+        + ' blocker in the way. Alice Local still works offline.';
     }
     if (err.code === 'attestation_invalid') {
       return 'Private Cloud security verification failed. For your privacy, Alice did not send your message.';

@@ -3,10 +3,45 @@
 Alice ships as four surfaces from one repository, and they are versioned
 together: a single number means a tester and a log line refer to the same code.
 
-- `0.2.0`, current release
+- `0.2.1`, current release
+- `0.2.0`, previous release
 - `0.1.0`, previous closed beta
 - `0.0.1`, first public baseline
 - `1.0.0`, public launch, planned
+
+## 0.2.1
+
+A desktop repair release. The Android build is unchanged and stays on `0.2.0`.
+
+### Desktop: the installed app can reach the servers it needs
+
+The packaged app declares which servers it is allowed to contact, and that
+list had never grown past the AI services. Every chain endpoint was missing,
+so the Explorer returned nothing at all in the installed app while the same
+code worked in a browser, and Learn cover art never loaded. The list now
+carries the Explorer's default nodes and their fallbacks, the Arkade
+endpoints, the packs CDN, and Intel's certificate services, which the Private
+Cloud verification uses as a fallback.
+
+A node a user configures themselves is still refused by that list. Moving
+these requests outside the webview, which also opens the way to Tor, is the
+next step rather than a wider list.
+
+### Private Cloud: a refusal says which refusal
+
+"Security verification is temporarily unavailable" covered three different
+failures, and two of them never repair themselves, so the advice to wait was
+false. They are now distinguished: a service in difficulty, a request that
+never completed, and an answer that could not be used. Each carries one line
+of technical cause under the message, drawn from a closed vocabulary that can
+never include a server message, a prompt, a response or a key, so a report can
+name the cause instead of the symptom.
+
+### macOS install instructions
+
+The download notice and the beta guide described the right-click Open
+shortcut, which macOS 15 removed. They now describe the dialog people actually
+see and the Privacy & Security path that grants the permission.
 
 ## 0.2.0
 

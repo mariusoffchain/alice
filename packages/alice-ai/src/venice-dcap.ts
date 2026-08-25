@@ -13,6 +13,7 @@
 
 import { VeniceE2EEError } from './venice-e2ee-crypto.ts';
 import { type VerifiedTdReport, tdFieldToHex } from './venice-attestation-verify.ts';
+import { classifyFailure, failureDetail, statusFromError } from './venice-failure.ts';
 
 /**
  * TCB statuses accepted for the beta. Only `UpToDate`, anything else
@@ -102,6 +103,20 @@ function hexToBytesStrict(hex: string): Uint8Array {
 }
 
 /**
+ * Codes the collateral step can fail with, mapped from the kind of failure.
+ *
+ * The step used to report every failure as "PCCS unavailable", which sent the
+ * user away with "try again shortly" even when the request had been blocked
+ * before leaving the device, or when a response header was unreadable. Both of
+ * those are permanent until someone changes something.
+ */
+const COLLATERAL_CODES = {
+  unreachable: 'collateral_unreachable',
+  unavailable: 'collateral_unavailable',
+  refused: 'collateral_refused',
+} as const;
+
+/**
  * Full DCAP path for one quote: fetch collateral, verify the signature/TCB
  * against Intel's trust chain, enforce the TCB policy, and return the reduced
  * TDX report. Fails closed, a collateral-fetch error (PCCS down) or a failed
@@ -114,18 +129,24 @@ export async function verifyTdxQuote(quoteHex: string, options: DcapOptions): Pr
   try {
     collateral = await options.getCollateral(options.pccsUrl, quote);
   } catch (err) {
-    throw new VeniceE2EEError(
-      `Could not fetch DCAP collateral: ${err instanceof Error ? err.message : 'PCCS unavailable'}.`,
-    );
+    // The library reaches several endpoints for one quote, and the one that
+    // failed is not always the one we configured, so the detail names the kind
+    // of failure rather than pretending to know which host refused.
+    throw new VeniceE2EEError('Could not fetch DCAP collateral.', {
+      code: COLLATERAL_CODES[classifyFailure(err)],
+      status: statusFromError(err),
+      detail: failureDetail({ stage: 'collateral', url: options.pccsUrl, error: err }),
+    });
   }
 
   let verified: DcapVerifiedReport;
   try {
     verified = await options.verify(quote, collateral);
   } catch (err) {
-    throw new VeniceE2EEError(
-      `DCAP quote verification failed: ${err instanceof Error ? err.message : 'invalid quote'}.`,
-    );
+    throw new VeniceE2EEError('DCAP quote verification failed.', {
+      code: 'quote_invalid',
+      detail: failureDetail({ stage: 'verify', error: err }),
+    });
   }
 
   assertTcbStatus(verified.status, options.acceptedTcb);

@@ -183,15 +183,16 @@ async function sendE2EEMessage(
       if (err.code === 'model_not_in_plan' || err.code === 'model_not_in_free_plan') {
         throw new VeniceAPIError('plan_restricted', err.message, err.status);
       }
-      if (err.code === 'attestation_unavailable') {
-        throw new VeniceAPIError('attestation_unavailable', err.message, err.status);
-      }
-      if (err.code === 'attestation_invalid') {
-        throw new VeniceAPIError('attestation_invalid', err.message, err.status);
+      if (
+        err.code === 'attestation_unavailable'
+        || err.code === 'attestation_blocked'
+        || err.code === 'attestation_invalid'
+      ) {
+        throw new VeniceAPIError(err.code, err.message, err.status, err.detail);
       }
       // Surfaced as a normal provider error so the chat UI can render it, but
       // never downgraded into a plaintext retry.
-      throw new VeniceAPIError('api_error', err.message);
+      throw new VeniceAPIError('api_error', err.message, err.status, err.detail);
     }
     throw err;
   }
