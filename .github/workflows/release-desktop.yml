@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag de la release, par exemple v0.2.0
+        description: Release tag, for example v0.2.0
         required: true
         default: v0.2.0
         type: string
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   prepare:
-    name: Vérifier la release
+    name: Check the release
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -36,27 +36,27 @@ jobs:
           node-version-file: .nvmrc
 
       - id: release
-        name: Vérifier le tag et la version
+        name: Check the tag against the version
         shell: bash
         env:
           REQUESTED_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
         run: |
           set -euo pipefail
           if [[ ! "$REQUESTED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Tag invalide: $REQUESTED_TAG" >&2
+            echo "Invalid tag: $REQUESTED_TAG" >&2
             exit 1
           fi
 
           expected_tag="v$(node -p "require('./package.json').version")"
           if [[ "$REQUESTED_TAG" != "$expected_tag" ]]; then
-            echo "Le tag $REQUESTED_TAG ne correspond pas à la version $expected_tag du dépôt." >&2
+            echo "Tag $REQUESTED_TAG does not match the repository version $expected_tag." >&2
             exit 1
           fi
 
           if git rev-parse --verify --quiet "refs/tags/$REQUESTED_TAG" >/dev/null; then
             tag_commit="$(git rev-list -n 1 "$REQUESTED_TAG")"
             if [[ "$tag_commit" != "$GITHUB_SHA" ]]; then
-              echo "Le tag $REQUESTED_TAG pointe vers $tag_commit, mais le workflow construit $GITHUB_SHA." >&2
+              echo "Tag $REQUESTED_TAG points at $tag_commit, but the workflow is building $GITHUB_SHA." >&2
               exit 1
             fi
           fi
@@ -68,7 +68,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" \
                 && "${{ github.ref_name }}" != "main" \
                 && "${{ github.ref_name }}" != "$release_branch" ]]; then
-            echo "Le déclenchement manuel doit partir de main ou de $release_branch, pas de ${{ github.ref_name }}." >&2
+            echo "A manual run must start from main or from $release_branch, not from ${{ github.ref_name }}." >&2
             exit 1
           fi
 
@@ -114,19 +114,19 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Installer Rust stable
+      - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Ajouter les cibles macOS universelles
+      - name: Add the universal macOS targets
         if: matrix.platform == 'macos'
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
-      - name: Mettre en cache Cargo
+      - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/app-desktop/src-tauri -> target
 
-      - name: Installer les bibliothèques Tauri sous Ubuntu
+      - name: Install the Tauri libraries on Ubuntu
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
@@ -142,7 +142,7 @@ jobs:
             wget \
             xdg-utils
 
-      - name: Restaurer les ressources embarquées
+      - name: Restore the embedded assets
         uses: actions/cache@v4
         with:
           path: |
@@ -150,10 +150,10 @@ jobs:
             scripts/data/semantic-model
           key: desktop-assets-${{ runner.os }}-${{ hashFiles('scripts/prepare-learn-packs.mjs', 'scripts/prepare-semantic-model.mjs', 'packages/alice-content/src/generated/planb-learn-catalog.ts', 'package-lock.json') }}
 
-      - name: Installer les dépendances npm
+      - name: Install the npm dependencies
         run: npm ci
 
-      - name: Vérifier les secrets Apple optionnels
+      - name: Check the optional Apple secrets
         if: matrix.platform == 'macos'
         shell: bash
         run: |
@@ -162,7 +162,7 @@ jobs:
           [[ -n "$APPLE_CERTIFICATE_SECRET" ]] && certificate_values=$((certificate_values + 1))
           [[ -n "$APPLE_CERTIFICATE_PASSWORD_SECRET" ]] && certificate_values=$((certificate_values + 1))
           if [[ "$certificate_values" -ne 0 && "$certificate_values" -ne 2 ]]; then
-            echo "APPLE_CERTIFICATE et APPLE_CERTIFICATE_PASSWORD doivent être définis ensemble." >&2
+            echo "APPLE_CERTIFICATE and APPLE_CERTIFICATE_PASSWORD must be set together." >&2
             exit 1
           fi
 
@@ -171,11 +171,11 @@ jobs:
           [[ -n "$APPLE_PASSWORD_SECRET" ]] && notarization_values=$((notarization_values + 1))
           [[ -n "$APPLE_TEAM_ID_SECRET" ]] && notarization_values=$((notarization_values + 1))
           if [[ "$notarization_values" -ne 0 && "$notarization_values" -ne 3 ]]; then
-            echo "APPLE_ID, APPLE_PASSWORD et APPLE_TEAM_ID doivent être définis ensemble." >&2
+            echo "APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID must be set together." >&2
             exit 1
           fi
           if [[ "$notarization_values" -eq 3 && "$certificate_values" -ne 2 ]]; then
-            echo "La notarisation Apple exige aussi le certificat et son mot de passe." >&2
+            echo "Apple notarisation also requires the certificate and its password." >&2
             exit 1
           fi
 
@@ -185,7 +185,7 @@ jobs:
           else
             echo "APPLE_SIGNING_READY=false" >> "$GITHUB_ENV"
             echo "DESKTOP_SIGNING_MODE=ad-hoc" >> "$GITHUB_ENV"
-            echo "Aucun certificat Apple, le DMG utilisera la signature ad hoc sans identité de développeur."
+            echo "No Apple certificate: the DMG will use an ad hoc signature, with no developer identity."
           fi
 
           if [[ "$notarization_values" -eq 3 ]]; then
@@ -194,7 +194,7 @@ jobs:
             echo "APPLE_NOTARIZATION_READY=false" >> "$GITHUB_ENV"
           fi
 
-      - name: Importer le certificat Apple
+      - name: Import the Apple certificate
         if: matrix.platform == 'macos' && env.APPLE_SIGNING_READY == 'true'
         shell: bash
         env:
@@ -216,23 +216,23 @@ jobs:
 
           identity="$(security find-identity -v -p codesigning "$keychain_path" | sed -n 's/.*"\(.*\)".*/\1/p' | head -n 1)"
           if [[ -z "$identity" ]]; then
-            echo "Aucune identité de signature exploitable dans le certificat Apple." >&2
+            echo "No usable signing identity in the Apple certificate." >&2
             exit 1
           fi
           echo "APPLE_SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
-          echo "Certificat Apple importé, identité détectée."
+          echo "Apple certificate imported, identity detected."
 
-      - name: Construire le DMG sans certificat Apple
+      - name: Build the DMG without an Apple certificate
         if: matrix.platform == 'macos' && env.APPLE_SIGNING_READY != 'true'
         env:
           APPLE_SIGNING_IDENTITY: "-"
         run: npm run build --workspace @alice-wallet/app-desktop -- --bundles dmg --target universal-apple-darwin
 
-      - name: Construire le DMG signé, sans notarisation
+      - name: Build the signed DMG, without notarisation
         if: matrix.platform == 'macos' && env.APPLE_SIGNING_READY == 'true' && env.APPLE_NOTARIZATION_READY != 'true'
         run: npm run build --workspace @alice-wallet/app-desktop -- --bundles dmg --target universal-apple-darwin
 
-      - name: Construire et notariser le DMG signé
+      - name: Build and notarise the signed DMG
         if: matrix.platform == 'macos' && env.APPLE_SIGNING_READY == 'true' && env.APPLE_NOTARIZATION_READY == 'true'
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -240,7 +240,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run build --workspace @alice-wallet/app-desktop -- --bundles dmg --target universal-apple-darwin
 
-      - name: Vérifier les secrets Windows optionnels
+      - name: Check the optional Windows secrets
         if: matrix.platform == 'windows'
         shell: bash
         run: |
@@ -249,7 +249,7 @@ jobs:
           [[ -n "$WINDOWS_CERTIFICATE_SECRET" ]] && certificate_values=$((certificate_values + 1))
           [[ -n "$WINDOWS_CERTIFICATE_PASSWORD_SECRET" ]] && certificate_values=$((certificate_values + 1))
           if [[ "$certificate_values" -ne 0 && "$certificate_values" -ne 2 ]]; then
-            echo "WINDOWS_CERTIFICATE et WINDOWS_CERTIFICATE_PASSWORD doivent être définis ensemble." >&2
+            echo "WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD must be set together." >&2
             exit 1
           fi
 
@@ -259,10 +259,10 @@ jobs:
           else
             echo "WINDOWS_SIGNING_READY=false" >> "$GITHUB_ENV"
             echo "DESKTOP_SIGNING_MODE=unsigned" >> "$GITHUB_ENV"
-            echo "Aucun certificat Windows, le MSI sera construit sans signature Authenticode."
+            echo "No Windows certificate: the MSI will be built without an Authenticode signature."
           fi
 
-      - name: Importer le certificat Windows
+      - name: Import the Windows certificate
         if: matrix.platform == 'windows' && env.WINDOWS_SIGNING_READY == 'true'
         shell: pwsh
         env:
@@ -275,7 +275,7 @@ jobs:
           $imported = Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation Cert:\CurrentUser\My -Password $password
           $certificate = $imported | Where-Object HasPrivateKey | Select-Object -First 1
           if (-not $certificate) {
-            throw "Le PFX Windows ne contient aucun certificat avec clé privée."
+            throw "The Windows PFX holds no certificate with a private key."
           }
 
           $configPath = Join-Path $env:RUNNER_TEMP "tauri.windows-signing.conf.json"
@@ -289,25 +289,25 @@ jobs:
             }
           } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 $configPath
           "TAURI_WINDOWS_SIGN_CONFIG=$configPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "Certificat Windows importé, empreinte détectée."
+          Write-Host "Windows certificate imported, thumbprint detected."
 
-      - name: Construire le MSI sans certificat Windows
+      - name: Build the MSI without a Windows certificate
         if: matrix.platform == 'windows' && env.WINDOWS_SIGNING_READY != 'true'
         run: npm run build --workspace @alice-wallet/app-desktop -- --bundles msi
 
-      - name: Construire le MSI signé
+      - name: Build the signed MSI
         if: matrix.platform == 'windows' && env.WINDOWS_SIGNING_READY == 'true'
         shell: pwsh
         run: npm run build --workspace @alice-wallet/app-desktop -- --bundles msi --config "$env:TAURI_WINDOWS_SIGN_CONFIG"
 
-      - name: Construire les paquets Linux
+      - name: Build the Linux packages
         if: matrix.platform == 'linux'
         shell: bash
         run: |
           echo "DESKTOP_SIGNING_MODE=unsigned" >> "$GITHUB_ENV"
           npm run build --workspace @alice-wallet/app-desktop -- --bundles appimage,deb
 
-      - name: Préparer et contrôler les installateurs
+      - name: Stage and check the installers
         shell: bash
         env:
           ARTIFACT_NAME: ${{ matrix.artifact_name }}
@@ -335,7 +335,7 @@ jobs:
 
           visit(root);
           if (files.length !== extensions.length) {
-            throw new Error(`Installateurs attendus: ${extensions.join(', ')}, trouvés: ${files.join(', ') || 'aucun'}`);
+            throw new Error(`Expected installers: ${extensions.join(', ')}, found: ${files.join(', ') || 'none'}`);
           }
 
           fs.rmSync(output, { recursive: true, force: true });
@@ -345,7 +345,7 @@ jobs:
             const gib = size / 1024 / 1024 / 1024;
             console.log(`${file}: ${(size / 1024 / 1024).toFixed(1)} Mo`);
             if (size >= 2 * 1024 * 1024 * 1024) {
-              throw new Error(`${file} pèse ${gib.toFixed(2)} Gio, la limite d'un asset GitHub Release est 2 Gio.`);
+              throw new Error(`${file} weighs ${gib.toFixed(2)} GiB, the GitHub Release asset limit is 2 GiB.`);
             }
             fs.copyFileSync(file, path.join(output, path.basename(file)));
           }
@@ -360,7 +360,7 @@ jobs:
           fs.writeFileSync(path.join(output, `${process.env.ARTIFACT_NAME}.txt`), metadata);
           NODE
 
-      - name: Téléverser les installateurs du job
+      - name: Upload this job's installers
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
@@ -369,12 +369,12 @@ jobs:
           compression-level: 0
           retention-days: 1
 
-      - name: Effacer les certificats temporaires
+      - name: Erase the temporary certificates
         if: always()
         run: node -e "const fs=require('node:fs'),p=require('node:path'); for(const f of ['alice-certificate.p12','alice-certificate.pfx']) fs.rmSync(p.join(process.env.RUNNER_TEMP,f),{force:true})"
 
   release:
-    name: Créer la release en brouillon
+    name: Create the draft release
     needs:
       - prepare
       - build
@@ -383,14 +383,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Récupérer les installateurs
+      - name: Fetch the installers
         uses: actions/download-artifact@v4
         with:
           pattern: alice-desktop-*
           path: release-assets
           merge-multiple: true
 
-      - name: Calculer les condensats SHA-256
+      - name: Compute the SHA-256 digests
         shell: bash
         env:
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
@@ -404,7 +404,7 @@ jobs:
             > "$checksum_file"
           mv "$checksum_file" "SHA256SUMS-desktop-${RELEASE_TAG}.txt"
 
-      - name: Créer ou actualiser la release en brouillon
+      - name: Create or refresh the draft release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -417,7 +417,7 @@ jobs:
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             is_draft="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)"
             if [[ "$is_draft" != "true" ]]; then
-              echo "La release $RELEASE_TAG est déjà publiée, refus de remplacer ses fichiers." >&2
+              echo "Release $RELEASE_TAG is already published, refusing to replace its files." >&2
               exit 1
             fi
             gh release upload "$RELEASE_TAG" release-assets/* --clobber
@@ -426,5 +426,5 @@ jobs:
               --draft \
               --target "$GITHUB_SHA" \
               --title "Alice $RELEASE_TAG" \
-              --notes "Installateurs desktop générés par le workflow de release. Vérifier les métadonnées de signature et les condensats avant publication."
+              --notes "Desktop installers built by the release workflow. Check the signing metadata and the digests before publishing."
           fi

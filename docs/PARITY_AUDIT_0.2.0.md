@@ -1,195 +1,195 @@
-# Audit de parité des surfaces Alice pour 0.2.0
+# Parity audit of the Alice surfaces for 0.2.0
 
-Date de l'audit : 2026-08-21
-Branche : `app/parity-audit-0.2.0`
-Périmètre : Alice App web, Alice App desktop, Alice Wallet Android, Alice Wallet PWA
+Audit date: 2026-08-21
+Branch: `app/parity-audit-0.2.0`
+Scope: Alice App web, Alice App desktop, Alice Wallet Android, Alice Wallet PWA
 
-## Résultat exécutif
+## Executive result
 
-La parité fonctionnelle est solide parce que les surfaces sont partagées par paire :
+Functional parity is solid because the surfaces are shared in pairs:
 
-- App web et App desktop exécutent le même frontend Next exporté. Le desktop ajoute les capacités Tauri (`apps/app-desktop/src-tauri/tauri.conf.json:7`).
-- Wallet Android et Wallet PWA exécutent les mêmes routes Expo. Les branches `Platform.OS` restent limitées aux capacités de la plateforme, notamment l'authentification locale, la capture d'écran, le presse-papiers et le partage (`apps/wallet-mobile/app/backup.tsx:31`, `apps/wallet-mobile/app/backup.tsx:51`, `apps/wallet-mobile/app/receive.tsx:311`, `apps/wallet-mobile/app/receive.tsx:456`).
-- Les 4 surfaces utilisent le même `AccountProvider` et le même `ChatProvider` (`apps/app-web/src/lib/chat-provider.tsx:48`, `apps/wallet-mobile/app/_layout.tsx:170`).
+- App web and App desktop run the same exported Next frontend. Desktop adds the Tauri capabilities (`apps/app-desktop/src-tauri/tauri.conf.json:7`).
+- Wallet Android and Wallet PWA run the same Expo routes. The `Platform.OS` branches stay limited to platform capabilities, namely local authentication, screen capture, clipboard and sharing (`apps/wallet-mobile/app/backup.tsx:31`, `apps/wallet-mobile/app/backup.tsx:51`, `apps/wallet-mobile/app/receive.tsx:311`, `apps/wallet-mobile/app/receive.tsx:456`).
+- All 4 surfaces use the same `AccountProvider` and the same `ChatProvider` (`apps/app-web/src/lib/chat-provider.tsx:48`, `apps/wallet-mobile/app/_layout.tsx:170`).
 
-L'audit a trouvé 1 écart accidentel, désormais corrigé : Android possédait le moteur de recherche sémantique natif, mais aucun contrôle correspondant dans ses réglages. Il a aussi trouvé 1 point bloquant de release, commun aux surfaces plutôt qu'un défaut de parité : le serveur annonçait `0.2.0`, alors que plusieurs manifestes clients étaient encore à `0.1.0`. Le bump coordonné et son contrôle automatique sont maintenant appliqués.
+The audit found 1 accidental gap, now fixed: Android had the native semantic search engine but no matching control in its settings. It also found 1 release blocker, common to the surfaces rather than a parity defect: the server announced `0.2.0` while several client manifests were still at `0.1.0`. The coordinated bump and its automatic check are now in place.
 
-Les petits écarts certains ont été corrigés dans des commits séparés :
+The small confirmed gaps were fixed in separate commits:
 
-- `7c6907d` fait ouvrir au desktop la page de release depuis la bannière de mise à jour.
-- `717143e` aligne les rappels e-mail du Wallet sur la règle et le texte de l'App.
-- `6a4e00f` retire du Wallet les restes visuels de l'ancien bouton Deep et rétablit le vocabulaire « web wallet » / « Alice Wallet app ».
-- `d7b763e` supprime la promesse résiduelle du bouton cerveau dans les réglages App.
-- `8f97f4a` couvre explicitement Local, Private Cloud et custom dans le test de mémoire.
-- `565b909` donne au build PWA une version d'application par défaut.
-- `6d186b0` fait passer `fast-uri` de 3.1.2 à 3.1.5 après la publication d'un nouvel avis de la même famille pendant l'audit. La chaîne reste limitée à `expo-build-properties` → `ajv` → `fast-uri`, mais la version corrigée est maintenant compatible avec la contrainte existante.
+- `7c6907d` makes desktop open the release page from the update banner.
+- `717143e` aligns the Wallet's email reminders with the App's rule and wording.
+- `6a4e00f` removes the visual leftovers of the old Deep button from the Wallet and restores the "web wallet" / "Alice Wallet app" vocabulary.
+- `d7b763e` deletes the residual promise of the brain button in the App settings.
+- `8f97f4a` explicitly covers Local, Private Cloud and custom in the memory test.
+- `565b909` gives the PWA build a default application version.
+- `6d186b0` moves `fast-uri` from 3.1.2 to 3.1.5 after a new advisory of the same family was published during the audit. The chain stays limited to `expo-build-properties` → `ajv` → `fast-uri`, but the fixed version is now compatible with the existing constraint.
 
-## Légende
+## Legend
 
-- **Identique** : même moteur ou même comportement observable.
-- **Différence voulue** : différence justifiée par le produit ou une capacité de plateforme.
-- **Différence accidentelle** : divergence sans contrainte de plateforme ou contrat produit correspondant.
-- **Non vérifié dynamiquement** : conclusion issue du code et des tests, sans exécution des 4 binaires distribués.
+- **Same**: same engine or same observable behaviour.
+- **Intended difference**: a difference justified by the product or by a platform capability.
+- **Accidental difference**: divergence with no matching platform constraint or product contract.
+- **Not verified dynamically**: a conclusion drawn from the code and the tests, without running the 4 distributed binaries.
 
-## 1. Chat et contexte IA
+## 1. Chat and AI context
 
-| Contrat | App web | App desktop | Wallet Android | Wallet PWA | Verdict |
+| Contract | App web | App desktop | Wallet Android | Wallet PWA | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| Envoi, streaming, édition, régénération, historique | `ChatProvider` partagé (`packages/alice-ai/src/chat-context.tsx:253`, `packages/alice-ai/src/chat-context.tsx:530`) | Même frontend et même provider | Même provider | Même provider | **Identique** |
-| Backend initial et choix sauvegardé | Private Cloud par défaut, choix sauvegardé (`packages/alice-ai/src/chat-context.tsx:264`, `packages/alice-ai/src/chat-context.tsx:303`) | Peut préférer Local quand Tauri le rend disponible (`packages/alice-ai/src/chat-context.tsx:318`) | Private Cloud par défaut | Private Cloud par défaut, Local indisponible | **Différence voulue** |
-| Langue de réponse | Résolution commune avant génération (`packages/alice-ai/src/chat-context.tsx:579`) | Identique | Identique | Identique | **Identique** |
-| Instructions personnalisées | Injectées par le coeur partagé (`packages/alice-ai/src/chat-context.tsx:637`) | Identique | Identique | Identique | **Identique** |
-| Mémoire personnelle | Injectée dans l'historique génératif (`packages/alice-ai/src/turn-engine.ts:122`, `packages/alice-ai/src/generation-context.ts:81`) | Identique | Identique | Identique | **Identique**. Le test couvre Local, Private Cloud et custom (`packages/alice-ai/src/turn-engine.test.ts:95`). |
-| Suggestions de départ | 4 cartes (`apps/app-web/src/components/ChatPanel.tsx:27`, `apps/app-web/src/components/ChatPanel.tsx:226`) | Identique | Absentes | Absentes | **Différence voulue, inférée**. Elles appartiennent à l'accueil éditorial de l'App, pas au compositeur compact du Wallet. |
-| « To go further » | Ponts Learn, Explorer et Playground (`apps/app-web/src/components/ChatPanel.tsx:102`, `apps/app-web/src/components/ChatPanel.tsx:259`) | Identique | Absent | Absent | **Différence voulue**. Les destinations n'existent pas dans le Wallet. |
-| Bouton cerveau / Deep par message | Absent | Absent | Absent | Absent | **Identique**. La fonctionnalité a été retirée. Le preset `High` reste un budget de raisonnement, pas un autre modèle (`packages/alice-ai/src/ai-preferences.ts:112`). Les textes et badges fantômes ont été supprimés. |
+| Send, streaming, editing, regeneration, history | Shared `ChatProvider` (`packages/alice-ai/src/chat-context.tsx:253`, `packages/alice-ai/src/chat-context.tsx:530`) | Same frontend and same provider | Same provider | Same provider | **Same** |
+| Initial backend and saved choice | Private Cloud by default, choice saved (`packages/alice-ai/src/chat-context.tsx:264`, `packages/alice-ai/src/chat-context.tsx:303`) | May prefer Local when Tauri makes it available (`packages/alice-ai/src/chat-context.tsx:318`) | Private Cloud by default | Private Cloud by default, Local unavailable | **Intended difference** |
+| Response language | Resolved in common before generation (`packages/alice-ai/src/chat-context.tsx:579`) | Same | Same | Same | **Same** |
+| Custom instructions | Injected by the shared core (`packages/alice-ai/src/chat-context.tsx:637`) | Same | Same | Same | **Same** |
+| Personal memory | Injected into the generative history (`packages/alice-ai/src/turn-engine.ts:122`, `packages/alice-ai/src/generation-context.ts:81`) | Same | Same | Same | **Same**. The test covers Local, Private Cloud and custom (`packages/alice-ai/src/turn-engine.test.ts:95`). |
+| Starter suggestions | 4 cards (`apps/app-web/src/components/ChatPanel.tsx:27`, `apps/app-web/src/components/ChatPanel.tsx:226`) | Same | Absent | Absent | **Intended difference, inferred**. They belong to the App's editorial landing, not to the Wallet's compact composer. |
+| "To go further" | Learn, Explorer and Playground bridges (`apps/app-web/src/components/ChatPanel.tsx:102`, `apps/app-web/src/components/ChatPanel.tsx:259`) | Same | Absent | Absent | **Intended difference**. The destinations do not exist in the Wallet. |
+| Per-message brain / Deep button | Absent | Absent | Absent | Absent | **Same**. The feature was removed. The `High` preset remains a reasoning budget, not another model (`packages/alice-ai/src/ai-preferences.ts:112`). The ghost labels and badges were deleted. |
 
-Conclusion : le moteur conversationnel est commun aux 4 surfaces. Les différences restantes sont des choix de composition entre l'App éducative et le Wallet.
+Conclusion: the conversational engine is common to all 4 surfaces. The remaining differences are composition choices between the educational App and the Wallet.
 
-## 2. Comptes Alice
+## 2. Alice accounts
 
-| Contrat | App web | App desktop | Wallet Android | Wallet PWA | Verdict |
+| Contract | App web | App desktop | Wallet Android | Wallet PWA | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| Création, code e-mail, connexion par mot de passe, récupération | Dialogue web branché sur le provider partagé (`apps/app-web/src/components/AccountPasswordDialog.tsx:13`, `apps/app-web/src/components/AccountPasswordDialog.tsx:435`) | Identique | Modal native branchée sur le même provider (`apps/wallet-mobile/components/AccountPasswordModal.tsx:23`, `apps/wallet-mobile/components/AccountPasswordModal.tsx:308`) | Même modal Expo | **Identique fonctionnellement** |
-| Changement de nom, identités et suppression | Actions du provider commun (`packages/alice-ai/src/account-context.tsx:407`, `packages/alice-ai/src/account-context.tsx:421`, `packages/alice-ai/src/account-context.tsx:457`) | Identique | Identique | Identique | **Identique** |
-| Plan et quotas | Plan, échéance, jauge et quota gratuit (`apps/app-web/src/components/settings/AccountTab.tsx:153`) | Identique | Même état `cloudUsage` et même distinction free/paid (`apps/wallet-mobile/app/account.tsx:75`) | Identique | **Identique** |
-| Achat et renouvellement | Checkout BTCPay dans l'App (`apps/app-web/src/components/settings/PlanCheckout.tsx:63`) | Même flow web | Renvoi vers l'App web (`apps/wallet-mobile/app/account.tsx:194`) | Même renvoi | **Différence voulue**. Le Wallet ne vend pas le plan et conserve un seul flow de paiement. |
-| Rappels d'expiration | Information sans interrupteur trompeur (`apps/app-web/src/components/settings/RenewalReminders.tsx:13`, `apps/app-web/src/components/settings/RenewalReminders.tsx:34`) | Identique | Texte et absence d'interrupteur désormais alignés (`apps/wallet-mobile/app/account.tsx:219`) | Identique | **Identique après correction** |
-| Confirmation de paiement | Écran et attente dans le flow App | Identique | Retour visible après rafraîchissement du compte | Identique | **Différence voulue** car le checkout vit dans l'App. |
+| Creation, email code, password sign-in, recovery | Web dialog wired to the shared provider (`apps/app-web/src/components/AccountPasswordDialog.tsx:13`, `apps/app-web/src/components/AccountPasswordDialog.tsx:435`) | Same | Native modal wired to the same provider (`apps/wallet-mobile/components/AccountPasswordModal.tsx:23`, `apps/wallet-mobile/components/AccountPasswordModal.tsx:308`) | Same Expo modal | **Functionally the same** |
+| Rename, identities and deletion | Actions of the common provider (`packages/alice-ai/src/account-context.tsx:407`, `packages/alice-ai/src/account-context.tsx:421`, `packages/alice-ai/src/account-context.tsx:457`) | Same | Same | Same | **Same** |
+| Plan and quotas | Plan, expiry, gauge and free quota (`apps/app-web/src/components/settings/AccountTab.tsx:153`) | Same | Same `cloudUsage` state and same free/paid distinction (`apps/wallet-mobile/app/account.tsx:75`) | Same | **Same** |
+| Purchase and renewal | BTCPay checkout in the App (`apps/app-web/src/components/settings/PlanCheckout.tsx:63`) | Same web flow | Redirect to the web App (`apps/wallet-mobile/app/account.tsx:194`) | Same redirect | **Intended difference**. The Wallet does not sell the plan and keeps a single payment flow. |
+| Expiry reminders | Information without a misleading switch (`apps/app-web/src/components/settings/RenewalReminders.tsx:13`, `apps/app-web/src/components/settings/RenewalReminders.tsx:34`) | Same | Wording and absence of a switch now aligned (`apps/wallet-mobile/app/account.tsx:219`) | Same | **Same after fix** |
+| Payment confirmation | Screen and wait in the App flow | Same | Visible return once the account refreshes | Same | **Intended difference**, because checkout lives in the App. |
 
-La logique de compte et de quota n'est pas dupliquée. Les deux dialogues sont des présentations distinctes du même `AccountProvider` (`packages/alice-ai/src/account-context.tsx:93`).
+Account and quota logic is not duplicated. The two dialogs are distinct presentations of the same `AccountProvider` (`packages/alice-ai/src/account-context.tsx:93`).
 
-## 3. Réglages et modèles
+## 3. Settings and models
 
-| Contrat | App web | App desktop | Wallet Android | Wallet PWA | Verdict |
+| Contract | App web | App desktop | Wallet Android | Wallet PWA | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| Sections principales | General, Appearance, AI, Account, Explorer, Data (`apps/app-web/src/components/settings/tabs.tsx:74`) | Identique | Account, Appearance, Customize Alice, App Lock, Advanced, About, Support (`apps/wallet-mobile/lib/settings-sections.ts:28`) | Identique | **Différence voulue** selon le produit. |
-| Réglages Wallet avancés | Absents | Absents | Logs, serveur, coin control, adresses, renouvellement, swaps et sortie (`apps/wallet-mobile/lib/advanced-sections.ts:28`) | Identiques quand le backend web le permet | **Différence voulue** |
-| Local AI | Message honnête dans le navigateur (`apps/app-web/src/components/settings/AiTab.tsx:141`) | Catalogue local | Téléchargement et gestion des modèles (`apps/wallet-mobile/app/ai-settings.tsx:342`) | Message d'installation de l'Alice Wallet app (`apps/wallet-mobile/app/ai-settings.tsx:568`) | **Différence voulue** |
-| Private Cloud | Activation commune | Identique | Activation commune (`apps/wallet-mobile/app/ai-settings.tsx:225`) | Identique | **Identique** |
-| Serveur custom | URL, modèle et clé (`apps/app-web/src/components/settings/AiTab.tsx:275`) | Identique | Même triplet et connexion (`apps/wallet-mobile/app/ai-settings.tsx:577`) | Identique | **Identique** |
-| Mémoire | Lecture et effacement de la mémoire et du profil (`apps/app-web/src/components/settings/AliceMemoryPanel.tsx:58`, `apps/app-web/src/components/settings/AliceMemoryPanel.tsx:80`) | Identique | Même contrôle (`apps/wallet-mobile/app/what-alice-knows.tsx:67`) | Identique | **Identique** |
-| Instructions | Sauvegarde et effacement (`apps/app-web/src/components/settings/AiTab.tsx:189`) | Identique | Même contrat, annoncé pour cloud, local et custom (`apps/wallet-mobile/app/ai-settings.tsx:298`) | Identique | **Identique** |
-| Langue | Réglage partagé par la même clé | Identique | UI dans Customize Alice (`apps/wallet-mobile/app/ai-settings.tsx:265`) | Identique | **Identique**, emplacement différent. |
-| Recherche sémantique | Téléchargement, progression, arrêt et suppression (`apps/app-web/src/components/settings/SemanticSearchSection.tsx:43`) | Modèle inclus, bouton de chargement (`apps/app-web/src/components/settings/SemanticSearchSection.tsx:57`) | Moteur actif mais aucun contrôle dans `ai-settings.tsx` | Moteur explicitement non supporté | **Différence accidentelle sur Android**, voir décisions ouvertes. PWA est une différence voulue. |
+| Main sections | General, Appearance, AI, Account, Explorer, Data (`apps/app-web/src/components/settings/tabs.tsx:74`) | Same | Account, Appearance, Customize Alice, App Lock, Advanced, About, Support (`apps/wallet-mobile/lib/settings-sections.ts:28`) | Same | **Intended difference** per product. |
+| Advanced Wallet settings | Absent | Absent | Logs, server, coin control, addresses, renewal, swaps and exit (`apps/wallet-mobile/lib/advanced-sections.ts:28`) | Same where the web backend allows it | **Intended difference** |
+| Local AI | An honest message in the browser (`apps/app-web/src/components/settings/AiTab.tsx:141`) | Local catalogue | Model download and management (`apps/wallet-mobile/app/ai-settings.tsx:342`) | A message about installing the Alice Wallet app (`apps/wallet-mobile/app/ai-settings.tsx:568`) | **Intended difference** |
+| Private Cloud | Common activation | Same | Common activation (`apps/wallet-mobile/app/ai-settings.tsx:225`) | Same | **Same** |
+| Custom server | URL, model and key (`apps/app-web/src/components/settings/AiTab.tsx:275`) | Same | Same trio and connection (`apps/wallet-mobile/app/ai-settings.tsx:577`) | Same | **Same** |
+| Memory | Reading and clearing the memory and the profile (`apps/app-web/src/components/settings/AliceMemoryPanel.tsx:58`, `apps/app-web/src/components/settings/AliceMemoryPanel.tsx:80`) | Same | Same control (`apps/wallet-mobile/app/what-alice-knows.tsx:67`) | Same | **Same** |
+| Instructions | Save and clear (`apps/app-web/src/components/settings/AiTab.tsx:189`) | Same | Same contract, announced for cloud, local and custom (`apps/wallet-mobile/app/ai-settings.tsx:298`) | Same | **Same** |
+| Language | Setting shared under the same key | Same | UI in Customize Alice (`apps/wallet-mobile/app/ai-settings.tsx:265`) | Same | **Same**, different location. |
+| Semantic search | Download, progress, stop and delete (`apps/app-web/src/components/settings/SemanticSearchSection.tsx:43`) | Model included, load button (`apps/app-web/src/components/settings/SemanticSearchSection.tsx:57`) | Engine active but no control in `ai-settings.tsx` | Engine explicitly unsupported | **Accidental difference on Android**, see open decisions. PWA is an intended difference. |
 
-Les textes présents décrivent correctement les capacités de leur surface après retrait de la promesse résiduelle du bouton cerveau. Les promesses de confidentialité existantes n'ont pas été modifiées.
+The wording present describes each surface's capabilities correctly, now that the residual promise of the brain button is gone. The existing privacy promises were not modified.
 
-## 4. Stockage local
+## 4. Local storage
 
-### Clés logiques
+### Logical keys
 
-| Domaine | Clés | App web / desktop | Wallet Android / PWA | Verdict |
+| Domain | Keys | App web / desktop | Wallet Android / PWA | Verdict |
 | --- | --- | --- | --- | --- |
-| Conversations | `alice_chat_sessions`, `alice_chat_session_*` (`packages/alice-ai/src/chat-storage.ts:4`) | AsyncStorage web | AsyncStorage Expo | **Identique** |
-| Mémoire personnelle | `alice_personal_memory_v1` (`packages/alice-ai/src/alice-memory-storage.ts:4`, `packages/alice-ai/src/alice-memory-storage.native.ts:4`) | localStorage | SecureStore Android, stockage navigateur PWA | **Identique logiquement** |
-| Profil pédagogique | `alice_learning_profile_v3`, migration `alice_pedagogical_profile_v1` (`packages/alice-ai/src/pedagogical-profile-storage.ts:3`, `packages/alice-ai/src/pedagogical-profile-storage.native.ts:4`) | localStorage | SecureStore Android, stockage navigateur PWA | **Identique logiquement** |
-| Session de compte | `alice_account_session_v1`, `alice_install_id_v1`, `alice_pending_checkout_v1` (`packages/alice-ai/src/account-client.ts:14`) | AsyncStorage web | SecureStore Android, AsyncStorage web PWA (`packages/alice-ai/src/account-session-storage.native.ts:3`) | **Identique logiquement**, protection adaptée à la plateforme. |
-| Préférences IA | presets, modèles, instructions, langue, activation, backends, serveur custom (`packages/alice-ai/src/ai-preferences.ts:121`, `packages/alice-ai/src/ai-preferences.ts:315`, `packages/alice-ai/src/ai-preferences.ts:379`) | AsyncStorage web | AsyncStorage Expo | **Identique** |
-| Thème | `alice_theme_mode`, `alice_palette` (`apps/app-web/src/lib/theme-init.ts:6`, `packages/alice-ui/src/theme-context.tsx:5`) | localStorage | AsyncStorage | **Identique logiquement** |
+| Conversations | `alice_chat_sessions`, `alice_chat_session_*` (`packages/alice-ai/src/chat-storage.ts:4`) | Web AsyncStorage | Expo AsyncStorage | **Same** |
+| Personal memory | `alice_personal_memory_v1` (`packages/alice-ai/src/alice-memory-storage.ts:4`, `packages/alice-ai/src/alice-memory-storage.native.ts:4`) | localStorage | SecureStore on Android, browser storage on PWA | **Logically the same** |
+| Learning profile | `alice_learning_profile_v3`, migration from `alice_pedagogical_profile_v1` (`packages/alice-ai/src/pedagogical-profile-storage.ts:3`, `packages/alice-ai/src/pedagogical-profile-storage.native.ts:4`) | localStorage | SecureStore on Android, browser storage on PWA | **Logically the same** |
+| Account session | `alice_account_session_v1`, `alice_install_id_v1`, `alice_pending_checkout_v1` (`packages/alice-ai/src/account-client.ts:14`) | Web AsyncStorage | SecureStore on Android, web AsyncStorage on PWA (`packages/alice-ai/src/account-session-storage.native.ts:3`) | **Logically the same**, with protection suited to the platform. |
+| AI preferences | presets, models, instructions, language, activation, backends, custom server (`packages/alice-ai/src/ai-preferences.ts:121`, `packages/alice-ai/src/ai-preferences.ts:315`, `packages/alice-ai/src/ai-preferences.ts:379`) | Web AsyncStorage | Expo AsyncStorage | **Same** |
+| Theme | `alice_theme_mode`, `alice_palette` (`apps/app-web/src/lib/theme-init.ts:6`, `packages/alice-ui/src/theme-context.tsx:5`) | localStorage | AsyncStorage | **Logically the same** |
 
-### Protection au repos
+### Protection at rest
 
-- Desktop chiffre les conversations, l'index, la mémoire personnelle et le profil pédagogique via Tauri. La migration vérifie chaque chiffrement avant remplacement (`packages/alice-ai/src/chat-storage.ts:54`, `packages/alice-ai/src/chat-storage.ts:111`).
-- Android protège mémoire, profil et session de compte avec SecureStore. L'historique de chat reste en AsyncStorage sans `ChatStorageCipher` (`apps/wallet-mobile/app/_layout.tsx:171`).
-- Les 2 surfaces navigateur stockent localement sans chiffrement applicatif.
+- Desktop encrypts the conversations, the index, the personal memory and the learning profile through Tauri. The migration verifies each encryption before replacing anything (`packages/alice-ai/src/chat-storage.ts:54`, `packages/alice-ai/src/chat-storage.ts:111`).
+- Android protects memory, profile and account session with SecureStore. The chat history stays in AsyncStorage without a `ChatStorageCipher` (`apps/wallet-mobile/app/_layout.tsx:171`).
+- The 2 browser surfaces store locally with no application-level encryption.
 
-Cette différence est **voulue et documentée pour 0.2.0**, pas un drift silencieux. La documentation dit explicitement que le chiffrement des conversations est implémenté sur Desktop et que les adaptateurs Wallet restent à faire (`docs/security/local-chat-encryption.md:3`, `docs/wallet-data-and-recovery.md:30`). Aucun renommage de clé n'est nécessaire.
+This difference is **intended and documented for 0.2.0**, not a silent drift. The documentation says explicitly that conversation encryption is implemented on Desktop and that the Wallet adapters are still to be written (`docs/security/local-chat-encryption.md:3`, `docs/wallet-data-and-recovery.md:30`). No key needs renaming.
 
-## 5. Learn, RAG et recherche sémantique
+## 5. Learn, RAG and semantic search
 
-| Contrat | App web | App desktop | Wallet Android | Wallet PWA | Verdict |
+| Contract | App web | App desktop | Wallet Android | Wallet PWA | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| RAG lexical coeur | Pack partagé | Pack partagé | Pack partagé | Pack partagé | **Identique** |
-| Contexte Learn | Provider enregistré par l'App (`apps/app-web/src/lib/chat-provider.tsx:31`) | Identique | Aucun provider | Aucun provider | **Différence voulue**. Une surface sans Learn renvoie `null` sans modifier la réponse (`packages/alice-ai/src/learn-context.ts:31`). |
-| Tolérance de Learn | Limite de 1,5 s et échec neutre (`packages/alice-ai/src/learn-context.ts:17`) | Identique | Sans objet | Sans objet | **Identique pour les surfaces concernées** |
-| Index sémantique | Index public + modèle navigateur à la 1re question (`packages/alice-ai/src/semantic-runtime-browser.ts:1`) | Index et modèle embarqués | Index embarqué + modèle téléchargé seulement en Wi-Fi (`packages/alice-ai/src/semantic-runtime.native.ts:81`, `packages/alice-ai/src/semantic-runtime.native.ts:128`) | Stub lexical neutre à cause de Metro (`packages/alice-ai/src/semantic-runtime.web.ts:4`) | **Différence voulue**, sauf l'UI Android manquante. |
-| Parité du corpus | Vérifiée entre index web et natif, y compris identifiants, hash et dimensions (`packages/alice-ai/src/rag-retrieval.integration.test.ts:59`) | Identique | Identique | RAG lexical commun | **Identique** |
-| Fallback | Lexical pendant chargement ou erreur | Identique | Lexical tant que modèle absent | Toujours lexical | **Identique dans le principe**, capacité différente. |
+| Core lexical RAG | Shared pack | Shared pack | Shared pack | Shared pack | **Same** |
+| Learn context | Provider registered by the App (`apps/app-web/src/lib/chat-provider.tsx:31`) | Same | No provider | No provider | **Intended difference**. A surface without Learn returns `null` without altering the answer (`packages/alice-ai/src/learn-context.ts:31`). |
+| Learn tolerance | 1.5 s budget and a neutral failure (`packages/alice-ai/src/learn-context.ts:17`) | Same | Not applicable | Not applicable | **Same for the surfaces concerned** |
+| Semantic index | Public index plus browser model on the first question (`packages/alice-ai/src/semantic-runtime-browser.ts:1`) | Index and model embedded | Index embedded plus a model downloaded over Wi-Fi only (`packages/alice-ai/src/semantic-runtime.native.ts:81`, `packages/alice-ai/src/semantic-runtime.native.ts:128`) | Neutral lexical stub because of Metro (`packages/alice-ai/src/semantic-runtime.web.ts:4`) | **Intended difference**, except for the missing Android UI. |
+| Corpus parity | Verified between the web and native indexes, ids, hash and dimensions included (`packages/alice-ai/src/rag-retrieval.integration.test.ts:59`) | Same | Same | Common lexical RAG | **Same** |
+| Fallback | Lexical during loading or on error | Same | Lexical while the model is absent | Always lexical | **Same in principle**, different capability. |
 
-Les artefacts RAG générés n'ont pas été régénérés ni modifiés, conformément au périmètre.
+The generated RAG artefacts were neither regenerated nor modified, in line with the scope.
 
-## 6. Notifications de mise à jour
+## 6. Update notifications
 
-Le coeur est partagé. Il utilise les mêmes clés, limite les requêtes à 1 toutes les 6 h, échoue silencieusement et n'affiche pas « What's new » à la première installation (`packages/alice-ai/src/app-update.ts:18`, `packages/alice-ai/src/app-update.ts:48`, `packages/alice-ai/src/app-update.ts:71`).
+The core is shared. It uses the same keys, limits requests to 1 every 6 h, fails silently, and does not show "What's new" on a first install (`packages/alice-ai/src/app-update.ts:18`, `packages/alice-ai/src/app-update.ts:48`, `packages/alice-ai/src/app-update.ts:71`).
 
-| Surface | Action lorsqu'une version plus récente existe | « What's new » | Verdict |
+| Surface | Action when a newer version exists | "What's new" | Verdict |
 | --- | --- | --- | --- |
-| App web | Recharge la page (`apps/app-web/src/components/AppUpdateNotices.tsx:95`) | 1 fois par version | **Identique au contrat** |
-| App desktop | Ouvre la page de release (`apps/app-web/src/components/AppUpdateNotices.tsx:79`) | 1 fois par version | **Corrigé** |
-| Wallet Android | Ouvre la page de release (`apps/wallet-mobile/components/AppUpdateNotices.tsx:46`) | 1 fois par version | **Identique au contrat** |
-| Wallet PWA | Recharge la page (`apps/wallet-mobile/components/AppUpdateNotices.tsx:47`) | 1 fois par version | **Corrigé**. Le build renseigne désormais la version depuis `app.json` si aucune variable n'est fournie (`apps/wallet-mobile/scripts/build-pwa.js:28`). |
+| App web | Reloads the page (`apps/app-web/src/components/AppUpdateNotices.tsx:95`) | Once per version | **Matches the contract** |
+| App desktop | Opens the release page (`apps/app-web/src/components/AppUpdateNotices.tsx:79`) | Once per version | **Fixed** |
+| Wallet Android | Opens the release page (`apps/wallet-mobile/components/AppUpdateNotices.tsx:46`) | Once per version | **Matches the contract** |
+| Wallet PWA | Reloads the page (`apps/wallet-mobile/components/AppUpdateNotices.tsx:47`) | Once per version | **Fixed**. The build now fills the version from `app.json` when no variable is supplied (`apps/wallet-mobile/scripts/build-pwa.js:28`). |
 
-Les 2 composants donnent la priorité à « What's new » et n'affichent qu'une annonce à la fois (`apps/app-web/src/components/AppUpdateNotices.tsx:63`, `apps/wallet-mobile/components/AppUpdateNotices.tsx:56`).
+Both components give priority to "What's new" and show one announcement at a time (`apps/app-web/src/components/AppUpdateNotices.tsx:63`, `apps/wallet-mobile/components/AppUpdateNotices.tsx:56`).
 
-### Point bloquant de release, corrigé
+### Release blocker, fixed
 
-Le Worker renvoyait déjà `0.2.0`, alors que le monorepo, Expo, EAS production et Tauri déclaraient encore `0.1.0`. Une build 0.2.0 se serait donc présentée elle-même comme 0.1.0 et aurait immédiatement vu une mise à jour 0.2.0.
+The Worker already returned `0.2.0` while the monorepo, Expo, EAS production and Tauri still declared `0.1.0`. A 0.2.0 build would therefore have presented itself as 0.1.0 and immediately seen a 0.2.0 update.
 
-Classification : **étape de release commune, corrigée avant distribution**, pas une divergence entre surfaces. Le numéro est maintenant `0.2.0` dans les manifestes applicatifs, le crate et lockfile Cargo, EAS, les exemples d'environnement, la constante Worker, le changelog et les notes intégrées. `scripts/check-release-version.mjs` refuse désormais toute divergence et s'exécute au début de `npm test`.
+Classification: **a common release step, fixed before distribution**, not a divergence between surfaces. The number is now `0.2.0` in the application manifests, the Cargo crate and lockfile, EAS, the environment examples, the Worker constant, the changelog and the in-app notes. `scripts/check-release-version.mjs` now refuses any divergence and runs at the start of `npm test`.
 
-## 7. Wallet Android et PWA
+## 7. Wallet Android and PWA
 
-Les écrans send, receive, coin control, archives, backup et reset sont les mêmes fichiers Expo. Les branches observées correspondent à des capacités de plateforme.
+The send, receive, coin control, archives, backup and reset screens are the same Expo files. The branches observed correspond to platform capabilities.
 
-| Fonction | Android | PWA | Verdict |
+| Feature | Android | PWA | Verdict |
 | --- | --- | --- | --- |
-| MAX | Relit le solde off-chain disponible et refuse les fonds gelés (`apps/wallet-mobile/app/send.tsx:257`) | Identique | **Identique** |
-| Validation et confirmation | Même parsing, mêmes contrôles de réseau et mêmes montants quote/frais/total (`apps/wallet-mobile/app/send.tsx:369`, `apps/wallet-mobile/app/send.tsx:802`) | Identique | **Identique** |
-| Sortie native mainnet avec Satora | Utilisée quand réseau Bitcoin + Satora (`apps/wallet-mobile/app/send.tsx:409`) | Identique | **Identique** |
-| Frais par entrée et sortie | Somme des frais d'entrée et calcul convergent du coût de sortie (`packages/wallet-core/src/native-onchain.ts:190`, `packages/wallet-core/src/native-onchain.ts:213`, `packages/wallet-core/src/native-onchain.ts:249`) | Identique | **Identique** |
-| Rail Satora / fallback Boltz | Satora seul sur mainnet, composite Satora puis Boltz sur Mutinynet (`packages/wallet-core/src/arkade-backend.ts:505`) | Même règle (`packages/wallet-core/src/arkade-web-backend.ts:345`) | **Identique**. Le composite route vers le primaire quand il sait traiter la demande (`packages/wallet-core/src/composite-payment-rail.ts:27`). |
-| Receive | Copie native et partage système | Clipboard navigateur, bouton Share masqué (`apps/wallet-mobile/app/receive.tsx:311`, `apps/wallet-mobile/app/receive.tsx:456`) | **Différence voulue** |
-| Coin control | Même sélection, freeze/unfreeze, renewal, recovery et emergency exit (`apps/wallet-mobile/app/coin-control.tsx:97`) | Identique | **Identique** |
-| Archives d'adresses | Même liste, libellés et restauration (`apps/wallet-mobile/app/address-archives.tsx:36`) | Identique | **Identique** |
-| Backup | PIN/biométrie et blocage de capture | Pas d'API équivalente, avertissement explicite « browser wallet » (`apps/wallet-mobile/app/backup.tsx:47`, `apps/wallet-mobile/app/backup.tsx:154`) | **Différence voulue**. Masquage mot par mot et vérification sont communs (`apps/wallet-mobile/app/backup.tsx:88`, `apps/wallet-mobile/app/backup.tsx:208`). |
-| Reset | Précontrôle UI des swaps et recontrôle dans le coeur juste avant effacement (`apps/wallet-mobile/app/reset-wallet.tsx:43`, `packages/wallet-core/src/ark.ts:483`) | Identique | **Identique** |
+| MAX | Re-reads the available off-chain balance and refuses frozen funds (`apps/wallet-mobile/app/send.tsx:257`) | Same | **Same** |
+| Validation and confirmation | Same parsing, same network checks, same quote/fee/total amounts (`apps/wallet-mobile/app/send.tsx:369`, `apps/wallet-mobile/app/send.tsx:802`) | Same | **Same** |
+| Native mainnet exit through Satora | Used when the network is Bitcoin and Satora is available (`apps/wallet-mobile/app/send.tsx:409`) | Same | **Same** |
+| Per-input and per-output fees | Sum of the input fees and a convergent computation of the output cost (`packages/wallet-core/src/native-onchain.ts:190`, `packages/wallet-core/src/native-onchain.ts:213`, `packages/wallet-core/src/native-onchain.ts:249`) | Same | **Same** |
+| Satora rail / Boltz fallback | Satora alone on mainnet, Satora then Boltz as a composite on Mutinynet (`packages/wallet-core/src/arkade-backend.ts:505`) | Same rule (`packages/wallet-core/src/arkade-web-backend.ts:345`) | **Same**. The composite routes to the primary whenever it can serve the request (`packages/wallet-core/src/composite-payment-rail.ts:27`). |
+| Receive | Native copy and system share | Browser clipboard, Share button hidden (`apps/wallet-mobile/app/receive.tsx:311`, `apps/wallet-mobile/app/receive.tsx:456`) | **Intended difference** |
+| Coin control | Same selection, freeze/unfreeze, renewal, recovery and emergency exit (`apps/wallet-mobile/app/coin-control.tsx:97`) | Same | **Same** |
+| Address archives | Same list, labels and restore (`apps/wallet-mobile/app/address-archives.tsx:36`) | Same | **Same** |
+| Backup | PIN/biometrics and capture blocking | No equivalent API, explicit "browser wallet" warning (`apps/wallet-mobile/app/backup.tsx:47`, `apps/wallet-mobile/app/backup.tsx:154`) | **Intended difference**. Word-by-word masking and verification are common (`apps/wallet-mobile/app/backup.tsx:88`, `apps/wallet-mobile/app/backup.tsx:208`). |
+| Reset | UI pre-check of the swaps and a re-check in the core just before erasing (`apps/wallet-mobile/app/reset-wallet.tsx:43`, `packages/wallet-core/src/ark.ts:483`) | Same | **Same** |
 
-Note MAX : MAX remplit le solde Arkade avant frais. Une destination qui exige des frais peut ensuite être refusée au moment du devis. Le comportement est identique sur Android et PWA. C'est une question d'ergonomie fonctionnelle, pas un défaut de parité entre surfaces.
+A note on MAX: MAX fills in the Arkade balance before fees. A destination that requires fees can then be refused at quote time. The behaviour is identical on Android and PWA. This is a usability question, not a parity defect between surfaces.
 
-## 8. Vocabulaire public
+## 8. Public vocabulary
 
-Le site sert de référence : les groupes sont « Alice App » et « Alice Wallet », avec « Web app » pour l'App et « Web wallet » pour le Wallet (`apps/site/src/components/AppCtas.tsx:35`, `apps/site/src/components/AppCtas.tsx:42`, `apps/site/src/components/AppCtas.tsx:61`). Le Playground est décrit comme l'environnement Mutinynet de l'App (`apps/site/src/components/Faq.tsx:22`).
+The site is the reference: the groups are "Alice App" and "Alice Wallet", with "Web app" for the App and "Web wallet" for the Wallet (`apps/site/src/components/AppCtas.tsx:35`, `apps/site/src/components/AppCtas.tsx:42`, `apps/site/src/components/AppCtas.tsx:61`). The Playground is described as the App's Mutinynet environment (`apps/site/src/components/Faq.tsx:22`).
 
-Résultats :
+Results:
 
-- Le message Local AI du Wallet PWA dit désormais « web wallet » et renvoie vers « Alice Wallet app » (`apps/wallet-mobile/app/index.tsx:54`).
-- « Playground » reste le nom public de la pratique Mutinynet.
-- Le préfixe interne `alice.test-wallet.*` reste volontairement inchangé pour préserver les données existantes (`apps/app-web/src/lib/playground.ts:32`).
-- La clé visible actuelle est `alice.playground.ask-open`, avec lecture de la clé historique pour migration (`apps/app-web/src/components/PlaygroundPanel.tsx:2036`).
+- The Wallet PWA's Local AI message now says "web wallet" and points to the "Alice Wallet app" (`apps/wallet-mobile/app/index.tsx:54`).
+- "Playground" remains the public name of the Mutinynet practice environment.
+- The internal prefix `alice.test-wallet.*` is deliberately left unchanged to preserve existing data (`apps/app-web/src/lib/playground.ts:32`).
+- The current visible key is `alice.playground.ask-open`, with the historical key still read for migration (`apps/app-web/src/components/PlaygroundPanel.tsx:2036`).
 
-Classification : **identique après correction**. Aucun texte public avec tiret cadratin n'a été ajouté.
+Classification: **same after fix**. No public text with an em dash was added.
 
-## Décisions closes avant 0.2.0
+## Decisions closed before 0.2.0
 
-### 1. Exposer le contrôle sémantique sur Android
+### 1. Expose the semantic control on Android
 
-Classification : **identique après correction**. L'écart accidentel de sévérité moyenne est fermé.
+Classification: **same after fix**. The medium-severity accidental gap is closed.
 
-Le runtime natif expose `getSemanticSearchState`, `downloadSemanticSearchNow` et `disableSemanticSearch` (`packages/alice-ai/src/semantic-runtime.native.ts:337`), et le téléchargement automatique ne démarre qu'en Wi-Fi (`packages/alice-ai/src/semantic-runtime.native.ts:276`). La section Android rend désormais cet état, le déclenchement manuel et la suppression (`apps/wallet-mobile/app/ai-settings.tsx:522`).
+The native runtime exposes `getSemanticSearchState`, `downloadSemanticSearchNow` and `disableSemanticSearch` (`packages/alice-ai/src/semantic-runtime.native.ts:337`), and the automatic download only starts over Wi-Fi (`packages/alice-ai/src/semantic-runtime.native.ts:276`). The Android section now renders that state, the manual trigger and the deletion (`apps/wallet-mobile/app/ai-settings.tsx:522`).
 
-Correction appliquée dans `apps/wallet-mobile/app/ai-settings.tsx`, sans section ni bouton mort dans la PWA Expo qui ne possède pas le moteur sémantique. Android annonce la taille native exacte de 132 MB et rappelle qu'Alice continue de répondre avec la recherche par mots-clés sans ce modèle.
+The fix was applied in `apps/wallet-mobile/app/ai-settings.tsx`, with no dead section or button in the Expo PWA, which does not have the semantic engine. Android announces the exact native size of 132 MB and reminds the user that Alice keeps answering with keyword search without that model.
 
-Décisions prises :
+Decisions taken:
 
-- Le téléchargement reste limité au Wi-Fi. Hors Wi-Fi, l'action est désactivée et la raison est affichée au lieu de proposer un bouton sans effet.
-- Le runtime natif ne fournissant aucun pourcentage, l'interface montre un indicateur d'activité et un texte d'état, sans barre figée à 0 %.
-- Supprimer ou annuler efface le modèle et son fichier partiel, puis enregistre le choix `off`. Une question suivante ne relance donc pas le téléchargement, qui ne redevient possible que par l'action explicite des réglages, comme sur le web.
+- The download stays limited to Wi-Fi. Off Wi-Fi the action is disabled and the reason is shown, rather than offering a button that does nothing.
+- Since the native runtime provides no percentage, the interface shows an activity indicator and a status line, not a bar frozen at 0 %.
+- Deleting or cancelling erases the model and its partial file, then records the `off` choice. A following question therefore does not restart the download, which becomes possible again only through the explicit action in settings, as on the web.
 
-### 2. Effectuer le bump de version coordonné
+### 2. Perform the coordinated version bump
 
-Classification : **corrigé**, commun aux 4 surfaces.
+Classification: **fixed**, common to all 4 surfaces.
 
-Le bump reste atomique entre le numéro partagé, Expo/EAS, Tauri, Cargo et la constante Worker. Le contrôle automatique vérifie aussi les lockfiles, exemples d'environnement, notes intégrées et changelog. Les 4 surfaces doivent encore être construites afin de vérifier que `currentAppVersion()` vaut `0.2.0` dans les artefacts distribués.
+The bump stays atomic across the shared number, Expo/EAS, Tauri, Cargo and the Worker constant. The automatic check also covers the lockfiles, the environment examples, the in-app notes and the changelog. The 4 surfaces still have to be built in order to verify that `currentAppVersion()` is `0.2.0` in the distributed artefacts.
 
-## Vérifications exécutées
+## Checks run
 
-- `npm ci` avec Node 24.18.0.
-- `npm test` avec Node 24.18.0 : 131/131 fichiers de test terminés, 0 échec dans l'arbre isolé de la branche auditée.
-- `npm run check:npm-audit` : 23 alertes hautes dans la baseline acceptée, 0 critique.
-- `npx tsc --noEmit -p packages/alice-ai` : réussi.
-- `npx tsc --noEmit -p apps/wallet-mobile` : réussi.
-- `npm --prefix apps/wallet-mobile run check:ai-boundary` : réussi.
-- `packages/alice-ai/src/rag-retrieval.integration.test.ts` confirme la parité exacte des index web et natif.
+- `npm ci` with Node 24.18.0.
+- `npm test` with Node 24.18.0: 131/131 test files completed, 0 failures in the isolated tree of the audited branch.
+- `npm run check:npm-audit`: 23 high advisories in the accepted baseline, 0 critical.
+- `npx tsc --noEmit -p packages/alice-ai`: passed.
+- `npx tsc --noEmit -p apps/wallet-mobile`: passed.
+- `npm --prefix apps/wallet-mobile run check:ai-boundary`: passed.
+- `packages/alice-ai/src/rag-retrieval.integration.test.ts` confirms the exact parity of the web and native indexes.
 
-L'audit est principalement statique et renforcé par les tests. L'ouverture réelle des 4 artefacts distribués, les liens externes depuis un binaire signé et la valeur finale injectée par chaque pipeline de build restent à vérifier pendant la release.
+The audit is mostly static and reinforced by the tests. Actually opening the 4 distributed artefacts, following external links from a signed binary, and the final value injected by each build pipeline all remain to be verified during the release.

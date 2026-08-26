@@ -175,10 +175,10 @@ body {
 }
 
 /* ==========================================================================
-   Affordance 8-bit (lot 4): au survol l'element se decolle d'un pixel et
-   projette une ombre dure sans blur; au clic il s'enfonce. Animation en
-   steps() pour rester dans le langage terminal. Neutralise par la regle
-   prefers-reduced-motion plus bas.
+   8-bit affordance (batch 4): on hover the element lifts by one pixel and
+   casts a hard shadow with no blur; on click it sinks. The animation uses
+   steps() to stay in the terminal idiom. Neutralised by the
+   prefers-reduced-motion rule further down.
    ========================================================================== */
 button.font-pixel,
 a.font-pixel,

@@ -1,28 +1,28 @@
-# Lots de traduction du corpus RAG
+# RAG corpus translation batches
 
-## Objet
+## Purpose
 
-Cette sélection fige les 200 concepts issus de la catégorie A du rapport de triage qui doivent être évalués pour le cœur actif. Elle évite une promotion massive des 961 candidats et répartit le travail en lots contrôlables.
+This selection freezes the 200 concepts from category A of the triage report that are to be evaluated for the active core. It avoids promoting all 961 candidates at once and splits the work into batches that can be reviewed.
 
-Règles pour chaque lot :
+Rules for every batch:
 
-- conserver la note française comme source ;
-- ajouter une jumelle anglaise liée au même `conceptId` ;
-- conserver `status: "machine"` jusqu'à une relecture humaine ;
-- conserver les sources traduites dans le pack secondaire tant que les empreintes du cœur ne peuvent pas être régénérées ;
-- régénérer le corpus, puis exécuter les tests avant le lot suivant ;
-- ne pas régénérer les index `core-embeddings`.
+- keep the French note as the source;
+- add an English twin bound to the same `conceptId`;
+- keep `status: "machine"` until a human review;
+- keep the translated sources in the secondary pack for as long as the core embeddings cannot be regenerated;
+- regenerate the corpus, then run the tests, before the next batch;
+- do not regenerate the `core-embeddings` indexes.
 
-## État
+## State
 
-- Sélection figée : 200 concepts
-- Lot 1 : 25 concepts de self-custody et récupération traduits, activation différée
-- Lots suivants : 175 concepts
-- Date de lancement : 2026-08-21
+- Frozen selection: 200 concepts
+- Batch 1: 25 self-custody and recovery concepts translated, activation deferred
+- Remaining batches: 175 concepts
+- Start date: 2026-08-21
 
-L'activation dans le cœur est différée. Le test d'intégration exige que les index web et natif couvrent exactement le cœur actif. Une promotion sans régénération de `core-embeddings` ferait donc échouer la suite, tandis que leur régénération est explicitement exclue de cette mission.
+Activation in the core is deferred. The integration test requires the web and native indexes to cover the active core exactly, so promoting without regenerating `core-embeddings` would fail the suite, and regenerating them is explicitly out of scope for this task.
 
-## Lot 1 : self-custody et récupération, 25
+## Batch 1: self-custody and recovery, 25
 
 ```text
 bitcoin__bip32
@@ -52,7 +52,7 @@ bitcoin__random-number-generation
 bitcoin__watch-only-wallet
 ```
 
-## Transactions et paiements, 25
+## Transactions and payments, 25
 
 ```text
 tx-model__bitcoin-transaction
@@ -82,7 +82,7 @@ bitcoin__off-chain
 bitcoin__vertical-scaling
 ```
 
-## Confidentialité et sécurité opérationnelle, 25
+## Privacy and operational security, 25
 
 ```text
 privacy__non-blockchain-privacy-leaks
@@ -112,7 +112,7 @@ privacy__consolidation-transaction
 privacy__kyc-bitcoin-acquisition
 ```
 
-## Sécurité Bitcoin, 15
+## Bitcoin security, 15
 
 ```text
 bitcoin__51-attack
@@ -152,7 +152,7 @@ lightning__replacement-cycling-attack
 lightning__revocation-key
 ```
 
-## Ark et Arkade, 10
+## Ark and Arkade, 10
 
 ```text
 arkade__ark-fees-and-liquidity
@@ -167,7 +167,7 @@ ark__arkade-assets
 ark__vhtlc
 ```
 
-## Nœuds et réseau, 15
+## Nodes and network, 15
 
 ```text
 nodes__pruned-node
@@ -187,7 +187,7 @@ bitcoin__dns-seeds
 bitcoin__merkle-proof
 ```
 
-## Minage, 15
+## Mining, 15
 
 ```text
 mining__bitcoin-security-budget
@@ -207,7 +207,7 @@ bitcoin__stranded-energy-mining
 bitcoin__sustainable-bitcoin-mining
 ```
 
-## Adresses et scripts, 10
+## Addresses and scripts, 10
 
 ```text
 addresses__bitcoin-address
@@ -222,7 +222,7 @@ addresses__hashlock
 addresses__mast
 ```
 
-## Fondamentaux Bitcoin, 20
+## Bitcoin fundamentals, 20
 
 ```text
 bitcoin__5-wrench-attack
@@ -247,7 +247,7 @@ bitcoin__bitcoin-supply-verification
 bitcoin__trusted-third-party-problem
 ```
 
-## Usages sociaux et politiques, 15
+## Social and political uses, 15
 
 ```text
 politics__bitcoin-self-custody-under-censorship
@@ -267,7 +267,7 @@ bitcoin__bitcoin-cross-border-jurisdiction-risk
 bitcoin__mica
 ```
 
-## Histoire, 5
+## History, 5
 
 ```text
 history__bitcoin-network-launch
@@ -277,7 +277,7 @@ history__satoshi-disappearance
 history__hashcash
 ```
 
-## Wallets et développement avancés, 5
+## Advanced wallets and development, 5
 
 ```text
 advanced-wallet__bitcoin-multisignature
