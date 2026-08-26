@@ -27,7 +27,7 @@ const OUT_DIR = outFlag !== -1 && process.argv[outFlag + 1]
   : path.join(REPO_ROOT, 'dist', REPO_NAME);
 
 if (!fs.existsSync(PACKS_ROOT)) {
-  console.error(`Packs introuvables dans ${path.relative(REPO_ROOT, PACKS_ROOT)}.`);
+  console.error(`No packs found in ${path.relative(REPO_ROOT, PACKS_ROOT)}.`);
   console.error('Lance d\'abord: PLANB_CONTENT_ROOT=<clone> node scripts/build-planb-learn.mjs');
   process.exit(1);
 }
@@ -37,7 +37,7 @@ if (!fs.existsSync(PACKS_ROOT)) {
 const catalog = fs.readFileSync(CATALOG_PATH, 'utf8');
 const commit = catalog.match(/export const PLANB_COMMIT = '([0-9a-f]{40})'/)?.[1];
 if (!commit) {
-  console.error('PLANB_COMMIT introuvable dans le catalogue généré.');
+  console.error('PLANB_COMMIT is missing from the generated catalogue.');
   process.exit(1);
 }
 
@@ -198,25 +198,25 @@ and distribute your contributions under the same licence.
 );
 
 const rel = path.relative(REPO_ROOT, OUT_DIR);
-console.log(`Prêt: ${rel}`);
-console.log(`Langues: ${langs.length} · Fichiers: ${manifest.files} · Taille: ${manifest.megabytes} Mo`);
-console.log(`Corpus PlanB: ${commit.slice(0, 8)}`);
+console.log(`Ready: ${rel}`);
+console.log(`Languages: ${langs.length} · Files: ${manifest.files} · Size: ${manifest.megabytes} MB`);
+console.log(`Plan B corpus: ${commit.slice(0, 8)}`);
 console.log('');
-console.log('À faire (rien n\'est poussé par ce script):');
-console.log(`  1. Le dépôt PUBLIC ${OWNER}/${REPO_NAME} doit exister sur GitHub (jsDelivr exige public).`);
+console.log('Left to do (this script pushes nothing):');
+console.log(`  1. The PUBLIC repository ${OWNER}/${REPO_NAME} must exist on GitHub (jsDelivr requires public).`);
 console.log(`  2. cd ${rel} && git init -b main && git add -A`);
-console.log(`     git commit -m "Packs Learn, corpus PlanB ${commit.slice(0, 8)}, CC BY-SA 4.0"`);
+console.log(`     git commit -m "Learn packs, Plan B corpus ${commit.slice(0, 8)}, CC BY-SA 4.0"`);
 console.log(`     git tag v<N+1> && git remote add origin https://github.com/${OWNER}/${REPO_NAME}.git`);
 console.log('     git push --force origin main && git push origin v<N+1>');
-console.log('     (main est écrasé, plat par conception; les anciens tags restent servis.)');
-console.log('  3. Avancer l\'épingle, à un seul endroit:');
+console.log('     (main is overwritten, flat by design; older tags keep being served.)');
+console.log('  3. Move the pin, in one place only:');
 console.log('     scripts/prepare-learn-packs.mjs → LEARN_PACKS_BASE');
 console.log(`     = https://cdn.jsdelivr.net/gh/${OWNER}/${REPO_NAME}@v<N+1>`);
-console.log('     (le build desktop et le build Vercel la lisent de là; les langues');
-console.log('     embarquées sont téléchargées depuis ce même tag au moment du build.)');
+console.log('     (the desktop build and the Vercel build read it from there; the embedded');
+console.log('     languages are downloaded from that same tag at build time.)');
 
 try {
   execSync('git --version', { stdio: 'ignore' });
 } catch {
-  console.log('\n(git introuvable dans le PATH, les commandes ci-dessus sont à lancer ailleurs.)');
+  console.log('\n(git is not in PATH, so run the commands above elsewhere.)');
 }
