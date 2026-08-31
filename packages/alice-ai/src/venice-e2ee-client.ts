@@ -78,11 +78,10 @@ function authHeaders(transport: VeniceE2EETransport): Record<string, string> {
   };
 }
 
-async function requestError(response: any, fallback: string): Promise<VeniceE2EEError> {
+function requestErrorFromBody(raw: string, status: number, fallback: string): VeniceE2EEError {
   let message = fallback;
   let code: string | undefined;
   try {
-    const raw = await response.text();
     const body = JSON.parse(raw);
     if (typeof body?.error === 'object') {
       code = typeof body.error.code === 'string' ? body.error.code : undefined;
@@ -91,7 +90,32 @@ async function requestError(response: any, fallback: string): Promise<VeniceE2EE
       message = body.error;
     }
   } catch {}
-  return new VeniceE2EEError(message, { status: response.status, code });
+  return new VeniceE2EEError(message, { status, code });
+}
+
+async function requestError(response: any, fallback: string): Promise<VeniceE2EEError> {
+  let raw = '';
+  try {
+    raw = await response.text();
+  } catch {}
+  return requestErrorFromBody(raw, response.status, fallback);
+}
+
+/**
+ * Whether an error body is in fact a full attestation in disguise.
+ *
+ * Venice mirrors its own `verified` flag into the HTTP status: when its
+ * server-side check fails (NRAS, NVIDIA's GPU attestation service, has real
+ * outages) the complete, otherwise sound attestation still arrives, wrapped
+ * in a 502. The check here is only a cheap shape test; the decision of
+ * whether to trust it belongs to verifyAttestationChain and nothing else.
+ */
+function carriesAttestationMaterial(body: any): boolean {
+  return !!body && typeof body === 'object' && (
+    typeof body.intel_quote === 'string' ||
+    typeof body.quote === 'string' ||
+    typeof body?.attestation?.evidence?.quote === 'string'
+  );
 }
 
 function resolveFetch(transport: VeniceE2EETransport): FetchLike {
@@ -144,8 +168,33 @@ export async function fetchAndVerifyAttestation(
   }
 
   if (!response.ok) {
-    const error = await requestError(
-      response,
+    let raw = '';
+    try {
+      raw = await response.text();
+    } catch {}
+
+    // Venice's HTTP status echoes its own `verified` flag, which Alice
+    // deliberately ignores: she verifies the quote herself. So a 5xx that
+    // still carries the attestation material gets judged by our chain, and
+    // proceeds if — and only if — that chain accepts it. A missing body, or
+    // one our own verification refuses, falls through to the refusal below.
+    if (response.status >= 500) {
+      let salvaged: any;
+      try {
+        salvaged = JSON.parse(raw);
+      } catch {}
+      if (carriesAttestationMaterial(salvaged)) {
+        try {
+          return await verifyAttestationChain(salvaged, nonce, policy);
+        } catch {
+          // Our own chain refused it too; the upstream trouble stands.
+        }
+      }
+    }
+
+    const error = requestErrorFromBody(
+      raw,
+      response.status,
       `Attestation request failed (HTTP ${response.status}).`,
     );
     throw new VeniceE2EEError(error.message, {

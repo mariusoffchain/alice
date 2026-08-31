@@ -204,7 +204,14 @@ describe('readEncryptedStream', () => {
 });
 
 describe('streamE2EEChatCompletion', () => {
-  function harness(overrides: { attestationBody?: any; dcapFailure?: Error } = {}) {
+  function harness(
+    overrides: {
+      attestationBody?: any;
+      dcapFailure?: Error;
+      /** HTTP wrapper for the attestation response, e.g. Venice's 502-with-a-body. */
+      attestationHttp?: { ok: boolean; status: number };
+    } = {},
+  ) {
     const model = generateEphemeralKeyPair();
     const calls: { url: string; init: any }[] = [];
     let clientPubKeyHex = '';
@@ -239,18 +246,20 @@ describe('streamE2EEChatCompletion', () => {
       if (url.includes('/tee/attestation')) {
         const url_ = new URL(url);
         latestAttestationNonce = url_.searchParams.get('nonce') ?? '';
+        const body = overrides.attestationBody ?? {
+          // Deliberately false: Alice must ignore Venice's verdict and
+          // decide from the DCAP-verified quote.
+          verified: false,
+          nonce: url_.searchParams.get('nonce'),
+          signing_public_key: model.publicKeyHex,
+          intel_quote: '04ab',
+        };
+        const http = overrides.attestationHttp ?? { ok: true, status: 200 };
         return {
-          ok: true,
-          status: 200,
-          json: async () =>
-            overrides.attestationBody ?? {
-              // Deliberately false: Alice must ignore Venice's verdict and
-              // decide from the DCAP-verified quote.
-              verified: false,
-              nonce: url_.searchParams.get('nonce'),
-              signing_public_key: model.publicKeyHex,
-              intel_quote: '04ab',
-            },
+          ok: http.ok,
+          status: http.status,
+          json: async () => body,
+          text: async () => JSON.stringify(body),
         };
       }
       clientPubKeyHex = init.headers['X-Venice-TEE-Client-Pub-Key'];
@@ -443,6 +452,42 @@ describe('streamE2EEChatCompletion', () => {
           err.detail,
           'stage=attestation host=proxy.test kind=unreachable error=TypeError hint=blocked-or-offline',
         );
+        return true;
+      },
+    );
+  });
+
+  // The real incident this guards: NRAS (NVIDIA's GPU attestation service)
+  // goes down, Venice's own check fails, and it wraps a complete, sound
+  // attestation in a 502. Alice never trusted Venice's verdict, so the
+  // status is not a reason to refuse what her own chain accepts.
+  it('salvages a full attestation wrapped in a Venice 502 and judges it itself', async () => {
+    const h = harness({ attestationHttp: { ok: false, status: 502 } });
+    const result = await fetchAndVerifyAttestation(
+      { baseUrl: 'https://proxy.test/api/v1', fetchImpl: h.fetchImpl },
+      'e2ee-test',
+      h.policy,
+    );
+    assert.equal(result.assurance, 'attested-unpinned');
+  });
+
+  it('still refuses a 502 whose attestation fails our own chain', async () => {
+    const h = harness({
+      attestationHttp: { ok: false, status: 502 },
+      dcapFailure: new Error('bad quote signature'),
+    });
+    await assert.rejects(
+      () => fetchAndVerifyAttestation(
+        { baseUrl: 'https://proxy.test/api/v1', fetchImpl: h.fetchImpl },
+        'e2ee-test',
+        h.policy,
+      ),
+      (err: unknown) => {
+        assert.ok(err instanceof VeniceE2EEError);
+        // The service said it was struggling AND the salvage did not survive
+        // verification: "try again shortly" is the honest message.
+        assert.equal(err.code, 'attestation_unavailable');
+        assert.equal(err.status, 502);
         return true;
       },
     );
