@@ -1,30 +1,27 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 
-const REVIEW_BY = '2026-09-19';
+const REVIEW_BY = '2026-10-20';
 const KNOWN_HIGH_PACKAGES = new Set([
-  // Reviewed 2026-08-09, see docs/security/dependency-audit.md for the
+  // Reviewed 2026-09-22, see docs/security/dependency-audit.md for the
   // per-chain exposure rationale behind every entry.
   '@expo/cli',
   '@expo/metro',
   '@expo/metro-config',
   '@huggingface/transformers',
   '@lendasat/lendaswap-sdk-pure',
-  '@react-native/community-cli-plugin',
   '@satora/swap',
   'adm-zip',
   'brace-expansion',
   'expo',
   'image-size',
-  'js-yaml',
   'metro',
   'metro-config',
   'metro-transform-worker',
+  'miniflare',
   'nanoid',
-  'next',
   'onnxruntime-node',
   'postcss',
-  'react-native',
   'sharp',
   'shell-quote',
   'undici',
@@ -32,17 +29,13 @@ const KNOWN_HIGH_PACKAGES = new Set([
   'ws',
 ]);
 const KNOWN_HIGH_ADVISORIES = new Set([
-  1123686, 1123896, 1123897, 1123898, 1130588, 1130589, 1130591, 1130734,
-  1130736, 1130737, 1124064, 1130720, 1136581, 1123911, 1123912, 1124252,
-  1124288, 1124066, 1123944, 1130718, 1123259,
-  // Added 2026-08-09:
-  1138808, 1138809, // image-size ICNS/JXL DoS, Metro build-time asset probing of our own assets
-  1138114, 1138115, // js-yaml !!omap quadratic, @expo/xcpretty and babel-jest, build/test only
-  1138813, // nanoid custom-generator loop, we only reach standard nanoid() via postcss/expo-router
-  // Added 2026-08-16. New advisories published against packages already in the
-  // reviewed baseline; no new dependency introduced them.
-  1139427, // nanoid zero-size generator loop, ships via expo-router, but the size argument is never attacker-reachable
-  1139510, // postcss sourceMappingURL path traversal, same family as 1124252/1130709, build-time only on our own CSS
+  // Reviewed 2026-09-22: every id below is a high advisory npm audit still
+  // reports after that review, on a chain docs/security/dependency-audit.md
+  // accepts. Ids that a fix removed were dropped with it, so a regression
+  // that brings one back fails the gate instead of inheriting the exception.
+  1123259, 1123686, 1123896, 1123897, 1123898, 1123944, 1124066, 1124252,
+  1130588, 1130589, 1130591, 1130718, 1130734, 1130736, 1130737, 1138808,
+  1138809, 1139427, 1139510, 1193725, 1239030,
 ]);
 
 const audit = spawnSync('npm', ['audit', '--json'], { encoding: 'utf8' });
