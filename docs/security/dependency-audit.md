@@ -6,7 +6,7 @@ in the reviewed baseline, and when that baseline expires.
 
 ## Current reviewed baseline
 
-The release check on 2026-08-21 reports 23 high findings and 0 critical. Every
+The release check on 2026-09-22 reports 22 high findings and 0 critical. Every
 high finding is transitive. The baseline began with the full review on
 2026-08-09 and was rechecked as advisories and locked versions changed. The
 remaining findings fall into two groups:
@@ -82,10 +82,57 @@ the accounts branch was merged.
   reintroduces a high finding fails the gate instead of inheriting the old
   exception.
 
-The baseline expires on 2026-09-19. It is not a waiver: before that date each
+### Reviewed on 2026-09-22
+
+The baseline had expired on 2026-09-19, and the gate reported one critical and
+seven high findings outside it. Everything that could be upgraded inside its
+declared range was; what could not is reviewed below and accepted. The gate is
+green again with 22 high findings, every one on a chain reviewed before.
+
+- `next` 15.5.22 to 15.5.25. Two critical advisories, unauthenticated remote
+  code execution on Windows-hosted servers (GHSA-p293-qw3h-jr36) and in the
+  image optimisation API (GHSA-2xp9-vwfh-vxw4). Neither reaches Alice: both
+  Next apps are `output: 'export'`, no Next server runs anywhere, and no
+  image optimisation endpoint exists. Upgraded anyway, since the gate refuses
+  any critical and a patch release costs nothing. Both apps build and export.
+- `wrangler` 4.114.0 to 4.136.2 for the Worker's tooling, which carried the
+  `miniflare`/`sharp`/`undici` findings. Wrangler now ships Miniflare 5, an
+  alpha whose constructor takes a different shape, so the Worker's own tests
+  keep `miniflare` 4.20260730.0 as an explicit dev dependency. Tests only;
+  nothing of it is deployed.
+- `@xmldom/xmldom` 0.8.13 to 0.8.15 and 0.9.10 to 0.9.12, nineteen advisories
+  in one release wave. Reached only through `@expo/plist` and `plist` inside
+  the Expo prebuild chain, which parses Alice's own Xcode project files on a
+  developer machine.
+- `fast-uri` 3.1.5 to 3.1.8, four new advisories. The earlier root override
+  is gone and `ajv`'s own range now resolves the fixed release. Same
+  `expo-build-properties` prebuild-only chain as reviewed on 2026-08-16.
+- `browserslist` 4.28.2 to 4.29.0, `js-yaml` 4.2.0 to 4.3.2 and 3.14.2 to
+  3.15.2. Babel and Expo build tooling, run against Alice's own files.
+- `adm-zip` (GHSA-7q85-xj36-vmfc, uncontrolled allocation from a declared
+  size) and `sharp` (GHSA-rgj7-g3m4-5g8c, libheif) gained one advisory each.
+  The fixes are 0.6.1 and 0.35.4, outside the ranges `onnxruntime-node` and
+  `@huggingface/transformers` declare. A root override was tried and
+  rejected: with it, npm silently dropped both packages from the tree
+  instead of upgrading them, which would have turned the gate green by
+  removing the code rather than fixing it. Accepted instead, on the ground
+  the review of 2026-08-19 established and this one rechecked: both sit on
+  the Node-only inference path, installed but never bundled, and Alice parses
+  no archive and no image through them.
+- `miniflare` 4.20260730.0 stays flagged through its pinned `sharp` 0.35.2
+  and `undici` 7.28.0. It exists only to run the Worker's tests on a
+  developer machine and is deployed nowhere; the Worker itself ships through
+  Wrangler with no Miniflare inside.
+
+Packages and advisory ids that these upgrades removed from the audit output
+(`@react-native/community-cli-plugin`, `js-yaml`, `next`, `react-native`, and
+their advisories) were dropped from the accepted baseline, as on 2026-08-21,
+so a regression fails the gate. `miniflare` was added, for the reason above.
+
+The baseline expires on 2026-10-20. It is not a waiver: before that date each
 chain must be upgraded, replaced, or explicitly reviewed with evidence that a
 breaking migration would create more risk than it removes.
 
 No `npm audit fix --force` is applied automatically. Its current proposals
 include a major Next upgrade and a Satora downgrade, neither of which is safe
-inside the beta release freeze.
+during the private beta.

@@ -33,10 +33,35 @@ type Diagnosis = {
 };
 
 /**
+ * BTCPay scopes a permission either to every store (`btcpay.store.x`) or to
+ * one (`btcpay.store.x:STOREID`), and wider rights imply narrower ones:
+ * modifying a store's settings, or administering the server, both include
+ * creating its invoices. Exported for the test.
+ */
+export function canCreateInvoice(permissions: readonly string[], storeId: string): boolean {
+  const implied = [
+    'btcpay.store.cancreateinvoice',
+    'btcpay.store.canmodifystoresettings',
+    'btcpay.server.canmodifyserversettings',
+  ];
+  return permissions.some((granted) => {
+    const [name, scope] = granted.split(':', 2);
+    return implied.includes(name) && (scope === undefined || scope === storeId);
+  });
+}
+
+/**
  * Asks BTCPay two questions in order, because they fail for different reasons
  * and the operator needs to know which one it is: is the host answering at
- * all, and can the store still be read with our API key. The second catches
- * a revoked key or a renamed store, which a health endpoint never would.
+ * all, and is our API key still one that can create an invoice on our store.
+ * The second catches a revoked key or a key re-issued without the right
+ * permission, which a health endpoint never would.
+ *
+ * The key is asked about itself, not about the store. Reading the store
+ * needs a permission Alice's key deliberately does not have (it can create
+ * invoices and nothing else), and a probe that needs more rights than
+ * checkout does reports an outage that checkout never sees. That is not a
+ * hypothetical: it fired every six hours for a month while payments worked.
  */
 export async function diagnoseBtcpay(env: Env): Promise<Diagnosis> {
   const base = env.BTCPAY_BASE_URL?.replace(/\/+$/, '');
@@ -68,26 +93,33 @@ export async function diagnoseBtcpay(env: Env): Promise<Diagnosis> {
   }
 
   try {
-    const store = await withTimeout(`/api/v1/stores/${env.BTCPAY_STORE_ID}`, {
+    const key = await withTimeout('/api/v1/api-keys/current', {
       headers: { Authorization: `token ${env.BTCPAY_API_KEY}` },
     });
-    if (store.status === 401 || store.status === 403) {
+    if (key.status === 401 || key.status === 403) {
       return { reachable: false, detail: 'Host is up, but the API key is refused. Checkout cannot open.' };
     }
-    if (store.status === 404) {
-      return { reachable: false, detail: 'Host is up, but the store id is unknown. Checkout cannot open.' };
+    if (!key.ok) {
+      return { reachable: false, detail: `Host is up, but the API key could not be checked (${key.status}).` };
     }
-    if (!store.ok) {
-      return { reachable: false, detail: `Host is up, but the store answered ${store.status}.` };
+    const info = await key.json() as { permissions?: unknown };
+    const permissions = Array.isArray(info.permissions)
+      ? info.permissions.filter((p): p is string => typeof p === 'string')
+      : [];
+    if (!canCreateInvoice(permissions, env.BTCPAY_STORE_ID)) {
+      return {
+        reachable: false,
+        detail: 'Host is up, but the API key cannot create invoices on this store. Checkout cannot open.',
+      };
     }
   } catch (error) {
     return {
       reachable: false,
-      detail: `Host is up, but the store could not be read (${error instanceof Error ? error.message : 'unknown error'}).`,
+      detail: `Host is up, but the API key could not be checked (${error instanceof Error ? error.message : 'unknown error'}).`,
     };
   }
 
-  return { reachable: true, detail: 'Host and store both answer.' };
+  return { reachable: true, detail: 'Host answers and the API key can create invoices.' };
 }
 
 /** Was an alert of this kind already sent inside the cooldown window? */
@@ -107,29 +139,48 @@ async function alertedRecently(env: Env, code: string): Promise<boolean> {
 }
 
 async function sendMail(env: Env, subject: string, body: string): Promise<void> {
-  if (!env.RESEND_API_KEY || !env.OPS_ALERT_EMAIL) return;
-  await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.AUTH_EMAIL_FROM ?? 'Alice <noreply@alicebtc.com>',
-      to: [env.OPS_ALERT_EMAIL],
-      subject,
-      text: body,
-    }),
-  }).catch(() => {});
+  const to = env.OPS_ALERT_EMAIL?.trim();
+  if (!env.RESEND_API_KEY || !to) return;
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: env.AUTH_EMAIL_FROM?.trim() || 'Alice <noreply@alicebtc.com>',
+        to: [to],
+        subject,
+        text: body,
+      }),
+    });
+    if (!response.ok) {
+      // The refusal is logged, never the address: the Worker's logs are the
+      // one place an operator can learn why an alert did not arrive.
+      console.error('ops alert mail refused', response.status, (await response.text()).slice(0, 300));
+    }
+  } catch (error) {
+    console.error('ops alert mail failed', error instanceof Error ? error.message : 'unknown error');
+  }
 }
 
 async function sendTelegram(env: Env, body: string): Promise<void> {
-  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return;
-  await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text: body }),
-  }).catch(() => {});
+  const token = env.TELEGRAM_BOT_TOKEN?.trim();
+  const chatId = env.TELEGRAM_CHAT_ID?.trim();
+  if (!token || !chatId) return;
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: body }),
+    });
+    if (!response.ok) {
+      console.error('ops alert telegram refused', response.status, (await response.text()).slice(0, 300));
+    }
+  } catch (error) {
+    console.error('ops alert telegram failed', error instanceof Error ? error.message : 'unknown error');
+  }
 }
 
 /**

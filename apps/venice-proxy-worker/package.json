@@ -13,10 +13,11 @@
     "typecheck": "wrangler types --env-interface CloudflareEnv --env-file wrangler-types.vars --check && tsc --noEmit --incremental false -p tsconfig.json"
   },
   "devDependencies": {
-    "wrangler": "^4"
+    "miniflare": "^4.20260730.0",
+    "wrangler": "^4.136.2"
   },
   "dependencies": {
-    "@noble/hashes": "^2.2.0",
-    "@alice-wallet/practice-wallet": "*"
+    "@alice-wallet/practice-wallet": "*",
+    "@noble/hashes": "^2.2.0"
   }
 }
