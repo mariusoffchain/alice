@@ -318,7 +318,7 @@ a.font-pixel:active,
 }
 body, .font-numbers { font-family: var(--alice-font-reading); }
 .alice-sidebar { color: var(--alice-muted); }
-.alice-sidebar .alice-nav-item { border-radius: var(--alice-radius-control); }
+.alice-sidebar .alice-nav-item { border-radius: var(--alice-radius-control); padding-inline: 16px; }
 .alice-sidebar .alice-nav-item:hover, .alice-session:hover { background: var(--alice-hover) !important; }
 .alice-sidebar .alice-nav-item[aria-current=page] { font-weight: 600; }
 .alice-sidebar .alice-session p { font-size: 13px !important; line-height: 1.6 !important; }
