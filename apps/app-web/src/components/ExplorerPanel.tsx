@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { isTauriDesktop, registerPack, useChat } from '@alice-wallet/alice-ai';
-import { buildExplorerKnowledgePack } from '@/lib/explorer/fiche-corpus';
-import { Sidebar, SIDEBAR_ICON_SVG } from '@/components/Sidebar';
 import { SvgIcon } from '@/components/SvgIcon';
+import { BACK_ICON, CLOSE_ICON } from '@/lib/atelier-icons';
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { registerPack, useChat } from '@alice-wallet/alice-ai';
+import { buildExplorerKnowledgePack } from '@/lib/explorer/fiche-corpus';
+import { WorkspaceShell } from '@/components/WorkspaceShell';
 import { ExplorerTabBar } from '@/components/ExplorerTabBar';
 import { ExplorerOverviewTab } from '@/components/ExplorerOverviewTab';
 import { ExplorerTxTab } from '@/components/ExplorerTxTab';
@@ -474,11 +476,11 @@ function ExplorerWorkspace() {
             padding: '10px 14px',
             minHeight: 44,
             border: '1px solid var(--alice-primary)',
-            borderRadius: 2,
+            borderRadius: 3,
             background: 'var(--alice-bg-soft)',
           }}
         >
-          <span className="font-pixel shrink-0" style={{ fontSize: 7, color: 'var(--alice-primary)' }}>
+          <span className="font-numbers shrink-0" style={{ fontSize: 12, color: 'var(--alice-primary)' }}>
             {arrival.origin.toUpperCase()}
           </span>
           <span className="font-numbers min-w-0 truncate" style={{ fontSize: 13, color: 'var(--alice-text)' }}>
@@ -490,20 +492,21 @@ function ExplorerWorkspace() {
             <button
               type="button"
               onClick={() => { setArrival(null); window.history.back(); }}
-              className="font-pixel cursor-pointer shrink-0 ml-auto"
-              style={{ fontSize: 7, padding: '6px 10px', border: '1px solid var(--alice-primary)', borderRadius: 2, background: 'transparent', color: 'var(--alice-primary)' }}
+              className="alice-control alice-control--quiet font-numbers cursor-pointer shrink-0 ml-auto"
+              style={{ fontSize: 13, padding: '6px 10px', borderRadius: 3, color: 'var(--alice-primary)' }}
             >
-              {arrival.origin.toLowerCase().includes('chat') ? '← BACK TO CHAT' : '← BACK TO COURSE'}
+              <SvgIcon svg={BACK_ICON} size={16} />
+              {arrival.origin.toLowerCase().includes('chat') ? 'Back to chat' : 'Back to course'}
             </button>
           )}
           <button
             type="button"
             onClick={() => setArrival(null)}
             aria-label="Dismiss"
-            className="cursor-pointer shrink-0 bg-transparent border-none ml-auto"
+            className="alice-control alice-control--quiet cursor-pointer shrink-0 bg-transparent border-none ml-auto"
             style={{ color: 'var(--alice-muted)', fontSize: 14, lineHeight: '14px' }}
           >
-            ×
+            <SvgIcon svg={CLOSE_ICON} size={16} />
           </button>
         </div>
       )}
@@ -636,48 +639,5 @@ function ExplorerWorkspace() {
 }
 
 export function ExplorerPanel() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
-
-  return (
-    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--alice-bg)' }}>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((v) => !v)}
-        mobileOpen={sidebarMobileOpen}
-        onMobileClose={() => setSidebarMobileOpen(false)}
-      />
-
-      <div className="flex flex-col flex-1 min-w-0 min-h-0">
-        {isTauriDesktop() && (
-          <div data-tauri-drag-region className="shrink-0" style={{ height: 28 }} />
-        )}
-        <div
-          className="grid shrink-0 grid-cols-[108px_minmax(0,1fr)_108px] items-center px-3 md:hidden"
-          style={{
-            height: 'calc(52px + env(safe-area-inset-top))',
-            paddingTop: 'env(safe-area-inset-top)',
-          }}
-        >
-          <div className="flex items-center">
-            <button
-              onClick={() => setSidebarMobileOpen(true)}
-              className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-              aria-label="Open menu"
-            >
-              <SvgIcon svg={SIDEBAR_ICON_SVG} size={18} color="var(--alice-primary)" />
-            </button>
-          </div>
-          <div className="flex min-w-0 items-center justify-center">
-            <span className="font-pixel" style={{ fontSize: 11, color: 'var(--alice-text)' }}>
-              Explorer
-            </span>
-          </div>
-          <div />
-        </div>
-
-        <ExplorerWorkspace />
-      </div>
-    </div>
-  );
+  return <WorkspaceShell title="Explorer"><ExplorerWorkspace /></WorkspaceShell>;
 }

@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { CHECK_ICON } from '@/lib/atelier-icons';
+
 import { useEffect, useState } from 'react';
 import { useAccount } from '@alice-wallet/alice-ai';
 
@@ -71,6 +74,7 @@ export function PaymentConfirmedDialog() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="alice-payment-confirmed-title"
+        onKeyDown={(event) => { if (event.key === 'Escape') done(); }}
         className="w-full"
         style={{
           maxWidth: 420,
@@ -83,10 +87,10 @@ export function PaymentConfirmedDialog() {
       >
         <h2
           id="alice-payment-confirmed-title"
-          className="font-pixel m-0 tracking-widest"
+          className="font-pixel m-0 tracking-widest flex items-center gap-3"
           style={{ fontSize: 10, lineHeight: '18px', color: 'var(--alice-primary)' }}
         >
-          PAYMENT CONFIRMED
+          <SvgIcon svg={CHECK_ICON} size={20} /> PAYMENT CONFIRMED
         </h2>
 
         <p
@@ -109,17 +113,10 @@ export function PaymentConfirmedDialog() {
           type="button"
           onClick={done}
           autoFocus
-          className="font-pixel tracking-widest mt-5 w-full cursor-pointer"
-          style={{
-            padding: '10px 14px',
-            border: '2px solid var(--alice-primary)',
-            borderRadius: 2,
-            backgroundColor: 'var(--alice-primary)',
-            color: 'var(--alice-on-primary)',
-            fontSize: 11,
-          }}
+          className="alice-control alice-control--primary mt-5 w-full"
+          style={{ padding: '10px 14px' }}
         >
-          DONE
+          Done
         </button>
       </div>
     </div>

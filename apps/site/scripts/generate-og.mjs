@@ -9,6 +9,7 @@
 //
 // Run after changing the slogan or the artwork:
 //   node scripts/generate-og.mjs
+import sharp from 'sharp';
 import { ImageResponse } from 'next/og.js';
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -21,15 +22,15 @@ const HERO_TITLE = 'Your Bitcoin questions are nobody’s business.';
 
 const SIZE = { width: 1200, height: 630 };
 const GRID = 78;
-const BG = '#0d1117';
-const GRID_LINE = '#1a2333';
+const BG = '#0b1016';
+const GRID_LINE = '#111922';
 const PRIMARY = '#8bb8ff';
 const HEADING = '#eaf1ff';
 
 const [pixelFont, bodyFont, logo] = await Promise.all([
   readFile(join(PUBLIC, 'fonts', 'PressStart2P-Regular.ttf')),
   readFile(join(PUBLIC, 'fonts', 'terminal-grotesque.ttf')),
-  readFile(join(PUBLIC, 'alice-logo.svg')),
+  readFile(join(PUBLIC, 'alice-rabbit.svg')),
 ]);
 const logoSrc = `data:image/svg+xml;base64,${logo.toString('base64')}`;
 
@@ -110,3 +111,8 @@ const out = join(APP_DIR, 'src', 'app', 'opengraph-image.png');
 await writeFile(out, Buffer.from(await response.arrayBuffer()));
 await writeFile(join(APP_DIR, 'src', 'app', 'opengraph-image.alt.txt'), HERO_TITLE);
 console.log(`wrote ${out}`);
+
+// Raster fallbacks share the same source as the SVG favicon and site wordmark.
+await sharp(logo).resize(180, 180).extend({ top: 30, bottom: 30, left: 30, right: 30, background: BG }).flatten({ background: BG }).resize(180, 180).png().toFile(join(PUBLIC, 'apple-touch-icon.png'));
+await sharp(logo).resize(32, 32).png().toFile(join(PUBLIC, 'favicon.png'));
+await writeFile(join(PUBLIC, 'alice-logo.svg'), logo);

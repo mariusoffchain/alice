@@ -1,42 +1,48 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 const REVIEW_BY = '2026-10-20';
+// Reviewed 2026-10-04. Only the 3 direct advisories below remain; other
+// package findings are propagation through their dependency chains.
+// See docs/security/dependency-audit.md. Expiration is NOT extended.
 const KNOWN_HIGH_PACKAGES = new Set([
-  // Reviewed 2026-09-22, see docs/security/dependency-audit.md for the
-  // per-chain exposure rationale behind every entry.
+  '@arkade-os/boltz-swap',
+  '@arkade-os/sdk',
   '@expo/cli',
+  '@expo/code-signing-certificates',
   '@expo/metro',
   '@expo/metro-config',
-  '@huggingface/transformers',
+  '@jest/environment',
+  '@jest/fake-timers',
+  '@jest/transform',
   '@lendasat/lendaswap-sdk-pure',
+  '@react-native/community-cli-plugin',
   '@satora/swap',
-  'adm-zip',
-  'brace-expansion',
+  'babel-jest',
+  'braces',
   'expo',
-  'image-size',
+  'jest-environment-node',
+  'jest-haste-map',
+  'jest-message-util',
   'metro',
   'metro-config',
+  'metro-file-map',
   'metro-transform-worker',
-  'miniflare',
-  'nanoid',
-  'onnxruntime-node',
-  'postcss',
-  'sharp',
-  'shell-quote',
-  'undici',
+  'micromatch',
+  'node-forge',
+  'react-native',
   'viem',
   'ws',
 ]);
-const KNOWN_HIGH_ADVISORIES = new Set([
-  // Reviewed 2026-09-22: every id below is a high advisory npm audit still
-  // reports after that review, on a chain docs/security/dependency-audit.md
-  // accepts. Ids that a fix removed were dropped with it, so a regression
-  // that brings one back fails the gate instead of inheriting the exception.
-  1123259, 1123686, 1123896, 1123897, 1123898, 1123944, 1124066, 1124252,
-  1130588, 1130589, 1130591, 1130718, 1130734, 1130736, 1130737, 1138808,
-  1138809, 1139427, 1139510, 1193725, 1239030,
+const KNOWN_HIGH_ADVISORIES = new Set([1123259, 1240992, 1240912]);
+// Scope the exceptions to the exact reviewed package locations and versions.
+const REVIEWED_HIGH_NODES = new Map([
+  ['node_modules/braces', '3.0.3'],
+  ['node_modules/node-forge', '1.4.0'],
+  ['node_modules/viem/node_modules/ws', '8.20.1'],
 ]);
+const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
 
 const audit = spawnSync('npm', ['audit', '--json'], { encoding: 'utf8' });
 let report;
@@ -56,6 +62,7 @@ if (report.error || !report.metadata?.vulnerabilities) {
 const unexpectedPackages = [];
 const unexpectedAdvisories = [];
 const critical = [];
+const unexpectedNodes = [];
 for (const [name, finding] of Object.entries(report.vulnerabilities ?? {})) {
   if (finding.severity === 'critical') critical.push(name);
   if (finding.severity === 'high' && !KNOWN_HIGH_PACKAGES.has(name)) {
@@ -63,6 +70,10 @@ for (const [name, finding] of Object.entries(report.vulnerabilities ?? {})) {
   }
   for (const via of finding.via ?? []) {
     if (typeof via !== 'object' || via.severity !== 'high') continue;
+    for (const node of finding.nodes ?? []) {
+      if (REVIEWED_HIGH_NODES.get(node) !== lock.packages?.[node]?.version
+          || !REVIEWED_HIGH_NODES.has(node)) unexpectedNodes.push(node);
+    }
     if (!KNOWN_HIGH_ADVISORIES.has(via.source)) {
       unexpectedAdvisories.push(`${name}: ${via.url ?? via.source}`);
     }
@@ -71,10 +82,11 @@ for (const [name, finding] of Object.entries(report.vulnerabilities ?? {})) {
 
 const today = new Date().toISOString().slice(0, 10);
 console.log(`npm audit: ${report.metadata?.vulnerabilities?.high ?? 0} high, ${report.metadata?.vulnerabilities?.critical ?? 0} critical`);
-if (critical.length || unexpectedPackages.length || unexpectedAdvisories.length || today > REVIEW_BY) {
+if (critical.length || unexpectedPackages.length || unexpectedAdvisories.length || unexpectedNodes.length || today > REVIEW_BY) {
   if (critical.length) console.error(`Critical vulnerabilities: ${critical.join(', ')}`);
   if (unexpectedPackages.length) console.error(`New high-risk packages: ${unexpectedPackages.join(', ')}`);
   if (unexpectedAdvisories.length) console.error(`New high-risk advisories: ${unexpectedAdvisories.join(', ')}`);
+  if (unexpectedNodes.length) console.error(`Unreviewed high-risk locations or versions: ${[...new Set(unexpectedNodes)].join(', ')}`);
   if (today > REVIEW_BY) console.error(`The accepted audit baseline expired on ${REVIEW_BY}.`);
   process.exit(1);
 }

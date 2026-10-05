@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { CLOCK_ICON, CLOSE_ICON, NEXT_ICON } from '@/lib/atelier-icons';
+
 import { useEffect, useState } from 'react';
 import { useAccount } from '@alice-wallet/alice-ai';
 import { useOpenSettings } from '@/lib/settings-url';
@@ -9,7 +12,7 @@ const DAY_MS = 24 * 60 * 60 * 1_000;
 /** The same three days the server waits before mailing the first reminder. */
 const WARNING_MS = 3 * DAY_MS;
 
-const AMBER = '#d99a2b';
+const AMBER = 'var(--alice-warning)';
 
 /** Dismissals are remembered per deadline, so a new plan warns again. */
 const DISMISS_KEY = 'alice_expiry_notice_dismissed_v1';
@@ -83,6 +86,7 @@ export function ExpiryBanner() {
         borderBottom: `2px solid ${AMBER}`,
       }}
     >
+      <span style={{ color: AMBER }}><SvgIcon svg={CLOCK_ICON} size={20} /></span>
       <span
         className="font-numbers flex-1 min-w-0"
         style={{ fontSize: 14, lineHeight: '19px', color: AMBER }}
@@ -92,26 +96,19 @@ export function ExpiryBanner() {
       <button
         type="button"
         onClick={() => openSettings('account')}
-        className="font-pixel tracking-widest shrink-0 cursor-pointer"
-        style={{
-          fontSize: 9,
-          padding: '6px 12px',
-          border: `2px solid ${AMBER}`,
-          borderRadius: 2,
-          backgroundColor: 'transparent',
-          color: AMBER,
-        }}
+        className="alice-control alice-control--primary shrink-0"
+        style={{ padding: '6px 12px' }}
       >
-        RENEW
+        Renew <SvgIcon svg={NEXT_ICON} size={16} />
       </button>
       <button
         type="button"
         onClick={dismiss}
-        aria-label="Dismiss"
-        className="shrink-0 cursor-pointer border-none bg-transparent font-numbers"
-        style={{ color: AMBER, fontSize: 18, lineHeight: '18px', opacity: 0.7 }}
+        aria-label="Dismiss plan expiry notice"
+        className="alice-control alice-control--tool shrink-0"
+        style={{ color: AMBER }}
       >
-        ×
+        <SvgIcon svg={CLOSE_ICON} size={16} />
       </button>
     </div>
   );

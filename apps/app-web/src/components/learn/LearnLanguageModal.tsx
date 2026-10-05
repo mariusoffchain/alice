@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { CLOSE_ICON, DOWNLOAD_ICON, CHECK_ICON, BACK_ICON } from '@/lib/atelier-icons';
+
 import { useState } from 'react';
 import { LEARN_LANGUAGES } from '@alice-wallet/alice-content/src/generated/planb-learn-catalog';
 import {
@@ -84,32 +87,35 @@ export function LearnLanguageModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0, 0, 0, 0.55)' }}
       onClick={onClose}
-      role="dialog"
-      aria-label="Course languages"
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={fr ? 'Langue des cours' : 'Course language'}
+        onKeyDown={(event) => { if (event.key === 'Escape') onClose(); }}
         className="flex flex-col"
         style={{
           width: 'min(100%, 420px)',
           maxHeight: '80dvh',
           background: 'var(--alice-bg)',
-          border: '2px solid var(--alice-border)',
-          borderRadius: 2,
+          border: '1px solid var(--alice-border)',
+          borderRadius: 'var(--alice-radius-control)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between shrink-0" style={{ padding: '14px 16px', borderBottom: '1px solid var(--alice-border)' }}>
-          <span className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-primary)' }}>
+          <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-primary)' }}>
             {fr ? 'LANGUE DES COURS' : 'COURSE LANGUAGE'}
           </span>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
-            className="cursor-pointer bg-transparent border-none"
-            style={{ color: 'var(--alice-muted)', fontSize: 18, lineHeight: '18px' }}
+            autoFocus
+            aria-label={fr ? 'Fermer' : 'Close'}
+            className="alice-control alice-control--tool"
+            style={{ lineHeight: '18px' }}
           >
-            ×
+            <SvgIcon svg={CLOSE_ICON} size={16} />
           </button>
         </div>
 
@@ -123,24 +129,26 @@ export function LearnLanguageModal({
                   key={entry.lang}
                   type="button"
                   onClick={() => pick(entry.lang)}
-                  className="flex items-center gap-3 w-full text-left cursor-pointer transition-colors hover:bg-white/5"
-                  style={{ background: 'transparent', border: 0, padding: '10px 16px', color: 'var(--alice-text)' }}
+                  aria-pressed={isCurrent}
+                  className="alice-control alice-control--row alice-choice flex items-center gap-3 w-full text-left"
+                  style={{ display: 'grid', gridTemplateColumns: '42px minmax(0, 1fr) 20px', columnGap: 10, rowGap: 4, padding: '10px 16px' }}
                 >
-                  <span className="font-pixel shrink-0" style={{ fontSize: 8, width: 64, color: isCurrent ? 'var(--alice-primary)' : 'var(--alice-muted)' }}>
+                  <span className="font-numbers shrink-0" style={{ fontSize: 12, width: 42, color: isCurrent ? 'var(--alice-primary)' : 'var(--alice-muted)' }}>
                     {entry.lang.toUpperCase()}
                   </span>
                   <span className="font-numbers flex-1 min-w-0 truncate" style={{ fontSize: 15 }}>
                     {languageName(entry.lang)}
                   </span>
-                  <span className="font-numbers shrink-0" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
+                  <span className="font-numbers shrink-0" style={{ fontSize: 12, color: 'var(--alice-muted)', gridColumn: '2', gridRow: '2' }}>
                     {entry.courses} {fr ? 'cours' : 'courses'}
                   </span>
                   <span
-                    className="font-pixel shrink-0"
-                    style={{ fontSize: 7, width: 86, textAlign: 'right', color: isInstalled ? 'var(--alice-primary)' : 'var(--alice-muted)' }}
+                    className="font-numbers shrink-0"
+                    style={{ fontSize: 12, gridColumn: '1 / -1', gridRow: '3', textAlign: 'left', color: isInstalled ? 'var(--alice-primary)' : 'var(--alice-muted)' }}
                   >
-                    {isCurrent ? (fr ? 'ACTUELLE' : 'CURRENT') : isInstalled ? (fr ? 'INSTALLÉE' : 'INSTALLED') : (fr ? 'TÉLÉCHARGER' : 'DOWNLOAD')}
+                    {isCurrent ? (fr ? 'Active' : 'Active') : isEmbeddedLang(entry.lang) ? (fr ? 'Incluse · utiliser' : 'Included · use') : isInstalled ? (fr ? 'Disponible · utiliser' : 'Available · use') : !isTauriDesktop() ? (fr ? 'Lire en ligne' : 'Read online') : (fr ? 'Télécharger' : 'Download')}
                   </span>
+                  <span style={{ gridColumn: 3, gridRow: 1 }}><SvgIcon svg={isCurrent || isInstalled ? CHECK_ICON : DOWNLOAD_ICON} size={20} /></span>
                 </button>
               );
             })}
@@ -162,16 +170,16 @@ export function LearnLanguageModal({
             <div className="flex gap-3" style={{ marginTop: 18 }}>
               <button
                 type="button"
-                className="font-pixel cursor-pointer"
-                style={{ fontSize: 8, padding: '10px 16px', background: 'var(--alice-primary)', color: 'var(--alice-on-primary)', border: 0, borderRadius: 2 }}
+                className="alice-control alice-control--primary"
+                style={{ padding: '10px 16px' }}
                 onClick={() => startDownload(phase.lang)}
               >
-                {fr ? 'OUI, TÉLÉCHARGER' : 'YES, DOWNLOAD'}
+                <SvgIcon svg={DOWNLOAD_ICON} size={20} /> {fr ? 'Télécharger et utiliser' : 'Download and use'}
               </button>
               <button
                 type="button"
-                className="font-pixel cursor-pointer"
-                style={{ fontSize: 8, padding: '10px 16px', background: 'transparent', color: 'var(--alice-text)', border: '2px solid var(--alice-border)', borderRadius: 2 }}
+                className="alice-control alice-control--quiet"
+                style={{ padding: '10px 16px' }}
                 onClick={() => setPhase({ step: 'browse' })}
               >
                 {fr ? 'ANNULER' : 'CANCEL'}
@@ -185,17 +193,17 @@ export function LearnLanguageModal({
             <p className="font-numbers" style={{ margin: 0, fontSize: 14, color: 'var(--alice-text)' }}>
               {fr ? `Téléchargement du ${languageName(phase.lang)}…` : `Downloading ${languageName(phase.lang)}…`}
             </p>
-            <div style={{ marginTop: 12, height: 8, border: '1px solid var(--alice-border)', borderRadius: 2 }}>
+            <div role="progressbar" aria-label={fr ? 'Téléchargement de la langue' : 'Language download'} aria-valuenow={Math.round(phase.progress * 100)} aria-valuemin={0} aria-valuemax={100} style={{ marginTop: 12, height: 8, border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)' }}>
               <div style={{ height: '100%', width: `${Math.round(phase.progress * 100)}%`, background: 'var(--alice-primary)' }} />
             </div>
-            <p className="font-pixel" style={{ margin: '8px 0 0', fontSize: 8, color: 'var(--alice-muted)' }}>
+            <p className="font-numbers" style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--alice-muted)' }}>
               {Math.round(phase.progress * 100)}%
             </p>
           </div>
         )}
 
         {phase.step === 'error' && (
-          <div style={{ padding: '18px 16px' }}>
+          <div role="alert" style={{ padding: '18px 16px' }}>
             <p className="font-numbers" style={{ margin: 0, fontSize: 14, color: 'var(--alice-text)' }}>
               {fr
                 ? `Le téléchargement du ${languageName(phase.lang)} a échoué : ${phase.message}`
@@ -203,11 +211,11 @@ export function LearnLanguageModal({
             </p>
             <button
               type="button"
-              className="font-pixel cursor-pointer"
-              style={{ marginTop: 14, fontSize: 8, padding: '10px 16px', background: 'transparent', color: 'var(--alice-text)', border: '2px solid var(--alice-border)', borderRadius: 2 }}
+              className="alice-control alice-control--quiet"
+              style={{ marginTop: 14, padding: '10px 16px' }}
               onClick={() => setPhase({ step: 'browse' })}
             >
-              {fr ? 'RETOUR' : 'BACK'}
+              <SvgIcon svg={BACK_ICON} size={16} /> {fr ? 'Retour' : 'Back'}
             </button>
           </div>
         )}

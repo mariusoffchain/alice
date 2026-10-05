@@ -19,9 +19,9 @@ import type { NormalizedOutspend, NormalizedTransaction } from '@/lib/explorer/t
 // Gradient anchors: G0 at the outer edges, G1 at the knot, G2 the transparent
 // fade for connectors. HOT is the hover emphasis stop: the theme's text color,
 // so the hovered ribbon brightens on a dark theme and deepens on a light one.
-const G0 = '#8bb8ff';
-const G1 = '#7b7bf0';
-const G2 = 'rgba(139, 184, 255, 0)';
+const G0 = 'var(--alice-primary)';
+const G1 = 'var(--alice-chart-secondary)';
+const G2 = 'color-mix(in srgb, var(--alice-primary) 0%, transparent)';
 const FLAG = 'var(--alice-warning)';
 const HOT = 'var(--alice-text)';
 
@@ -43,8 +43,12 @@ export function ExplorerTxGraph({
   outspends,
   onOpenTx,
   onOpenAddress,
+  selectedAddress,
+  onSelectAddress,
 }: {
   tx: NormalizedTransaction;
+  selectedAddress?: string | null;
+  onSelectAddress?: (address: string) => void;
   flaggedAddresses?: ReadonlySet<string>;
   /** Spend status per vout; undefined while unknown/loading. */
   outspends?: readonly NormalizedOutspend[];
@@ -90,13 +94,13 @@ export function ExplorerTxGraph({
 
   function renderSide(lines: BowtieLine[], side: Side) {
     return lines.map((n, i) => {
-      const hovered = hover?.side === side && hover.index === i;
+      const hovered = (hover?.side === side && hover.index === i) || (!!n.address && n.address === selectedAddress);
       const outspend = outspendOf(n);
       const showConnector = side === 'input'
         ? !!n.connectorPath && !!n.prevTxid
         : !!n.connectorPath && outspend?.spent === true;
       const connectorTarget = side === 'input' ? n.prevTxid : outspend?.txid;
-      const enter = (connector: boolean) => () => setHover({ side, index: i, connector });
+      const enter = (connector: boolean) => () => { setHover({ side, index: i, connector }); if (n.address) onSelectAddress?.(n.address); };
       const leave = () => setHover(null);
       const s = side === 'input' ? 'in' : 'out';
       const addrTarget = n.address && onOpenAddress ? n.address : undefined;
@@ -113,6 +117,12 @@ export function ExplorerTxGraph({
               onPointerEnter={enter(true)}
               onPointerLeave={leave}
               onClick={() => { if (connectorTarget) onOpenTx?.(connectorTarget); }}
+              role={connectorTarget && onOpenTx ? 'button' : undefined}
+              tabIndex={connectorTarget && onOpenTx ? 0 : undefined}
+              aria-label={connectorTarget ? `Open transaction ${connectorTarget}` : undefined}
+              onFocus={enter(true)}
+              onBlur={leave}
+              onKeyDown={event => { if (connectorTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onOpenTx?.(connectorTarget); } }}
             />
           )}
           {n.markerPath && (
@@ -135,6 +145,12 @@ export function ExplorerTxGraph({
             onPointerEnter={enter(false)}
             onPointerLeave={leave}
             onClick={() => { if (addrTarget) onOpenAddress?.(addrTarget); }}
+            role={addrTarget ? 'button' : undefined}
+            tabIndex={addrTarget ? 0 : undefined}
+            aria-label={addrTarget ? `Open address ${addrTarget}` : undefined}
+            onFocus={enter(false)}
+            onBlur={leave}
+            onKeyDown={event => { if (addrTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onOpenAddress?.(addrTarget); } }}
           />
         </g>
       );
@@ -151,7 +167,7 @@ export function ExplorerTxGraph({
           viewBox={`0 0 ${layout.width} ${layout.height + 10}`}
           width="100%"
           style={{ display: 'block' }}
-          role="img"
+          role="group"
           aria-label="Transaction flow diagram"
         >
           <defs>
@@ -242,7 +258,7 @@ export function ExplorerTxGraph({
               maxWidth: 280,
               padding: '8px 10px',
               border: '1px solid var(--alice-border)',
-              borderRadius: 2,
+              borderRadius: 3,
               backgroundColor: 'var(--alice-bg-soft)',
               pointerEvents: 'none',
               zIndex: 10,
@@ -304,13 +320,11 @@ export function ExplorerTxGraph({
         <button
           type="button"
           onClick={() => setExpanded(v => !v)}
-          className="font-pixel tracking-widest self-center cursor-pointer"
+          className="alice-control alice-control--quiet font-numbers self-center cursor-pointer"
           style={{
-            fontSize: 10,
+            fontSize: 13,
             padding: '7px 14px',
-            border: '2px solid var(--alice-border)',
-            borderRadius: 2,
-            backgroundColor: 'transparent',
+            borderRadius: 3,
             color: 'var(--alice-primary)',
           }}
         >

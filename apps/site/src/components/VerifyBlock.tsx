@@ -25,20 +25,12 @@ export function VerifyBlock() {
         Every claim links to its proof, not a marketing promise.
       </p>
 
-      <div className="mt-8 overflow-hidden rounded-[6px] border-2 border-[var(--alice-border)] bg-[var(--alice-bg-soft)]">
-        <div className="flex items-center gap-2 border-b border-[var(--alice-border)] px-4 py-2.5">
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-[var(--alice-border)]" />
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-[var(--alice-border)]" />
-          <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-[var(--alice-border)]" />
-          <span className="ml-2 font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-muted)]">
-            verify.alice
-          </span>
-        </div>
-        <ul className="divide-y divide-[var(--alice-border)] font-mono">
+      <div className="mt-8 overflow-hidden rounded-[4px] border border-[var(--alice-border)] bg-transparent">
+        <ul className="divide-y divide-[var(--alice-border)]">
           {CLAIMS.map((c) => (
-            <li key={c.claim} className="flex items-center gap-3 px-4 py-3.5">
+            <li key={c.claim} className="flex flex-wrap items-center gap-3 px-4 py-3.5">
               <span aria-hidden className="text-[var(--alice-primary)]">✓</span>
-              <span className="flex-1 text-[14px] text-[var(--alice-heading)]">{c.claim}</span>
+              <span className="min-w-[160px] flex-1 text-[14px] text-[var(--alice-heading)]">{c.claim}</span>
               <a
                 href={c.href}
                 // Off-site proofs open in a new tab, and no referrer follows

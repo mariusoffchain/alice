@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { SvgIcon } from '@/components/SvgIcon';
+import { CHECK_ICON, CHEVRON_DOWN_ICON } from '@/lib/atelier-icons';
 import { useOpenSettings } from '@/lib/settings-url';
 import {
   type AIBackendType,
@@ -38,7 +40,7 @@ type ModelSelectorProps = {
   setBackendType: (type: AIBackendType) => void;
   setAiEnabled: (enabled: boolean) => void;
   compactLabel?: boolean;
-  placement?: 'above' | 'mobile-header' | 'below';
+  placement?: 'above' | 'mobile-header' | 'below' | 'composer';
 };
 
 export function ModelSelector({
@@ -49,6 +51,8 @@ export function ModelSelector({
   placement = 'above',
 }: ModelSelectorProps) {
   const openSettings = useOpenSettings();
+  const popoverId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [hasCustomServer, setHasCustomServer] = useState(false);
@@ -176,22 +180,26 @@ export function ModelSelector({
   };
 
   return (
-    <div ref={rootRef} className="relative min-w-0 max-w-full">
+    <div ref={rootRef} className="relative min-w-0 max-w-full" onKeyDown={(event) => {
+      if (event.key === 'Escape' && open) {
+        event.stopPropagation();
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }}>
       <button
         type="button"
+        aria-label={`Model and reasoning: ${activeModelName}, ${REASONING_LABELS[activePreset]}`}
+        ref={triggerRef}
+        aria-expanded={open}
+        aria-controls={open ? popoverId : undefined}
         onClick={() => setOpen((value) => !value)}
-        className="font-numbers flex h-9 max-w-full min-w-0 items-center gap-1.5 cursor-pointer px-2"
-        style={{
-          fontSize: compactLabel ? 18 : 15,
-          lineHeight: compactLabel ? '22px' : '18px',
-          color: 'var(--alice-muted)',
-          backgroundColor: 'transparent',
-          border: 'none',
-          outline: 'none',
-        }}
+        className="alice-control alice-control--quiet alice-model-trigger"
+        style={{ fontSize: compactLabel ? 18 : 13, columnGap: 10 }}
       >
         <span
           style={{
+            color: 'var(--alice-text)',
             minWidth: 0,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -201,29 +209,19 @@ export function ModelSelector({
           {activeModelName}
         </span>
         {!compactLabel && (
-          <span className="shrink-0" style={{ opacity: 0.7 }}>{REASONING_LABELS[activePreset]}</span>
+          <span className="shrink-0" style={{ color: 'var(--alice-muted)' }}>{REASONING_LABELS[activePreset]}</span>
         )}
-        {compactLabel && (
-          <span
-            aria-hidden="true"
-            className="shrink-0"
-            style={{
-              width: 7,
-              height: 7,
-              borderRight: '1px solid currentColor',
-              borderBottom: '1px solid currentColor',
-              opacity: 0.7,
-              transform: 'rotate(45deg) translate(-2px, 2px)',
-            }}
-          />
-        )}
+        <SvgIcon svg={CHEVRON_DOWN_ICON} size={16} />
       </button>
 
       {open && (
         <div
+          id={popoverId}
+          role="group"
+          aria-label="Model and reasoning options"
           className={
             placement === 'mobile-header' ? 'fixed'
-              : placement === 'below' ? 'absolute left-0'
+              : placement === 'below' || placement === 'composer' ? 'absolute left-0'
                 : 'absolute right-0'
           }
           style={{
@@ -233,7 +231,9 @@ export function ModelSelector({
                   left: 20,
                   right: 20,
                 }
-              : placement === 'below'
+              : placement === 'composer'
+                ? { bottom: 'calc(100% + 8px)', left: 0, width: 296, maxWidth: 'calc(100vw - 56px)', maxHeight: 'min(440px, 65dvh)', overflowY: 'auto' }
+                : placement === 'below'
                 ? {
                     top: 'calc(100% + 8px)',
                     width: 296,
@@ -246,9 +246,9 @@ export function ModelSelector({
                   }),
             padding: 8,
             backgroundColor: 'var(--alice-bg-soft)',
-            border: '2px solid var(--alice-border)',
-            borderRadius: 6,
-            boxShadow: '0 12px 28px rgba(0,0,0,0.28)',
+            border: '1px solid var(--alice-border)',
+            borderRadius: 4,
+            boxShadow: '0 3px 0 var(--alice-border)',
             zIndex: 30,
           }}
         >
@@ -275,7 +275,7 @@ export function ModelSelector({
               onClick={() => handleLocalModel(model.id)}
             />
           )) : (
-            <div className="font-numbers" style={{ fontSize: 14, opacity: 0.55, padding: '8px 6px' }}>
+            <div className="font-numbers" style={{ fontSize: 14, opacity: 1, padding: '8px 6px' }}>
               No downloaded local model
             </div>
           )}
@@ -320,14 +320,14 @@ export function ModelSelector({
 
 function MenuSection({ label }: { label: string }) {
   return (
-    <div className="font-pixel tracking-widest" style={{ fontSize: 10, opacity: 0.48, padding: '6px 6px 3px' }}>
+    <div className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)', padding: '6px 6px 3px' }}>
       {label}
     </div>
   );
 }
 
 function MenuDivider() {
-  return <div style={{ height: 1, backgroundColor: 'var(--alice-border)', opacity: 0.7, margin: '6px 6px' }} />;
+  return <div style={{ height: 1, backgroundColor: 'var(--alice-border)', opacity: 1, margin: '6px 6px' }} />;
 }
 
 function CompactChip({
@@ -339,32 +339,12 @@ function CompactChip({
   active: boolean;
   onClick: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const backgroundColor = active
-    ? hovered
-      ? 'color-mix(in srgb, var(--alice-primary) 92%, white)'
-      : 'var(--alice-primary)'
-    : hovered
-      ? 'color-mix(in srgb, var(--alice-primary) 12%, transparent)'
-      : 'transparent';
-
   return (
     <button
       type="button"
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="flex-1 cursor-pointer"
-      style={{
-        minHeight: 28,
-        padding: '6px 8px',
-        border: 'none',
-        borderRadius: 4,
-        outline: 'none',
-        backgroundColor,
-        color: active ? 'var(--alice-on-primary)' : 'var(--alice-text)',
-        transition: 'background-color 140ms ease, color 140ms ease',
-      }}
+      aria-pressed={active}
+      className="alice-control alice-control--choice flex-1"
     >
       <span className="font-numbers" style={{ fontSize: 15 }}>{label}</span>
     </button>
@@ -382,32 +362,12 @@ function MenuItem({
   active: boolean;
   onClick: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const backgroundColor = active
-    ? hovered
-      ? 'color-mix(in srgb, var(--alice-primary) 92%, white)'
-      : 'var(--alice-primary)'
-    : hovered
-      ? 'color-mix(in srgb, var(--alice-primary) 12%, transparent)'
-      : 'transparent';
-
   return (
     <button
       type="button"
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="w-full text-left flex items-center justify-between gap-3 cursor-pointer"
-      style={{
-        minHeight: 30,
-        padding: '6px 8px',
-        border: 'none',
-        borderRadius: 4,
-        outline: 'none',
-        backgroundColor,
-        color: active ? 'var(--alice-on-primary)' : 'var(--alice-text)',
-        transition: 'background-color 140ms ease, color 140ms ease',
-      }}
+      aria-pressed={active}
+      className="alice-control alice-control--option w-full text-left"
     >
       <span
         className="font-numbers"
@@ -424,21 +384,21 @@ function MenuItem({
       </span>
       {detail && (
         <span
-          className="font-pixel shrink-0"
+          className="font-numbers shrink-0"
           style={{
-            fontSize: 10,
-            opacity: active ? 0.92 : 0.55,
-            letterSpacing: 0.8,
+            fontSize: 11,
+            opacity: 1,
+            letterSpacing: 0,
             maxWidth: 110,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
           }}
         >
-          {active ? 'ACTIVE' : detail}
+          {detail}
         </span>
       )}
-      {active && !detail && <span className="font-pixel shrink-0" style={{ fontSize: 10 }}>✓</span>}
+      {active && <SvgIcon svg={CHECK_ICON} size={16} />}
     </button>
   );
 }

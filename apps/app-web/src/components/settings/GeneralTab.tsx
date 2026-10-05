@@ -42,7 +42,7 @@ export function GeneralTab() {
       <div style={sectionStyle}>
         <SectionLabel>RESPONSE LANGUAGE</SectionLabel>
         <SectionHint>
-          Auto follows your latest message. A fixed choice overrides automatic detection.
+          Auto follows your latest message. A fixed choice overrides automatic detection. Course languages are managed separately under Data.
         </SectionHint>
         <div className="flex gap-2 flex-wrap" role="group" aria-label="Alice response language">
           {LANGUAGE_OPTIONS.map(([value, label]) => (

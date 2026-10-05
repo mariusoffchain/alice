@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { APP_URL, HERO_TITLE, WALLET_URL, appQuestionUrl } from '@/lib/site';
+import { APP_URL, HERO_TITLE, appQuestionUrl } from '@/lib/site';
 import { useStepClip } from '@/lib/use-step-clip';
 import { AppCtas, ReleaseLinks } from '@/components/AppCtas';
 import { VerifyBlock } from '@/components/VerifyBlock';
 import { externalLinkProps } from '@/lib/links';
+import { ChevronDownIcon, SendIcon, ReceiveIcon, RefreshIcon } from '@/components/icons';
+import { rabbitPaths } from '@/lib/rabbit-paths';
 
 /**
  * The hero and the app tour as one continuous object. On desktop, the right
@@ -21,13 +23,13 @@ import { externalLinkProps } from '@/lib/links';
  * headless profile so no personal data can appear in them.
  */
 
-// Every step carries a real phone capture, used on small screens (and for the
-// wallet step on every screen, since the wallet only exists on a phone).
+// Every step carries a real phone capture, used for each
+// app tour step on small screens.
 // Taken from a fresh headless profile, so no personal data can appear.
 const SCREENS: { src: string; alt: string; eyebrow: string; title: string; body: string; appHref: string }[] = [
   {
     src: '/screens/mobile/chat.webp',
-    alt: 'The Alice chat screen on a phone, showing a question and Alice’s answer',
+    alt: 'The updated Alice chat on a phone, with the rabbit beside its greeting and model controls below',
     eyebrow: 'Ask Alice',
     title: 'Chat with Alice',
     body: 'The companion at the heart of the app. Ask in plain words, get answers at your level: Alice remembers what you are learning, on your device, and picks the next step with you.',
@@ -57,46 +59,18 @@ const SCREENS: { src: string; alt: string; eyebrow: string; title: string; body:
     body: 'A sandbox with real rules. A real Bitcoin wallet on Mutinynet, a test network with free coins: send, receive, back up, and make every mistake here instead of on mainnet.',
     appHref: `${APP_URL}/playground`,
   },
-  {
-    src: '/screens/mobile/wallet.webp',
-    alt: 'Alice Wallet on a phone, its welcome screen offering to create or import a wallet',
-    eyebrow: 'Wallet',
-    title: 'Get Alice Wallet',
-    body: 'When practice becomes real: the everyday wallet, with the same Alice beside you. It runs on your phone only for now, and it is a beta on Bitcoin mainnet, so keep the amounts small while it is validated.',
-    appHref: WALLET_URL,
-  },
-];
 
-// The step whose screen is a phone rather than the desktop app. The wallet has
-// no desktop build yet, and showing it in a browser window would say otherwise.
-const WALLET_STEP = 4;
+];
 
 function WindowFrame({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-[6px] border-2 border-[var(--alice-border)] bg-[var(--alice-card-bg)]">
-      <div className="flex items-center gap-2 border-b-2 border-[var(--alice-border)] px-4 py-2.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-[var(--alice-border)]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[var(--alice-border)]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[var(--alice-border)]" />
-        <span className="ml-2 font-pixel text-[10px] uppercase tracking-widest text-[var(--alice-muted)]">
+    <div className="overflow-hidden rounded-[4px] border border-[var(--alice-border)] bg-[var(--alice-bg)]">
+      <div className="flex items-center gap-2 border-b border-[var(--alice-border)] px-4 py-2.5">
+        <span className="font-pixel text-[10px] uppercase tracking-widest text-[var(--alice-muted)]">
           {label}
         </span>
       </div>
       <div className="relative aspect-[16/10]">{children}</div>
-    </div>
-  );
-}
-
-// A phone standing in the stage, for screens that only exist on a phone (the
-// wallet on desktop) and for the whole tour on small screens.
-function PhoneScreen({ src, alt, className }: { src: string; alt: string; className?: string }) {
-  return (
-    <div
-      className={`overflow-hidden rounded-[16px] border-2 border-[var(--alice-border)] bg-[var(--alice-bg)] ${className ?? ''}`}
-      style={{ aspectRatio: '390 / 844' }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} loading="lazy" className="h-full w-full object-cover object-top" />
     </div>
   );
 }
@@ -111,10 +85,10 @@ function PhoneScreen({ src, alt, className }: { src: string; alt: string; classN
 // The app's own icon set (copied from app-web's Sidebar, {{COLOR}} template
 // and all) so the miniature cannot drift from the real thing's shapes.
 const ICONS = {
-  newChat: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><rect x="1.6" y="1.6" width="12.8" height="12.8" rx="3" fill="{{COLOR}}" fill-opacity="0.45"/><path d="M7.1 4.4h1.8v2.7h2.7v1.8H8.9v2.7H7.1V8.9H4.4V7.1h2.7z" fill="{{COLOR}}"/></svg>`,
-  explorer: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><rect x="2" y="2" width="12" height="5" rx="1.5" fill="{{COLOR}}" fill-opacity="0.45"/><rect x="2" y="6.5" width="12" height="7.5" rx="1.5" fill="{{COLOR}}"/></svg>`,
-  learn: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><rect x="2" y="2" width="3" height="10" fill="{{COLOR}}" fill-opacity="0.45"/><rect x="6" y="4" width="3" height="8" fill="{{COLOR}}" fill-opacity="0.45"/><rect x="10" y="3" width="3" height="9" fill="{{COLOR}}" fill-opacity="0.45"/><rect x="1" y="12" width="14" height="2" fill="{{COLOR}}"/></svg>`,
-  playground: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><rect x="5" y="2.5" width="6" height="5" rx="1" fill="{{COLOR}}"/><rect x="1.5" y="8.5" width="6" height="5" rx="1" fill="{{COLOR}}" fill-opacity="0.45"/><rect x="8.5" y="8.5" width="6" height="5" rx="1" fill="{{COLOR}}" fill-opacity="0.45"/></svg>`,
+  newChat: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="16" height="16" fill="{{COLOR}}" shape-rendering="crispEdges" aria-hidden="true"><path d="M9 2h2v7h7v2h-7v7H9v-7H2V9h7z"/></svg>`,
+  explorer: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="16" height="16" fill="{{COLOR}}" shape-rendering="crispEdges" aria-hidden="true"><path d="M6 1h8v2h3v3h2v8h-2v3h-3v2H6v-2H3v-3H1V6h2V3h3zm0 2v2H4v2H3v6h1v2h2v2h8v-2h2v-2h1V7h-1V5h-2V3zm6 3h3l-3 6-7 3 3-7zm-2 3-2 3 3-1 1-3z"/></svg>`,
+  learn: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="16" height="16" fill="{{COLOR}}" shape-rendering="crispEdges" aria-hidden="true"><path d="M1 3h7l2 2 2-2h7v13h-7l-2 2-2-2H1zm2 2v9h5l1 1V6L7 5zm8 1v9l1-1h5V5h-4z"/></svg>`,
+  playground: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="16" height="16" fill="{{COLOR}}" shape-rendering="crispEdges" aria-hidden="true"><path d="M4 4h12v2h2v10h-4v-2H6v2H2V6h2zm0 2v8h1v-2h10v2h1V6zm2 1h2v2h2v2H8v2H6v-2H4V9h2zm6 1h2v2h-2zm2 3h2v2h-2z"/></svg>`,
 };
 
 function MiniIcon({ svg, size, color = 'var(--alice-primary)' }: { svg: string; size: number; color?: string }) {
@@ -155,11 +129,11 @@ function MiniSidebar({ active }: { active: number }) {
           key={item.label}
           className="flex items-center gap-2.5 px-4 py-3 transition-colors duration-300"
           style={{
-            color: 'var(--alice-text)',
-            backgroundColor: i === activeItem ? 'var(--alice-bg)' : 'transparent',
+            color: i === activeItem ? 'var(--alice-heading)' : 'var(--alice-muted)',
+            backgroundColor: 'transparent',
           }}
         >
-          <MiniIcon svg={item.icon} size={15} />
+          <MiniIcon svg={item.icon} size={15} color="currentColor" />
           <span className="whitespace-nowrap text-[13px] leading-none">{item.label}</span>
         </span>
       ))}
@@ -242,6 +216,9 @@ function MiniChat({ visible }: { visible: boolean }) {
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (typingTimer.current) clearTimeout(typingTimer.current); }, []);
   const typed = useTypedPlaceholder(visible && !focused && value === '');
 
   const go = (question: string) => {
@@ -258,19 +235,21 @@ function MiniChat({ visible }: { visible: boolean }) {
         backgroundColor: 'var(--alice-bg)',
       }}
       aria-hidden={!visible}
+      inert={!visible}
     >
-      <div className="flex flex-1 flex-col justify-center gap-5 px-7">
-        <p className="text-[16px] font-semibold text-[var(--alice-heading)]">
-          Hi! What would you like to learn about today?
-        </p>
-        <div className="grid grid-cols-2 gap-3">
+      <div className="flex flex-1 flex-col justify-end gap-3 px-5 pb-3">
+        <div className="flex items-center gap-3">
+          <svg width="28" height="32" viewBox="0 0 40 40" fill="currentColor" className="shrink-0 text-[var(--alice-primary)]" aria-hidden="true"><path d={typing ? rabbitPaths.attention : rabbitPaths.repos} /></svg>
+          <p className="text-[14px] leading-relaxed text-[var(--alice-heading)]">Hi! What would you like to learn about today?</p>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 pl-10">
           {APP_SUGGESTIONS.map((question) => (
             <button
               key={question}
               type="button"
               disabled={submitting}
               onClick={() => go(question)}
-              className="cursor-pointer rounded-[3px] border border-[var(--alice-border)] bg-transparent px-4 py-3.5 text-left text-[13px] text-[var(--alice-text)] transition-colors hover:border-[var(--alice-primary)]"
+              className="mini-suggestion"
             >
               {question}
             </button>
@@ -278,33 +257,33 @@ function MiniChat({ visible }: { visible: boolean }) {
         </div>
       </div>
       <form
-        className="px-7 pb-7"
+        className="pl-[60px] pr-5 pb-5"
         onSubmit={(e) => {
           e.preventDefault();
           if (value.trim()) go(value.trim());
         }}
       >
-        <div className="flex flex-col gap-2.5 rounded-[3px] border border-[var(--alice-border)] px-4 py-3 focus-within:border-[var(--alice-primary)]">
+        <div className="flex flex-col gap-4 rounded-[4px] border border-[var(--alice-border)] px-4 py-3 focus-within:border-[var(--alice-primary)]">
           <input
             type="text"
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => { setValue(e.target.value); setTyping(true); if (typingTimer.current) clearTimeout(typingTimer.current); typingTimer.current = setTimeout(() => setTyping(false), 1600); }}
             disabled={submitting}
             onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            onBlur={() => { setFocused(false); setTyping(false); }}
             placeholder={typed || 'Ask Alice something...'}
             aria-label="Ask Alice a question"
             className="w-full bg-transparent text-[14px] text-[var(--alice-heading)] placeholder:text-[var(--alice-muted)] focus:outline-none"
           />
           <div className="flex items-center justify-end gap-3">
-            <span className="text-[11px] font-semibold text-[var(--alice-heading)]">Private</span>
+            <span className="inline-flex items-center gap-2 text-[10px] leading-none" aria-label="Model: Private. Reasoning: Medium."><span className="text-[var(--alice-heading)]">Private</span><span className="text-[var(--alice-muted)]">Medium</span></span>
             <button
               type="submit"
               disabled={submitting}
               aria-label={submitting ? 'Opening Alice' : 'Ask Alice'}
-              className="raise flex h-7 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[3px] bg-[var(--alice-primary)] text-[13px] font-bold text-[var(--alice-on-primary)] disabled:cursor-wait"
+              className="cta-solid flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[3px] text-[var(--alice-on-primary)] disabled:cursor-wait"
             >
-              {submitting ? '·' : '↑'}
+              {submitting ? '·' : <SendIcon size={14} />}
             </button>
           </div>
         </div>
@@ -326,44 +305,32 @@ const BLOCK_TILES = [
 function MiniExplorer({ visible }: { visible: boolean }) {
   return (
     <MiniPane visible={visible}>
-      <div className="px-7 pt-6">
-        <p className="font-pixel text-[10px] uppercase tracking-widest text-[var(--alice-primary)]">
-          Live blocks
-        </p>
-        <div className="mt-3 grid grid-cols-4 gap-2.5">
-          {BLOCK_TILES.map((block) => (
-            <div
-              key={block.height}
-              className={`rounded-[3px] border px-3 py-2.5 ${
-                block.pending
-                  ? 'border-dashed border-[var(--alice-border)]'
-                  : 'border-[var(--alice-border)] border-t-[3px] border-t-[#57d38c]'
-              }`}
-            >
-              <p className="font-pixel text-[10px] text-[var(--alice-heading)]">{block.height}</p>
-              <p className="mt-1.5 text-[11px] text-[#57d38c]">{block.fee}</p>
-              <p className="mt-0.5 text-[11px] text-[var(--alice-muted)]">{block.tx}</p>
+      <div className="px-5 pt-5">
+        <p className="font-pixel text-[10px] text-[var(--alice-muted)]">Live blocks</p>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {BLOCK_TILES.slice(0, 3).map((block) => (
+            <div key={block.height} className={`min-w-0 rounded-[4px] border px-2 py-2 ${block.pending ? 'border-dashed border-[var(--alice-border)]' : 'border-[var(--alice-border)] border-t-2 border-t-[var(--alice-primary)]'}`}>
+              <p className="text-[11px] font-medium text-[var(--alice-heading)]">{block.height}</p>
+              <p className="mt-1 text-[10px] text-[var(--alice-muted)]">{block.fee}</p>
             </div>
           ))}
         </div>
+        <div className="mt-4 flex items-center gap-4 border-b border-[var(--alice-border)] pb-2 text-[11px]">
+          <span className="inline-flex items-center gap-1 text-[var(--alice-muted)]">Bitcoin <ChevronDownIcon size={10} /></span>
+          <span className="text-[var(--alice-heading)]">Transaction</span>
+        </div>
       </div>
-      <div className="flex flex-1 flex-col justify-center px-7 pb-5">
-        <p className="font-pixel text-[10px] uppercase tracking-widest text-[var(--alice-primary)]">
-          Transaction
-        </p>
-        <svg viewBox="0 0 420 150" className="mt-2 w-full">
+      <div className="flex flex-1 flex-col justify-center px-5 pb-4">
+        <p className="text-[11px] text-[var(--alice-muted)]">Transaction flow</p>
+        <svg viewBox="0 0 420 150" className="mt-2 max-h-[110px] w-full" aria-hidden="true">
           <path d="M0,45 C120,45 130,72 205,72" fill="none" stroke="var(--alice-primary)" strokeOpacity="0.45" strokeWidth="14" />
           <path d="M0,110 C120,110 130,84 205,84" fill="none" stroke="var(--alice-primary)" strokeOpacity="0.45" strokeWidth="9" />
           <path d="M215,70 C290,70 300,32 420,32" fill="none" stroke="var(--alice-primary)" strokeWidth="11" />
           <path d="M215,78 C290,78 300,78 420,78" fill="none" stroke="var(--alice-primary)" strokeWidth="8" />
           <path d="M215,86 C290,86 300,124 420,124" fill="none" stroke="var(--alice-primary)" strokeWidth="5" />
-          <rect x="203" y="58" width="12" height="40" rx="2" fill="var(--alice-heading)" />
+          <rect x="203" y="58" width="12" height="40" fill="var(--alice-heading)" />
         </svg>
-        <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--alice-muted)]">
-          <span>2 inputs · 0.50 BTC</span>
-          <span className="font-mono">f4184f...e26b</span>
-          <span>3 outputs</span>
-        </div>
+        <div className="mt-2 flex justify-between text-[10px] text-[var(--alice-muted)]"><span>2 inputs · 0.50 BTC</span><span>3 outputs</span></div>
       </div>
     </MiniPane>
   );
@@ -374,14 +341,14 @@ function MiniExplorer({ visible }: { visible: boolean }) {
 function MiniLearn({ visible }: { visible: boolean }) {
   return (
     <MiniPane visible={visible}>
-      <div className="flex flex-1 flex-col justify-center px-7">
+      <div className="flex flex-1 flex-col justify-center px-5">
         <p className="font-pixel text-[10px] uppercase tracking-widest text-[var(--alice-primary)]">
-          BTC101 · Beginner · Chapter 1
+          BTC101
         </p>
-        <h4 className="mt-3 text-[19px] font-semibold text-[var(--alice-heading)]">
+        <h4 className="mini-course-title mt-3 text-[19px] text-[var(--alice-heading)]">
           The Bitcoin Journey
         </h4>
-        <p className="mt-3 text-[13px] leading-relaxed text-[var(--alice-text)]">
+        <p className="mt-3 text-[12px] leading-relaxed text-[var(--alice-text)]">
           Money has changed shape many times: shells, gold, paper, plastic.
           Bitcoin is the next step, the first money that lives on the internet
           and belongs to no company and no state. In this course you will
@@ -389,9 +356,7 @@ function MiniLearn({ visible }: { visible: boolean }) {
           it yourself.
         </p>
         <div className="mt-5">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--alice-border)]">
-            <div className="h-full w-[8%] rounded-full bg-[var(--alice-primary)]" />
-          </div>
+          <div className="mini-course-progress" aria-hidden="true">{Array.from({ length: 25 }, (_, i) => <span key={i} />)}</div>
           <p className="mt-2 text-[11px] text-[var(--alice-muted)]">Chapter 1 of 25 · 7h</p>
         </div>
       </div>
@@ -401,34 +366,20 @@ function MiniLearn({ visible }: { visible: boolean }) {
 
 // The wallet, reduced to balance and actions. Everything on Mutinynet, and
 // the pane says so the same way the app does.
-function MiniWallet({ visible }: { visible: boolean }) {
+function MiniPlayground({ visible }: { visible: boolean }) {
   return (
     <MiniPane visible={visible}>
-      <div className="flex items-center justify-between px-7 pt-6">
-        <p className="font-pixel text-[11px] uppercase tracking-widest text-[var(--alice-heading)]">
-          Playground
-        </p>
-        <span className="rounded-[2px] bg-[#e5484d] px-2 py-1 font-pixel text-[8px] uppercase tracking-wider text-white">
-          Mutinynet · Test funds
-        </span>
+      <div className="px-5 pt-5">
+        <div className="flex items-center justify-between gap-2"><p className="font-pixel text-[10px] text-[var(--alice-heading)]">Playground</p><span className="text-[10px] text-[var(--alice-muted)]">Mutinynet</span></div>
+        <p className="mt-3 text-[11px] leading-relaxed text-[var(--alice-muted)]">Learn by experimenting. These sats have no real value.</p>
       </div>
-      <p className="mx-7 mt-3 border border-dashed border-[#e5484d] px-3 py-2 text-center font-pixel text-[8px] uppercase tracking-wider text-[#ff8a8e]">
-        A place to learn and experiment. These sats have no real value.
-      </p>
-      <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <div className="text-center">
-          <p className="font-pixel text-[26px] text-[var(--alice-heading)]">21,000</p>
-          <p className="mt-1.5 text-[12px] text-[var(--alice-muted)]">sats · free from the faucet</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {['Send', 'Receive', 'Free sats'].map((label) => (
-            <span
-              key={label}
-              className="rounded-[3px] border-2 border-[var(--alice-border)] px-5 py-3 font-pixel text-[11px] uppercase tracking-wider text-[var(--alice-heading)]"
-            >
-              {label}
-            </span>
-          ))}
+      <div className="flex flex-1 flex-col items-center justify-center gap-5 px-5">
+        <div className="text-center"><p className="font-pixel text-[21px] text-[var(--alice-primary)]">21,000</p><p className="mt-2 text-[11px] text-[var(--alice-muted)]">test sats</p></div>
+        <span className="inline-flex items-center gap-2 text-[11px] text-[var(--alice-muted)]"><RefreshIcon size={13} /> Refresh</span>
+        <div className="flex w-full justify-center gap-3 text-[11px] text-[var(--alice-primary)]">
+          <span className="inline-flex items-center gap-1.5 py-2"><SendIcon size={14} /> Send</span>
+          <span className="inline-flex items-center gap-1.5 py-2"><ReceiveIcon size={14} /> Receive</span>
+          <span className="inline-flex items-center py-2">Free sats</span>
         </div>
       </div>
     </MiniPane>
@@ -437,12 +388,12 @@ function MiniWallet({ visible }: { visible: boolean }) {
 
 function MiniApp({ active }: { active: number }) {
   return (
-    <div className="absolute inset-0 flex">
+    <div className="mini-app absolute inset-0 flex">
       <MiniSidebar active={active} />
       <div className="relative flex-1" style={{ backgroundColor: 'var(--alice-bg)' }}>
         <MiniExplorer visible={active === 1} />
         <MiniLearn visible={active === 2} />
-        <MiniWallet visible={active === 3} />
+        <MiniPlayground visible={active === 3} />
         <MiniChat visible={active <= 0} />
       </div>
     </div>
@@ -456,7 +407,7 @@ function MobilePhoneStack({ active }: { active: number }) {
   const current = Math.max(active, 0);
   return (
     <div
-      className="relative h-[40vh] overflow-hidden rounded-[16px] border-2 border-[var(--alice-border)] bg-[var(--alice-bg)]"
+      className="relative h-[40vh] overflow-hidden rounded-[16px] border border-[var(--alice-border)] bg-[var(--alice-bg)]"
       style={{ aspectRatio: '390 / 844' }}
     >
       {SCREENS.map((screen, i) => (
@@ -502,7 +453,7 @@ export function HeroTour() {
   }, []);
 
   return (
-    <section id="app" className="mx-auto max-w-6xl scroll-mt-24 px-5 pt-16 sm:pt-20">
+    <section data-tour-step={active} id="app" className="mx-auto max-w-6xl scroll-mt-24 px-5 pt-16 sm:pt-20">
       <div ref={zoneRef} className="lg:grid lg:grid-cols-[5fr_6fr] lg:gap-12">
         {/* Left column: hero, proofs, then the tour steps. */}
         <div>
@@ -559,7 +510,7 @@ export function HeroTour() {
               <a
                 href={screen.appHref}
                 {...externalLinkProps(screen.appHref)}
-                className="raise mt-6 inline-flex w-fit items-center gap-2 rounded-[3px] border-2 border-[var(--alice-primary)] px-5 py-2.5 text-[15px] font-semibold text-[var(--alice-primary)]"
+                className="raise mt-6 inline-flex w-fit items-center gap-2 rounded-[3px] border border-[var(--alice-primary)] px-5 py-2.5 text-[15px] font-semibold text-[var(--alice-primary)]"
               >
                 {screen.title} →
               </a>
@@ -571,27 +522,11 @@ export function HeroTour() {
             the app. Welcome screen first, the other rooms during the tour,
             unpinned after the last step. */}
         <div className="hidden lg:block">
-          <div className="sticky top-24 pt-2">
+          <div data-tour-panel className="sticky top-24 pt-2">
             <WindowFrame
-              label={active === WALLET_STEP ? 'Alice Wallet · on your phone' : 'app.alicebtc.com'}
+              label="app.alicebtc.com"
             >
               <MiniApp active={active} />
-              {/* The wallet has no desktop build, so its step swaps the whole
-                  app for a phone standing in the same stage. */}
-              <div
-                className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center transition-opacity duration-300"
-                style={{
-                  opacity: active === WALLET_STEP ? 1 : 0,
-                  backgroundColor: 'var(--alice-bg)',
-                }}
-                aria-hidden={active !== WALLET_STEP}
-              >
-                <PhoneScreen
-                  src={SCREENS[WALLET_STEP].src}
-                  alt={SCREENS[WALLET_STEP].alt}
-                  className="h-[88%]"
-                />
-              </div>
             </WindowFrame>
           </div>
         </div>

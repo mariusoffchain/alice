@@ -21,11 +21,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { detectSensitiveInput, useChat } from '@alice-wallet/alice-ai';
-import { AliceIcon } from '@/components/AliceIcon';
-import { AskAliceIcon } from '@/components/AskAliceIcon';
-import { ChatMessage } from '@/components/ChatMessage';
 import { ModelSelector } from '@/components/ModelSelector';
-import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { SideChatConversation } from '@/components/SideChatConversation';
+import { SendMessageButton } from '@/components/SendMessageButton';
+import { SvgIcon } from '@/components/SvgIcon';
+import { PLUS_ICON, CLOSE_ICON, ATTACHMENT_ICON, EYE_OPEN_ICON, EYE_CLOSED_ICON } from '@/lib/atelier-icons';
 import { composeAskAlice, type FullContext } from '@/lib/explorer/ask-alice';
 import { renderAbstractSignal, toAbstractSignal } from '@/lib/explorer/audit-core';
 import type { PrivacySignal } from '@/lib/explorer/signals';
@@ -85,38 +85,13 @@ function forbid(text: string): boolean {
   return detectSensitiveInput(text) !== null;
 }
 
-// Eye glyphs for the identified-mode toggle, hand-rolled like the app's other
-// SVG icons (see BrainIcon): open eye = identified, closed eye = de-identified.
-function EyeOpenIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
-      <circle cx="12" cy="12" r="2.5" />
-    </svg>
-  );
-}
+// Pixel eye glyphs preserve the identified/de-identified distinction.
+function EyeOpenIcon() { return <SvgIcon svg={EYE_OPEN_ICON} size={16} />; }
 
-function EyeClosedIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2 11s3.5 5 10 5 10-5 10-5" />
-      <path d="M4.5 14.8 3 17.2" />
-      <path d="M12 16.2v2.8" />
-      <path d="M19.5 14.8 21 17.2" />
-    </svg>
-  );
-}
+function EyeClosedIcon() { return <SvgIcon svg={EYE_CLOSED_ICON} size={16} />; }
 
-// Chain-link glyph, mail-attachment style: hand-rolled like the app's other
-// SVG icons (see BrainIcon).
-function LinkIcon({ size = 12 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7" />
-      <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7" />
-    </svg>
-  );
-}
+// Attachment glyph shared with the Learn composer.
+function LinkIcon() { return <SvgIcon svg={ATTACHMENT_ICON} size={16} />; }
 
 // The page analysis as ONE compact attachment chip, sitting next to the send
 // button. Its label is the page's short identifier (last characters of the
@@ -139,15 +114,14 @@ function AttachmentChip({
 }) {
   return (
     <div
-      className="flex items-center gap-2 min-w-0"
-      style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)', padding: '5px 8px' }}
+      className="alice-attachment"
     >
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
         title="Show the exact text sent to the model"
-        className="flex items-center gap-1.5 cursor-pointer bg-transparent border-none p-0 min-w-0"
+        className="alice-control alice-control--quiet alice-attachment-label"
       >
         <span className="shrink-0 flex items-center" style={{ color: 'var(--alice-muted)' }}>
           <LinkIcon />
@@ -165,26 +139,10 @@ function AttachmentChip({
         type="button"
         onClick={onRemove}
         aria-label="Remove this attachment"
-        className="shrink-0 cursor-pointer bg-transparent border-none p-0"
-        style={{ color: 'var(--alice-muted)', fontSize: 13, lineHeight: '13px' }}
+        className="alice-control alice-control--tool"
       >
-        ×
+        <SvgIcon svg={CLOSE_ICON} size={16} />
       </button>
-    </div>
-  );
-}
-
-function TypingIndicator() {
-  return (
-    <div className="flex items-center gap-2 px-4 py-2">
-      <AliceIcon size={22} color="var(--alice-primary)" />
-      {[0, 0.2, 0.4].map(delay => (
-        <span
-          key={delay}
-          className="w-1.5 h-1.5 rounded-full animate-bounce"
-          style={{ backgroundColor: 'var(--alice-muted)', animationDelay: `${delay}s`, animationDuration: '1.4s' }}
-        />
-      ))}
     </div>
   );
 }
@@ -219,7 +177,6 @@ export function AskAliceDock({
   onClose: () => void;
 }) {
   const {
-    messages,
     input,
     setInput,
     send,
@@ -246,7 +203,6 @@ export function AskAliceDock({
   const [identifiedPrompt, setIdentifiedPrompt] = useState(false);
   const [dontShowIdentified, setDontShowIdentified] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
-  const scrollRef = useAutoScroll([messages, busy]);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const disclaimerOpen = useRef(false);
   disclaimerOpen.current = disclaimer !== null;
@@ -355,97 +311,39 @@ export function AskAliceDock({
           : 'This includes identifying data, so it can only be sent to a local model, and none is available here. It is never sent off this device.'
         : null;
 
-  const latestUserIndex = messages.reduce((latest, m, i) => (m.role === 'user' ? i : latest), -1);
-  const replyStarted = latestUserIndex >= 0 && messages
-    .slice(latestUserIndex + 1)
-    .some(m => m.role === 'assistant' && m.content.trim().length > 0);
-
   return (
     <div
-      className="relative flex flex-col h-full w-full min-h-0"
+      className="alice-ask-panel relative flex flex-col h-full w-full min-h-0"
       aria-label="Ask Alice"
       style={{ backgroundColor: 'var(--alice-bg-soft)' }}
     >
-      {/* Slim header, wallet-mobile style: the model selector and the close
-          control, nothing else. */}
-      <div className="flex items-center justify-between px-4 py-2 shrink-0">
-        <ModelSelector
-          backendType={backendType}
-          setBackendType={setBackendType}
-          setAiEnabled={setAiEnabled}
-          compactLabel
-          placement="below"
-        />
+      {/* Conversation actions stay at the top; model choices live by the input. */}
+      <div className="flex items-center justify-end px-4 py-2 shrink-0">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => clearMessages()}
-            className="cursor-pointer bg-transparent border-none"
-            style={{ color: 'var(--alice-muted)', fontSize: 18, lineHeight: '18px' }}
+            className="alice-control alice-control--tool"
             aria-label="New conversation"
             title="New conversation"
           >
-            +
+            <SvgIcon svg={PLUS_ICON} size={16} />
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer bg-transparent border-none"
-            style={{ color: 'var(--alice-muted)', fontSize: 18, lineHeight: '18px' }}
+            className="alice-control alice-control--tool"
             aria-label="Close"
           >
-            ×
+            <SvgIcon svg={CLOSE_ICON} size={16} />
           </button>
         </div>
       </div>
 
-      {/* Conversation; empty, it becomes the invitation: Ask Alice, and some
-          ideas to start from. They vanish once the conversation exists. */}
-      <div
-        ref={scrollRef}
-        className={messages.length === 0
-          ? 'flex flex-col items-center justify-center gap-4 px-6 flex-1 overflow-y-auto'
-          : 'flex flex-col gap-1 px-4 py-3 flex-1 overflow-y-auto overflow-x-hidden'}
-        style={{ overflowWrap: 'anywhere' }}
-      >
-        {messages.length === 0 ? (
-          <>
-            <AskAliceIcon size={44} />
-            <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-primary)' }}>
-              ASK ALICE
-            </span>
-            <div className="flex flex-col items-stretch gap-2 w-full" style={{ maxWidth: 300 }}>
-              {questionChips.map(q => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => requestSend(q)}
-                  disabled={busy}
-                  className="font-numbers cursor-pointer disabled:cursor-not-allowed"
-                  style={{ fontSize: 13, padding: '8px 12px', border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-primary)' }}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          <>
-            {(() => {
-              const streamingId = busy && replyStarted
-                ? [...messages].reverse().find(m => m.role === 'assistant' && m.content)?.id
-                : undefined;
-              return messages.map(m => (
-                <ChatMessage key={m.id} message={m} compact streaming={m.id === streamingId} />
-              ));
-            })()}
-            {busy && !replyStarted && <TypingIndicator />}
-          </>
-        )}
-      </div>
+      <SideChatConversation input={input} questions={questionChips} onQuestion={requestSend} disabled={decision.blocked || !backendAllowed} />
 
       {/* Composer: attachments, prefilled questions, input, reason. */}
-      <div className="flex flex-col gap-2 px-4 py-3 shrink-0" style={{ borderTop: '1px solid var(--alice-border)' }}>
+      <div className="alice-panel-composer flex flex-col gap-2 shrink-0">
         {decision.blocked && (
           <div className="flex flex-col gap-1 px-3 py-2" style={{ border: `1px solid ${ERROR_COLOR}`, borderRadius: 2 }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: ERROR_COLOR }}>NOTHING SENT</span>
@@ -477,14 +375,14 @@ export function AskAliceDock({
           </div>
         )}
 
-        {/* Borderless composer: the section's top border is separation enough.
-            The attachment chip shares the bottom row with the send button. */}
+        {/* The framed composer keeps context review above model and send controls. */}
         <textarea
+          aria-label="Message Alice"
           ref={composerRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               requestSend();
             }
@@ -524,30 +422,21 @@ export function AskAliceDock({
               title={fullMode
                 ? 'Identified mode on: the page\'s full details, identifiers included, ride along. Click to go back to de-identified.'
                 : 'De-identified mode: only abstract signals ride along. Click to send the full page details instead.'}
-              className="w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer"
-              style={{
-                border: 'none',
-                borderRadius: 2,
-                backgroundColor: fullMode ? 'var(--alice-primary)' : 'transparent',
-                color: fullMode ? 'var(--alice-on-primary)' : 'var(--alice-muted)',
-              }}
+              className="alice-control alice-control--tool alice-context-toggle"
             >
               {fullMode ? <EyeOpenIcon /> : <EyeClosedIcon />}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => requestSend()}
-            disabled={!input.trim() || busy || !aiEnabled || decision.blocked || !backendAllowed}
-            className="w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-            style={{ backgroundColor: 'var(--alice-text)', borderRadius: 2 }}
-            aria-label="Send"
-          >
-            <span className="font-pixel leading-none" style={{ color: 'var(--alice-bg)', fontSize: 18, transform: 'translateY(1px)' }}>
-              ↑
-            </span>
-          </button>
           </div>
+        </div>
+        <div className="alice-panel-controls">
+          <ModelSelector
+            backendType={backendType}
+            setBackendType={setBackendType}
+            setAiEnabled={setAiEnabled}
+            placement="composer"
+          />
+          <SendMessageButton onClick={() => requestSend()} disabled={!input.trim() || busy || !aiEnabled || decision.blocked || !backendAllowed} />
         </div>
         {reason && (
           <p className="font-numbers m-0" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{reason}</p>
@@ -575,8 +464,7 @@ export function AskAliceDock({
               <button
                 type="button"
                 onClick={() => setIdentifiedPrompt(false)}
-                className="font-pixel tracking-widest cursor-pointer"
-                style={{ fontSize: 10, padding: '9px 14px', border: '2px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-muted)' }}
+                className="alice-control alice-control--quiet"
               >
                 CANCEL
               </button>
@@ -589,8 +477,7 @@ export function AskAliceDock({
                   setFullMode(true);
                   setIdentifiedPrompt(false);
                 }}
-                className="font-pixel tracking-widest cursor-pointer"
-                style={{ fontSize: 10, padding: '9px 14px', border: '2px solid var(--alice-primary)', borderRadius: 2, backgroundColor: 'var(--alice-primary)', color: 'var(--alice-on-primary)' }}
+                className="alice-control alice-control--primary"
               >
                 TURN ON
               </button>
@@ -619,16 +506,14 @@ export function AskAliceDock({
               <button
                 type="button"
                 onClick={() => setDisclaimer(null)}
-                className="font-pixel tracking-widest cursor-pointer"
-                style={{ fontSize: 10, padding: '9px 14px', border: '2px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-muted)' }}
+                className="alice-control alice-control--quiet"
               >
                 CANCEL
               </button>
               <button
                 type="button"
                 onClick={confirmDisclaimer}
-                className="font-pixel tracking-widest cursor-pointer"
-                style={{ fontSize: 10, padding: '9px 14px', border: '2px solid var(--alice-primary)', borderRadius: 2, backgroundColor: 'var(--alice-primary)', color: 'var(--alice-on-primary)' }}
+                className="alice-control alice-control--primary"
               >
                 OK, ASK
               </button>

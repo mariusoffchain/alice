@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { SvgIcon } from '@/components/SvgIcon';
+import { COPY_ICON, CHECK_ICON, EDIT_ICON, DELETE_ICON, CHEVRON_LEFT_ICON, CHEVRON_RIGHT_ICON } from '@/lib/atelier-icons';
 import { AliceIcon } from '@/components/AliceIcon';
 import { splitAskAliceMessage, type MessageAttachment } from '@/lib/explorer/ask-alice';
 import { useOpenSettings } from '@/lib/settings-url';
@@ -11,6 +13,8 @@ interface ChatMessageProps {
   /** Panel mode (the Explorer sidebar): no left avatar (narrow column), a
       small Alice mark sits next to the timestamp instead. */
   compact?: boolean;
+  /** The main chat has a single fixed mascot outside its message history. */
+  showAvatar?: boolean;
   /** True while this assistant reply is still being written: shows the
       blinking terminal cursor at the end of the streamed text. */
   streaming?: boolean;
@@ -125,7 +129,7 @@ function TruncatedNotice() {
       style={{
         fontSize: 14,
         lineHeight: '20px',
-        opacity: 0.6,
+        opacity: 1,
         paddingTop: 8,
         borderTop: '1px solid var(--alice-border)',
       }}
@@ -177,21 +181,12 @@ function QuotaNotice({ kind }: { kind: 'free' | 'plan' }) {
         borderTop: '1px solid var(--alice-border)',
       }}
     >
-      <p className="m-0" style={{ opacity: 0.6 }}>{body}</p>
+      <p className="m-0" style={{ opacity: 1 }}>{body}</p>
       {action && (
         <button
           type="button"
           onClick={() => openSettings('account')}
-          className="font-pixel tracking-widest mt-3"
-          style={{
-            fontSize: 10,
-            padding: '8px 14px',
-            border: '2px solid var(--alice-primary)',
-            borderRadius: 2,
-            backgroundColor: 'transparent',
-            color: 'var(--alice-primary)',
-            cursor: 'pointer',
-          }}
+          className="alice-control alice-control--primary mt-3"
         >
           {action}
         </button>
@@ -219,42 +214,19 @@ function relativeTime(date: Date): string {
 // --- Icon components (inline SVG, no dependencies) ---
 
 function CopyIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="8" y="8" width="12" height="12" rx="2" />
-      <path d="M16 8v-2a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
-    </svg>
-  );
+  return <SvgIcon svg={COPY_ICON} size={16} />;
 }
 
 function CheckIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12l5 5l10-10" />
-    </svg>
-  );
+  return <SvgIcon svg={CHECK_ICON} size={16} />;
 }
 
 function TrashIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 7l16 0" />
-      <path d="M10 11l0 6" />
-      <path d="M14 11l0 6" />
-      <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12" />
-      <path d="M9 7v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
-    </svg>
-  );
+  return <SvgIcon svg={DELETE_ICON} size={16} />;
 }
 
 function EditIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 7h-1a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1" />
-      <path d="M20.385 6.585a2.1 2.1 0 0 0-2.97-2.97l-8.415 8.385v3h3l8.385-8.415z" />
-      <path d="M16 5l3 3" />
-    </svg>
-  );
+  return <SvgIcon svg={EDIT_ICON} size={16} />;
 }
 
 function GaugeIcon() {
@@ -312,19 +284,11 @@ function SigmaIcon() {
 }
 
 function ChevronLeftIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M15 6l-6 6l6 6" />
-    </svg>
-  );
+  return <SvgIcon svg={CHEVRON_LEFT_ICON} size={16} />;
 }
 
 function ChevronRightIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 6l6 6l-6 6" />
-    </svg>
-  );
+  return <SvgIcon svg={CHEVRON_RIGHT_ICON} size={16} />;
 }
 
 function VariantNav({ messageId, variants, activeVariant }: { messageId: string; variants: MessageVariant[]; activeVariant: number }) {
@@ -336,31 +300,23 @@ function VariantNav({ messageId, variants, activeVariant }: { messageId: string;
       <button
         onClick={() => setMessageVariant(messageId, activeVariant - 1)}
         disabled={activeVariant === 0}
-        style={{
-          background: 'none', border: 'none', cursor: activeVariant === 0 ? 'default' : 'pointer',
-          padding: 2, display: 'flex', alignItems: 'center',
-          color: 'var(--alice-primary)', opacity: activeVariant === 0 ? 0.15 : 0.5,
-          transition: 'opacity 0.15s',
-        }}
-        onMouseEnter={e => { if (activeVariant > 0) e.currentTarget.style.opacity = '0.8'; }}
-        onMouseLeave={e => { e.currentTarget.style.opacity = activeVariant === 0 ? '0.15' : '0.5'; }}
+        type="button"
+        aria-label="Previous version"
+        title="Previous version"
+        className="alice-control alice-control--tool"
       >
         <ChevronLeftIcon />
       </button>
-      <span style={{ fontSize: 10, color: 'var(--alice-primary)', opacity: 0.4, fontFamily: 'var(--font-numbers, monospace)', minWidth: 20, textAlign: 'center' }}>
+      <span style={{ fontSize: 10, color: 'var(--alice-muted)', opacity: 1, fontFamily: 'var(--font-numbers, monospace)', minWidth: 20, textAlign: 'center' }}>
         {activeVariant + 1}/{variants.length}
       </span>
       <button
         onClick={() => setMessageVariant(messageId, activeVariant + 1)}
         disabled={activeVariant === variants.length - 1}
-        style={{
-          background: 'none', border: 'none', cursor: activeVariant === variants.length - 1 ? 'default' : 'pointer',
-          padding: 2, display: 'flex', alignItems: 'center',
-          color: 'var(--alice-primary)', opacity: activeVariant === variants.length - 1 ? 0.15 : 0.5,
-          transition: 'opacity 0.15s',
-        }}
-        onMouseEnter={e => { if (activeVariant < variants.length - 1) e.currentTarget.style.opacity = '0.8'; }}
-        onMouseLeave={e => { e.currentTarget.style.opacity = activeVariant === variants.length - 1 ? '0.15' : '0.5'; }}
+        type="button"
+        aria-label="Next version"
+        title="Next version"
+        className="alice-control alice-control--tool"
       >
         <ChevronRightIcon />
       </button>
@@ -370,25 +326,10 @@ function VariantNav({ messageId, variants, activeVariant }: { messageId: string;
 
 // --- Action button ---
 
-function ActionButton({ onClick, title, children }: { onClick: () => void; title: string; children: React.ReactNode }) {
+function ActionButton({ onClick, title, children, danger = false }: { onClick: () => void; title: string; children: React.ReactNode; danger?: boolean }) {
   return (
-    <button
-      onClick={onClick}
-      title={title}
-      style={{
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: 4,
-        display: 'flex',
-        alignItems: 'center',
-        color: 'var(--alice-primary)',
-        opacity: 0.35,
-        transition: 'opacity 0.15s',
-      }}
-      onMouseEnter={e => { e.currentTarget.style.opacity = '0.8'; }}
-      onMouseLeave={e => { e.currentTarget.style.opacity = '0.35'; }}
-    >
+    <button type="button" onClick={onClick} title={title} aria-label={title}
+      className={`alice-control alice-control--tool${danger ? ' alice-control--danger' : ''}`}>
       {children}
     </button>
   );
@@ -399,8 +340,8 @@ function ActionButton({ onClick, title, children }: { onClick: () => void; title
 function MetricRow({ icon, label, value, unit, primary }: { icon: React.ReactNode; label: string; value: string; unit: string; primary?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-      <span style={{ fontSize: 13, color: 'var(--alice-primary)', opacity: 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ width: 12, height: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: 0.7 }}>
+      <span style={{ fontSize: 13, color: 'var(--alice-muted)', opacity: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 12, height: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: 1 }}>
           {icon}
         </span>
         {label}
@@ -408,10 +349,10 @@ function MetricRow({ icon, label, value, unit, primary }: { icon: React.ReactNod
       <span style={{
         fontSize: 13,
         fontFamily: 'monospace',
-        color: 'var(--alice-primary)',
-        opacity: primary ? 0.9 : 0.6,
+        color: 'var(--alice-muted)',
+        opacity: 1,
       }}>
-        {value} <span style={{ opacity: 0.5 }}>{unit}</span>
+        {value} <span style={{ opacity: 1 }}>{unit}</span>
       </span>
     </div>
   );
@@ -447,7 +388,7 @@ function TokenTooltip({ usage, durationMs }: { usage?: TokenUsage; durationMs?: 
         onMouseLeave={handleLeave}
         style={{
           cursor: 'pointer',
-          opacity: show ? 0.7 : 0.35,
+          opacity: 1,
           transition: 'opacity 0.15s',
           padding: 4,
           display: 'flex',
@@ -531,6 +472,7 @@ function EditableContent({ content, onSave, onCancel }: { content: string; onSav
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
       <textarea
+        aria-label="Edit message"
         ref={textareaRef}
         value={text}
         onChange={e => {
@@ -555,30 +497,13 @@ function EditableContent({ content, onSave, onCancel }: { content: string; onSav
       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
         <button
           onClick={onCancel}
-          className="font-numbers text-sm"
-          style={{
-            background: 'none',
-            border: '1px solid var(--alice-border)',
-            borderRadius: 4,
-            padding: '3px 10px',
-            color: 'var(--alice-text)',
-            cursor: 'pointer',
-            opacity: 0.6,
-          }}
+          className="alice-control alice-control--quiet"
         >
           Cancel
         </button>
         <button
           onClick={() => onSave(text)}
-          className="font-numbers text-sm"
-          style={{
-            background: 'var(--alice-accent, #6cf)',
-            border: 'none',
-            borderRadius: 4,
-            padding: '3px 10px',
-            color: '#000',
-            cursor: 'pointer',
-          }}
+          className="alice-control alice-control--primary"
         >
           Save
         </button>
@@ -597,6 +522,8 @@ function MessageActions({
   message: ChatMessageProps['message'];
   onEdit: () => void;
   compact?: boolean;
+  /** The main chat has a single fixed mascot outside its message history. */
+  showAvatar?: boolean;
 }) {
   const { deleteMessage } = useChat();
   const [copied, setCopied] = useState(false);
@@ -613,16 +540,18 @@ function MessageActions({
 
   return (
     <div
+      className="alice-message-actions"
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 2,
         paddingLeft: isUser || compact ? 0 : 42,
-        paddingTop: 2,
+        paddingTop: 4,
+        flexWrap: 'wrap',
         justifyContent: isUser ? 'flex-end' : 'flex-start',
       }}
     >
-      <span style={{ fontSize: 10, color: 'var(--alice-primary)', opacity: 0.3, marginRight: 4, fontFamily: 'var(--font-numbers, monospace)' }}>
+      <span style={{ fontSize: 10, color: 'var(--alice-muted)', opacity: 1, marginRight: 4, fontFamily: 'var(--font-numbers, monospace)' }}>
         {relativeTime(time)}
       </span>
 
@@ -634,7 +563,7 @@ function MessageActions({
         />
       )}
 
-      <ActionButton onClick={handleCopy} title="Copy">
+      <ActionButton onClick={handleCopy} title={copied ? "Copied" : "Copy"}>
         {copied ? <CheckIcon /> : <CopyIcon />}
       </ActionButton>
 
@@ -642,7 +571,7 @@ function MessageActions({
         <EditIcon />
       </ActionButton>
 
-      <ActionButton onClick={() => deleteMessage(message.id)} title="Delete">
+      <ActionButton onClick={() => deleteMessage(message.id)} title="Delete" danger>
         <TrashIcon />
       </ActionButton>
 
@@ -677,8 +606,8 @@ function SentAttachment({ att }: { att: MessageAttachment }) {
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
         title="Show the exact text sent to the model"
-        className="flex items-center gap-1.5 cursor-pointer"
-        style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)', padding: '4px 8px' }}
+        className="alice-control alice-control--quiet flex items-center gap-1.5"
+        style={{ padding: '4px 8px' }}
       >
         <span className="shrink-0 flex items-center" style={{ color: 'var(--alice-muted)' }}>
           <MiniLinkIcon />
@@ -708,7 +637,7 @@ function UserMessageBody({ content }: { content: string }) {
   const { question, attachments } = splitAskAliceMessage(content);
   return (
     <div className="flex flex-col gap-2">
-      <p className="font-numbers text-lg leading-[26px] m-0" style={{ color: 'var(--alice-primary)' }}>
+      <p className="font-numbers text-lg leading-[26px] m-0" style={{ color: 'var(--alice-text)' }}>
         {question || content || '...'}
       </p>
       {attachments.map(att => <SentAttachment key={att.kind} att={att} />)}
@@ -716,7 +645,7 @@ function UserMessageBody({ content }: { content: string }) {
   );
 }
 
-export function ChatMessage({ message, compact = false, streaming = false }: ChatMessageProps) {
+export function ChatMessage({ message, compact = false, streaming = false, showAvatar = true }: ChatMessageProps) {
   const { editMessage } = useChat();
   const [editing, setEditing] = useState(false);
 
@@ -724,7 +653,7 @@ export function ChatMessage({ message, compact = false, streaming = false }: Cha
     return (
       <div className="flex justify-center py-1">
         <p
-          className="font-pixel text-[10px] tracking-widest opacity-70 text-center"
+          className="font-pixel text-[10px] tracking-widest opacity-100 text-center"
           style={{ color: 'var(--alice-text)' }}
         >
           {message.content}
@@ -747,9 +676,9 @@ export function ChatMessage({ message, compact = false, streaming = false }: Cha
   };
 
   return (
-    <div>
+    <div className="alice-chat-message">
       <div className={`flex items-end gap-2 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-        {!isUser && !compact && (
+        {!isUser && !compact && showAvatar && (
           <div className="w-[30px] h-[30px] shrink-0 flex items-end">
             <AliceIcon size={30} color="var(--alice-primary)" />
           </div>
@@ -780,7 +709,7 @@ export function ChatMessage({ message, compact = false, streaming = false }: Cha
         </div>
       </div>
       {!editing && message.content && message.id !== 'greeting' && (
-        <MessageActions message={message} onEdit={() => setEditing(true)} compact={compact} />
+        <MessageActions message={message} onEdit={() => setEditing(true)} compact={compact || !showAvatar} />
       )}
     </div>
   );

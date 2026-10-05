@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { NEXT_ICON } from '@/lib/atelier-icons';
+
 import { useRouter } from 'next/navigation';
 import { chaptersForConcept } from '@alice-wallet/alice-content/src/learn-anchors';
 import type { PrivacySignal, SignalSeverity, SignalConfidence } from '@/lib/explorer/signals';
@@ -16,18 +19,18 @@ function SignalCard({ signal }: { signal: PrivacySignal }) {
   return (
     <div
       className="flex flex-col gap-2 px-4 py-3"
-      style={{ border: '1px solid var(--alice-border)', borderRadius: 2, borderLeft: `3px solid ${color}` }}
+      style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, borderLeft: `3px solid ${color}` }}
     >
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>
           {signal.title}
         </span>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: `1px solid ${color}`, borderRadius: 2, color }}>
+        <span className="font-numbers" style={{ fontSize: 10, padding: '3px 6px', border: `1px solid ${color}`, borderRadius: 3, color }}>
           {severityLabel(signal.severity)}
         </span>
         <span
-          className="font-pixel tracking-widest"
-          style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}
+          className="font-numbers"
+          style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 3, color: 'var(--alice-muted)' }}
           title="How sure this is, independent of how serious it is."
         >
           {confidenceLabel(signal.confidence)}
@@ -55,10 +58,10 @@ function LearnMoreLink({ ruleId }: { ruleId: string }) {
   return (
     <button
       onClick={() => router.push(`/learn/?course=${chapter.courseCode}&chapter=${chapter.chapterId}`)}
-      className="font-pixel self-start cursor-pointer hover:opacity-100 opacity-80 transition-opacity"
-      style={{ fontSize: 7, background: 'none', border: 0, padding: 0, color: 'var(--alice-primary)' }}
+      className="alice-control alice-control--quiet font-numbers self-start cursor-pointer hover:opacity-100 opacity-80 transition-opacity"
+      style={{ fontSize: 13, border: 0, padding: 0, color: 'var(--alice-primary)' }}
     >
-      LEARN MORE ABOUT THIS →
+      Learn more about this <SvgIcon svg={NEXT_ICON} size={16} />
     </button>
   );
 }

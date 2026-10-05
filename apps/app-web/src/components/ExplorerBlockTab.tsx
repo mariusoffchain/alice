@@ -1,5 +1,7 @@
 'use client';
 
+import { ExplorerCopy } from '@/components/ExplorerUI';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChainDataProvider } from '@/lib/explorer/provider';
 import { ChainDataError } from '@/lib/explorer/provider';
@@ -22,7 +24,7 @@ const PAGE = 25;
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{label}</span>
+      <span className="font-numbers" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{label}</span>
       <span className="font-numbers" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{value}</span>
     </div>
   );
@@ -42,13 +44,16 @@ function hasConfidentialOutputs(tx: NormalizedTransaction): boolean {
   return tx.outputs.some(o => o.amountKnown === false);
 }
 
-function TxRow({ tx, settlement, onOpen }: { tx: NormalizedTransaction; settlement?: boolean; onOpen: () => void }) {
+function TxRow({ tx, settlement, onOpen, selected, onSelect }: { tx: NormalizedTransaction; settlement?: boolean; onOpen: () => void; selected?: boolean; onSelect?: () => void }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
-      style={{ borderTop: '1px solid var(--alice-border)' }}
+      onFocus={onSelect}
+      onPointerEnter={onSelect}
+      aria-current={selected ? 'true' : undefined}
+      className="alice-control alice-control--quiet flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
+      style={{ justifyContent: 'space-between', borderLeft: `2px solid ${selected ? 'var(--alice-selected)' : 'transparent'}`, backgroundColor: selected ? 'var(--alice-hover)' : undefined }}
     >
       <div className="flex flex-col min-w-0">
         <span className="font-numbers truncate" style={{ fontSize: 12, color: 'var(--alice-text)' }} title={tx.txid}>
@@ -93,6 +98,7 @@ export function ExplorerBlockTab({
   settlementsByHeight?: ReadonlyMap<number, string>;
 }) {
   const [state, setState] = useState<State>({ kind: 'loading' });
+  const [selectedTxid, setSelectedTxid] = useState<string | null>(null);
   const [txs, setTxs] = useState<NormalizedTransaction[]>([]);
   // The block's commitment transaction, fetched on its own so it shows pinned
   // even when it sits deep in the (paginated) transaction list.
@@ -174,7 +180,7 @@ export function ExplorerBlockTab({
       <div className="flex flex-col gap-4" aria-label={`Reading block from ${provider.source.name}`}>
         <div className="flex flex-col md:flex-row gap-4 md:items-start">
           <Skeleton width={300} height={300} style={{ maxWidth: '100%' }} />
-          <div className="flex-1 flex flex-col gap-3 px-4 py-3" style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}>
+          <div className="flex-1 flex flex-col gap-3 px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}>
             <Skeleton width="40%" height={18} />
             <SkeletonLines lines={4} />
           </div>
@@ -185,16 +191,15 @@ export function ExplorerBlockTab({
   }
   if (state.kind === 'error') {
     return (
-      <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+      <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 3 }}>
         <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>COULD NOT LOAD</span>
         <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{state.message}</p>
         <button
           type="button"
           onClick={() => setRetryToken(t => t + 1)}
-          className="font-pixel tracking-widest self-start cursor-pointer"
+          className="alice-control alice-control--quiet font-numbers self-start cursor-pointer"
           style={{
-            fontSize: 10, padding: '8px 16px', border: '2px solid var(--alice-border)',
-            borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-primary)',
+            fontSize: 13, padding: '8px 16px', borderRadius: 3, color: 'var(--alice-primary)',
           }}
         >
           RETRY
@@ -215,6 +220,8 @@ export function ExplorerBlockTab({
         <div className="md:flex-none">
           <ExplorerBlockTreemap
             hash={b.id}
+            selectedTxid={selectedTxid}
+            onSelectTx={setSelectedTxid}
             provider={provider}
             onOpenTx={onOpenTx}
             highlight={settlementTxids && settlementTxids.size > 0
@@ -225,7 +232,7 @@ export function ExplorerBlockTab({
 
         <div
           className="flex-1 flex flex-col gap-3 px-4 py-3"
-          style={{ border: '1px solid var(--alice-border)', borderTop: `3px solid ${color}`, borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+          style={{ borderTop: `3px solid ${color}`, borderRadius: 3, backgroundColor: 'transparent' }}
         >
           <div className="flex items-baseline gap-2 flex-wrap">
             <span className="font-pixel" style={{ fontSize: 16, color: 'var(--alice-text)' }}>Block {b.height.toLocaleString('en-US')}</span>
@@ -239,7 +246,7 @@ export function ExplorerBlockTab({
           {b.poolName && (
             <span className="font-numbers" style={{ fontSize: 13, color: 'var(--alice-muted)' }}>Mined by {b.poolName}</span>
           )}
-          <p className="font-numbers m-0 break-all" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{b.id}</p>
+          <div className="flex items-start gap-2"><p className="font-numbers m-0 break-all min-w-0 flex-1" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{b.id}</p><ExplorerCopy value={b.id} label="block hash" /></div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-1">
             <Metric label="TRANSACTIONS" value={b.txCount.toLocaleString('en-US')} />
             <Metric label="SIZE" value={formatBytes(b.size)} />
@@ -253,8 +260,8 @@ export function ExplorerBlockTab({
       </div>
 
       {/* Transaction list, paginated 25 at a time. */}
-      <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
-        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
+      <div className="flex flex-col" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
+        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'transparent' }}>
           <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>TRANSACTIONS</span>
           <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
             {txs.length.toLocaleString('en-US')} of {b.txCount.toLocaleString('en-US')}
@@ -270,12 +277,12 @@ export function ExplorerBlockTab({
             const rows = pinnedTx ? txs.filter(tx => tx.txid !== pinnedTx.txid) : txs;
             const pinAt = pinnedTx ? (rows[0]?.isCoinbase ? 1 : 0) : -1;
             const nodes: React.ReactNode[] = rows.map(tx => (
-              <TxRow key={tx.txid} tx={tx} settlement={settlementTxids?.has(tx.txid)} onOpen={() => onOpenTx(tx.txid)} />
+              <TxRow key={tx.txid} tx={tx} selected={selectedTxid === tx.txid} onSelect={() => setSelectedTxid(tx.txid)} settlement={settlementTxids?.has(tx.txid)} onOpen={() => onOpenTx(tx.txid)} />
             ));
             if (pinnedTx && pinAt >= 0) {
               nodes.splice(pinAt, 0, (
-                <div key={pinnedTx.txid} className="rh-fade-in" style={{ border: `1px solid ${ARKADE_ACCENT}`, borderLeft: `3px solid ${ARKADE_ACCENT}`, borderRadius: 2, margin: 4 }}>
-                  <TxRow tx={pinnedTx} settlement onOpen={() => onOpenTx(pinnedTx.txid)} />
+                <div key={pinnedTx.txid} className="rh-fade-in" style={{ border: `1px solid ${ARKADE_ACCENT}`, borderLeft: `3px solid ${ARKADE_ACCENT}`, borderRadius: 3, margin: 4 }}>
+                  <TxRow tx={pinnedTx} selected={selectedTxid === pinnedTx.txid} onSelect={() => setSelectedTxid(pinnedTx.txid)} settlement onOpen={() => onOpenTx(pinnedTx.txid)} />
                 </div>
               ));
             }
@@ -289,13 +296,11 @@ export function ExplorerBlockTab({
           type="button"
           onClick={() => void loadMore()}
           disabled={loadingMore}
-          className="font-pixel tracking-widest self-center cursor-pointer disabled:cursor-not-allowed"
+          className="alice-control alice-control--quiet font-numbers self-center cursor-pointer disabled:cursor-not-allowed"
           style={{
-            fontSize: 10,
+            fontSize: 13,
             padding: '8px 16px',
-            border: '2px solid var(--alice-border)',
-            borderRadius: 2,
-            backgroundColor: 'transparent',
+            borderRadius: 3,
             color: 'var(--alice-primary)',
             opacity: loadingMore ? 0.5 : 1,
           }}

@@ -4,7 +4,81 @@ Alice uses a lockfile and runs `npm audit` in CI after a clean install. The CI
 fails on any critical vulnerability, any high-severity package or advisory not
 in the reviewed baseline, and when that baseline expires.
 
-## Current reviewed baseline
+## Current reviewed baseline — 2026-10-04
+
+The web release maintenance pass reduces the audit from 36 high / 18 moderate /
+2 low to 27 high / 16 moderate / 2 low, with 0 critical. The 27 high package
+entries trace to **3 direct advisories**, not 27 independent bugs. They remain
+visible in `npm audit`; the gate accepts only the reviewed advisories, package
+names, exact direct-node locations and versions below. All removed advisory
+exceptions are removed from the gate. Expiration stays **2026-10-20**.
+
+### Corrections installed and locked
+
+- `brace-expansion` → 1.1.21, 2.1.7 and 5.0.12 on their existing major lines;
+  `nanoid` → 3.3.19; `shell-quote` → 1.12.0.
+- PostCSS → 8.5.28, including Next's otherwise-pinned older copy.
+- Miniflare's Undici → 7.30.0 and the Expo CLI's → 6.29.0.
+- Sharp → 0.35.5 (libvips 1.3.4), adm-zip → 0.6.1. Scoped overrides are
+  checked with a clean install; these packages remain installed, rather than
+  disappearing from the lockfile as happened in the September attempt.
+- Metro's image-size → 2.0.4. Metro uses the synchronous default export on a
+  Buffer, which 2.0.4 retains. Its actual `getAssetSize` was exercised with PNG
+  data. Alice does not use the removed filename/callback interface.
+- Compatible ws branches move to 6.2.6, 7.5.13 and 8.22.0. The viem peer tree
+  still resolves its own pinned 8.20.1 despite the attempted scoped override;
+  it is NOT claimed fixed and retains the previously reviewed exception.
+
+No framework major, wallet SDK downgrade or cryptographic downgrade is used.
+In particular `@phala/dcap-qvl` remains 0.6.1, above the security floor required
+by Alice's attestation checks. Its low elliptic signing advisory remains
+accepted for the verification-only use described below.
+
+### Remaining high findings and reachability
+
+1. **braces 3.0.3**, [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm),
+   stack exhaustion from deeply nested glob patterns. npm and GitHub report no
+   patched release on this review date. The chain is micromatch → Metro/Jest
+   file discovery; inputs are repository filenames/configuration on the build
+   host. Application code does not import it. Do not run these tools on
+   untrusted project configurations or globs.
+2. **node-forge 1.4.0**, [GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv),
+   RSA verification with low-exponent keys and malformed DigestAlgorithm ASN.1.
+   npm and GitHub report no patched release. Installed through Expo CLI and
+   `@expo/code-signing-certificates`, whose code handles development certificate
+   generation and verification. This web delivery uses Next static export,
+   not Expo OTA signing, and the Worker uses neither package. This is NOT a
+   blanket approval for mobile signing or verifying untrusted certificates.
+3. **ws 8.20.1 under viem**, GHSA-96hv-2xvq-fx4p, the previous Node-only
+   WebSocket decompression/memory exception. The browser transport uses the
+   browser WebSocket; no Node server from this package is shipped by the static
+   app. npm suggests downgrading Satora; that is rejected. Revisit the pinned
+   viem peer tree separately rather than migrate wallet SDKs during this UI
+   release.
+
+`WebClientBoundaryPlugin` now makes every app-web client build fail if `braces`
+or `node-forge` enters the client module graph (including nested modules).
+The build must print its boundary check success; the exception cannot silently
+turn into shipped client code. The Worker has no dependency path to either.
+The other high package entries (including Expo/React Native and Arkade/Satora
+via optional Expo peers) propagate these same underlying advisories.
+
+Remaining moderate findings are `decode-uri-component` through mobile routing
+and `uuid` through Expo/Xcode build tooling. This pass does not change the
+existing gate's high/critical policy or claim a zero-vulnerability repository.
+The next native/mobile release needs its own scope-specific review.
+
+### Miniflare diagnosis
+
+The original account-test failure was an incomplete shared `node_modules`
+installation in the local worktree, not a test API regression: the lockfile
+already pins Miniflare 4 for the Worker and Miniflare 5 under Wrangler. A clean
+`npm ci --ignore-scripts` restores both; the 36 account tests pass unchanged.
+The same original commit also passed all tests and types in GitHub Actions;
+its only CI failure was the audit gate. Do not link only another checkout's
+root `node_modules`: workspace-local dependencies are required as well.
+
+## Historical baseline — 2026-09-22
 
 The release check on 2026-09-22 reports 22 high findings and 0 critical. Every
 high finding is transitive. The baseline began with the full review on

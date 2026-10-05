@@ -15,13 +15,13 @@ import {
   isTauriDesktop,
   useChat,
 } from '@alice-wallet/alice-ai';
+import { SvgIcon } from '@/components/SvgIcon';
+import { CHEVRON_RIGHT_ICON } from '@/lib/atelier-icons';
 import { LocalModelsSection } from './LocalModelsSection';
 import { SemanticSearchSection } from './SemanticSearchSection';
 import { AliceMemoryPanel } from './AliceMemoryPanel';
 import {
-  btnBase,
   ConfirmDialog,
-  DANGER,
   inputStyle,
   PixelSwitch,
   SectionHint,
@@ -173,39 +173,35 @@ export function AiTab() {
         <button
           type="button"
           onClick={() => setScreen('memory')}
-          className="mt-2 flex w-full items-center justify-between gap-4 cursor-pointer bg-transparent text-left"
-          style={{ border: '1px solid var(--alice-border)', borderRadius: 2, padding: '10px 12px' }}
+          className="alice-control alice-control--quiet font-numbers mt-2 flex w-full items-center justify-between gap-4 cursor-pointer text-left"
         >
           <span className="flex flex-col gap-1">
-            <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-primary)' }}>ALICE MEMORY</span>
+            <span className="font-numbers" style={{ fontSize: 13, color: 'var(--alice-primary)' }}>ALICE MEMORY</span>
             <span className="font-numbers" style={{ fontSize: 13, color: 'var(--alice-muted)' }}>
               See and control what Alice remembers locally.
             </span>
           </span>
-          <span className="font-numbers" style={{ fontSize: 18, color: 'var(--alice-muted)' }}>›</span>
+          <SvgIcon svg={CHEVRON_RIGHT_ICON} size={16} color="currentColor" />
         </button>
       </div>
 
       <div style={sectionStyle}>
         <SectionLabel>ALICE INSTRUCTIONS</SectionLabel>
+        <label className="alice-field-label mt-3" htmlFor="alice-instructions">Instructions for Alice</label>
         <textarea
+          id="alice-instructions"
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
           rows={4}
-          className="w-full font-numbers resize-vertical outline-none mt-2"
+          className="alice-field w-full font-numbers resize-vertical outline-none mt-2"
           style={{ ...inputStyle, padding: 12 }}
           placeholder="Tell Alice how to behave, what topics to focus on, preferred language..."
         />
+        <p className="font-numbers text-sm mt-2" role="status" style={{ color: 'var(--alice-muted)' }}>{instructionsChanged ? 'Unsaved instructions' : 'Instructions saved on this device'}</p>
         <div className="flex gap-2 mt-2">
           <button
             onClick={handleSaveInstructions}
-            className="font-pixel tracking-widest"
-            style={{
-              ...btnBase,
-              backgroundColor: instructionsChanged ? 'var(--alice-primary)' : 'transparent',
-              color: instructionsChanged ? 'var(--alice-on-primary)' : 'var(--alice-primary)',
-              opacity: instructionsChanged ? 1 : 0.5,
-            }}
+            className="alice-control alice-control--primary font-numbers"
             disabled={!instructionsChanged}
           >
             SAVE INSTRUCTIONS
@@ -213,13 +209,7 @@ export function AiTab() {
           {instructions.length > 0 && (
             <button
               onClick={handleClearInstructions}
-              className="font-pixel tracking-widest"
-              style={{
-                ...btnBase,
-                backgroundColor: 'transparent',
-                color: DANGER,
-                borderColor: DANGER,
-              }}
+              className="alice-control alice-control--danger font-numbers"
             >
               CLEAR
             </button>
@@ -233,7 +223,7 @@ export function AiTab() {
 
       <div style={sectionStyle}>
         <SectionLabel>PRIVATE CLOUD</SectionLabel>
-        <p className="font-numbers m-0 mt-1" style={{ fontSize: 14, opacity: 0.5 }}>
+        <p className="font-numbers m-0 mt-1" style={{ fontSize: 14, opacity: 1 }}>
           Alice processes your message on servers Alice operates. Your messages leave this device.
           Your seed phrase, private keys, addresses, balances and full transaction history are never
           sent automatically. Private Cloud is not the same as running Alice on your device: for that,
@@ -242,8 +232,8 @@ export function AiTab() {
 
         <details className="mt-3">
           <summary
-            className="font-pixel tracking-widest cursor-pointer"
-            style={{ fontSize: 10, opacity: 0.6, listStyle: 'revert' }}
+            className="font-numbers  cursor-pointer"
+            style={{ fontSize: 13, opacity: 1, listStyle: 'revert' }}
           >
             TECHNICAL DETAILS
           </summary>
@@ -253,16 +243,14 @@ export function AiTab() {
             className="font-numbers mt-2"
             style={{
               fontSize: 14,
-              opacity: 0.6,
+              opacity: 1,
               padding: '10px 12px',
-              backgroundColor: 'var(--alice-bg)',
-              border: '2px solid var(--alice-border)',
-              borderRadius: 2,
+              borderLeft: '2px solid var(--alice-border)',
             }}
           >
             <div>Standard answers: {CLOUD_MODELS[0].veniceId}</div>
             <div className="mt-1">Provider: Venice Private Cloud</div>
-            <p className="m-0 mt-2" style={{ opacity: 0.8 }}>
+            <p className="m-0 mt-2" style={{ opacity: 1 }}>
               Alice may change these models to improve quality or cost. The commitments above do not
               change with the model.
             </p>
@@ -283,42 +271,43 @@ export function AiTab() {
           Advanced option: connect to an OpenAI-compatible or Ollama server. Prompts may leave this device if the server is remote.
         </SectionHint>
         <div className="flex flex-col gap-2">
+          <label className="alice-field-label" htmlFor="alice-customUrl">Server URL</label>
           <input
             type="url"
+            id="alice-customUrl"
             value={customUrl}
             onChange={(e) => setCustomUrl(e.target.value)}
             placeholder="Server URL (e.g. http://localhost:11434/v1)"
-            className="font-numbers outline-none w-full"
+            className="alice-field font-numbers outline-none w-full"
             style={inputStyle}
           />
+          <label className="alice-field-label" htmlFor="alice-customModel">Model name</label>
           <input
             type="text"
+            id="alice-customModel"
             value={customModel}
             onChange={(e) => setCustomModel(e.target.value)}
             placeholder="Model name (e.g. llama3)"
-            className="font-numbers outline-none w-full"
+            className="alice-field font-numbers outline-none w-full"
             style={inputStyle}
           />
+          <label className="alice-field-label" htmlFor="alice-customApiKey">API key (optional)</label>
           <input
             type="password"
+            id="alice-customApiKey"
             value={customApiKey}
             onChange={(e) => setCustomApiKey(e.target.value)}
             placeholder="API key (optional)"
-            className="font-numbers outline-none w-full"
+            className="alice-field font-numbers outline-none w-full"
             style={inputStyle}
           />
         </div>
+        <p className="font-numbers text-sm mt-3" role="status">{customConnected ? 'Connected to your custom server' : 'Custom server not connected'}</p>
         <div className="flex gap-2 mt-3">
           {!customConnected ? (
             <button
               onClick={handleCustomConnect}
-              className="font-pixel tracking-widest"
-              style={{
-                ...btnBase,
-                backgroundColor: customReady ? 'var(--alice-primary)' : 'transparent',
-                color: customReady ? 'var(--alice-on-primary)' : 'var(--alice-primary)',
-                opacity: customReady ? 1 : 0.5,
-              }}
+              className="alice-control alice-control--primary font-numbers"
               disabled={!customReady}
             >
               SAVE AND CONNECT
@@ -326,13 +315,7 @@ export function AiTab() {
           ) : (
             <button
               onClick={handleCustomDisconnect}
-              className="font-pixel tracking-widest"
-              style={{
-                ...btnBase,
-                backgroundColor: 'transparent',
-                color: DANGER,
-                borderColor: DANGER,
-              }}
+              className="alice-control alice-control--danger font-numbers"
             >
               DISCONNECT
             </button>
@@ -342,14 +325,7 @@ export function AiTab() {
 
       <button
         onClick={() => setConfirmReset(true)}
-        className="font-pixel tracking-widest w-full mb-4"
-        style={{
-          ...btnBase,
-          padding: '10px 16px',
-          backgroundColor: 'transparent',
-          color: DANGER,
-          borderColor: DANGER,
-        }}
+        className="alice-control alice-control--danger font-numbers w-full mb-4"
       >
         RESET TO DEFAULT
       </button>

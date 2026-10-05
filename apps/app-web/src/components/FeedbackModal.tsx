@@ -1,6 +1,9 @@
 'use client';
 
-import { type DragEvent, useEffect, useState } from 'react';
+import { SvgIcon } from '@/components/SvgIcon';
+import { CLOSE_ICON, COPY_ICON, CHECK_ICON, MAIL_ICON, EXTERNAL_ICON, ATTACHMENT_ICON, DELETE_ICON } from '@/lib/atelier-icons';
+
+import { type DragEvent, useEffect, useRef, useState } from 'react';
 import {
   type AIPreset,
   CLOUD_MODELS,
@@ -55,6 +58,7 @@ interface FeedbackModalProps {
 
 export function FeedbackModal({ onClose }: FeedbackModalProps) {
   const { backendType, backendStatus } = useChat();
+  const screenshotInput = useRef<HTMLInputElement>(null);
   const [aiContext, setAiContext] = useState<AIReportContext | null>(null);
   const [category, setCategory] = useState<Category>('bug');
   const [title, setTitle] = useState('');
@@ -193,6 +197,10 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="feedback-title"
+        onKeyDown={(event) => { if (event.key === 'Escape') onClose(); }}
         onClick={(event) => event.stopPropagation()}
         style={{
           width: '100%',
@@ -207,6 +215,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
         }}
       >
         <h3
+          id="feedback-title"
           className="font-pixel tracking-widest m-0"
           style={{ fontSize: 16, color: 'var(--alice-primary-dark)' }}
         >
@@ -225,58 +234,57 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
           Never include your seed phrase, private keys, or sensitive screenshots.
         </p>
 
-        <div className="flex gap-1.5 mt-4">
+        <div role="group" aria-label="Report category" className="flex flex-wrap gap-1.5 mt-4">
           {CATEGORIES.map((c) => (
             <button
               key={c.id}
               onClick={() => setCategory(c.id)}
-              className="flex-1 font-numbers cursor-pointer"
-              style={{
-                fontSize: 13,
-                lineHeight: '14px',
-                padding: '8px 6px',
-                border: `2px solid ${category === c.id ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
-                borderRadius: 2,
-                backgroundColor: category === c.id ? 'var(--alice-card-bg)' : 'transparent',
-                color: category === c.id ? 'var(--alice-primary)' : 'var(--alice-text)',
-                opacity: category === c.id ? 1 : 0.7,
-              }}
+              aria-pressed={category === c.id}
+              className="alice-control alice-control--choice flex-1"
+              style={{ lineHeight: '20px', padding: '8px 6px' }}
             >
               {c.label}
             </button>
           ))}
         </div>
 
+        <label className="alice-field-label mt-4" htmlFor="feedback-summary">Summary</label>
         <input
+          id="feedback-summary"
+          autoFocus
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Short summary"
           maxLength={120}
-          className="w-full font-numbers outline-none mt-3"
+          className="alice-field w-full"
           style={{
-            height: 36,
+            minHeight: 40,
             fontSize: 15,
             padding: '0 10px',
             color: 'var(--alice-text)',
-            backgroundColor: 'var(--alice-bg-soft)',
+            backgroundColor: 'transparent',
             border: '1px solid var(--alice-border)',
             borderRadius: 2,
           }}
         />
 
+        <label className="alice-field-label mt-3" htmlFor="feedback-description">Description <span style={{ color: 'var(--alice-muted)' }}>(required)</span></label>
         <textarea
+          id="feedback-description"
+          required
+          aria-describedby="feedback-send-help"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={active.placeholder}
           rows={4}
-          className="w-full font-numbers outline-none mt-2 resize-vertical"
+          className="alice-field w-full resize-y"
           style={{
             fontSize: 15,
             lineHeight: '19px',
             padding: '8px 10px',
             color: 'var(--alice-text)',
-            backgroundColor: 'var(--alice-bg-soft)',
+            backgroundColor: 'transparent',
             border: '1px solid var(--alice-border)',
             borderRadius: 2,
           }}
@@ -299,7 +307,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
           onDrop={handleDrop}
           style={{
             padding: 10,
-            backgroundColor: 'var(--alice-bg-soft)',
+            backgroundColor: 'transparent',
             border: `2px dashed ${dragActive ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
             borderRadius: 2,
           }}
@@ -316,28 +324,13 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
                 className="font-numbers m-0 mt-1"
                 style={{ fontSize: 13, lineHeight: '15px', opacity: 0.65 }}
               >
-                Drop an image here, or attach it manually when sending by email or GitHub.
+                Choose or drop an image to preview it. Attach it manually in your email or GitHub issue; it is not uploaded here.
               </p>
             </div>
-            <label
-              className="font-pixel tracking-widest cursor-pointer"
-              style={{
-                fontSize: 10,
-                padding: '9px 10px',
-                border: '2px solid var(--alice-primary)',
-                borderRadius: 2,
-                color: 'var(--alice-primary)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              ADD IMAGE
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => handleScreenshotChange(event.target.files?.[0] ?? null)}
-              />
-            </label>
+            <button type="button" className="alice-control alice-control--quiet" onClick={() => screenshotInput.current?.click()}>
+              <SvgIcon svg={ATTACHMENT_ICON} size={20} /> Choose image
+            </button>
+            <input ref={screenshotInput} type="file" accept="image/*" className="hidden" aria-label="Choose screenshot" onChange={(event) => handleScreenshotChange(event.target.files?.[0] ?? null)} />
           </div>
 
           {screenshotPreview && (
@@ -364,82 +357,48 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
                 <button
                   type="button"
                   onClick={() => handleScreenshotChange(null)}
-                  className="font-pixel tracking-widest cursor-pointer"
-                  style={{
-                    fontSize: 10,
-                    padding: '7px 8px',
-                    border: '1px solid var(--alice-border)',
-                    borderRadius: 2,
-                    backgroundColor: 'transparent',
-                    color: 'var(--alice-primary)',
-                  }}
+                  className="alice-control alice-control--quiet"
+                  style={{ padding: '7px 8px' }}
                 >
-                  REMOVE
+                  <SvgIcon svg={DELETE_ICON} size={16} /> Remove
                 </button>
               </div>
             </div>
           )}
         </div>
 
+        <p id="feedback-send-help" className="font-numbers mt-3" style={{ fontSize: 13, color: 'var(--alice-muted)' }}>Add a description to prepare a report. Email opens a draft; GitHub opens a new issue form for you to review and submit.</p>
         <div className="grid gap-2 mt-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
           <button
             onClick={onClose}
-            className="font-pixel tracking-widest flex-1 cursor-pointer"
-            style={{
-              fontSize: 10,
-              padding: '10px 12px',
-              border: '2px solid var(--alice-border)',
-              borderRadius: 2,
-              backgroundColor: 'transparent',
-              color: 'var(--alice-primary)',
-            }}
+            className="alice-control alice-control--quiet flex-1"
+            style={{ padding: '10px 12px' }}
           >
-            CANCEL
+            <SvgIcon svg={CLOSE_ICON} size={16} /> Cancel
           </button>
           <button
             onClick={() => void handleCopy()}
             disabled={!trimmedDescription}
-            className="font-pixel tracking-widest flex-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              fontSize: 10,
-              padding: '10px 12px',
-              border: '2px solid var(--alice-primary)',
-              borderRadius: 2,
-              backgroundColor: 'transparent',
-              color: 'var(--alice-primary)',
-            }}
+            className="alice-control alice-control--quiet flex-1 disabled:cursor-not-allowed"
+            style={{ padding: '10px 12px' }}
           >
-            {copied ? 'COPIED' : 'COPY REPORT'}
+            <SvgIcon svg={copied ? CHECK_ICON : COPY_ICON} size={16} /> <span aria-live="polite">{copied ? 'Copied' : 'Copy report'}</span>
           </button>
           <button
             onClick={() => void handleEmail()}
             disabled={!trimmedDescription}
-            className="font-pixel tracking-widest flex-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              fontSize: 10,
-              padding: '10px 12px',
-              border: '2px solid var(--alice-primary)',
-              borderRadius: 2,
-              backgroundColor: 'transparent',
-              color: 'var(--alice-primary)',
-            }}
+            className="alice-control alice-control--quiet flex-1 disabled:cursor-not-allowed"
+            style={{ padding: '10px 12px' }}
           >
-            EMAIL REPORT
+            <SvgIcon svg={MAIL_ICON} size={20} /> Prepare email
           </button>
           <button
             onClick={() => void handleSubmit()}
             disabled={!trimmedDescription}
-            className="font-pixel tracking-widest flex-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              fontSize: 10,
-              padding: '10px 12px',
-              border: '2px solid var(--alice-primary)',
-              borderRadius: 2,
-              backgroundColor: 'var(--alice-primary)',
-              color: 'var(--alice-on-primary)',
-            }}
+            className="alice-control alice-control--primary flex-1 disabled:cursor-not-allowed"
+            style={{ padding: '10px 12px' }}
           >
-            GITHUB
+            <SvgIcon svg={EXTERNAL_ICON} size={16} /> Continue on GitHub
           </button>
         </div>
       </div>

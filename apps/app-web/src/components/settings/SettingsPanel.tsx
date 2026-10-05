@@ -14,35 +14,29 @@ function TabButton({
   isActive: boolean;
   onSelect: () => void;
 }) {
-  const color = isActive ? 'var(--alice-primary)' : 'var(--alice-text)';
+  const color = isActive ? 'var(--alice-selected)' : 'var(--alice-muted)';
   return (
     <button
       type="button"
       role="tab"
       aria-selected={isActive}
+      tabIndex={isActive ? 0 : -1}
       onClick={onSelect}
-      className={
-        // Phone: a fifth of the row, icon over label, so the five fit without
-        // scrolling and no label is ever cut mid-word. Desktop: a row in the
-        // rail, with a left rule marking the active one.
-        'flex min-w-0 cursor-pointer border-none outline-none transition-colors '
-        + 'flex-col items-center gap-1 px-1 py-2 '
-        + 'sm:flex-row sm:items-center sm:gap-2.5 sm:px-3 sm:py-2 sm:rounded-sm'
-      }
-      style={{
-        backgroundColor: isActive ? 'var(--alice-card-bg)' : 'transparent',
-        color,
-        opacity: isActive ? 1 : 0.7,
-      }}
+      id={`settings-tab-${tab.id}`}
+      aria-controls="settings-tab-panel"
+      className="alice-control alice-control--choice font-numbers min-w-0 w-full"
+      style={{ color, justifyContent: 'flex-start', boxShadow: isActive ? 'inset 0 -2px var(--alice-selected)' : undefined }}
     >
-      <span className="flex items-center justify-center shrink-0" style={{ width: 16, height: 16 }}>
-        <SvgIcon svg={tab.icon} size={16} color={color} />
-      </span>
-      <span
-        className="font-numbers text-center sm:text-left leading-tight sm:whitespace-nowrap"
-        style={{ fontSize: 11 }}
-      >
-        {tab.label}
+      <span className="flex w-full flex-col items-center gap-1 sm:flex-row sm:gap-2.5">
+        <span className="flex items-center justify-center shrink-0" style={{ width: 20, height: 20 }}>
+          <SvgIcon svg={tab.icon} size={20} color={color} />
+        </span>
+        <span
+          className="font-numbers text-center sm:text-left leading-tight sm:whitespace-nowrap"
+          style={{ fontSize: 13 }}
+        >
+          {tab.label}
+        </span>
       </span>
     </button>
   );
@@ -71,11 +65,21 @@ export function SettingsPanel({
       <nav
         className={
           'shrink-0 border-b sm:border-b-0 sm:border-r '
-          // Five equal columns on a phone, a plain column from `sm` up.
-          + 'grid grid-cols-5 sm:flex sm:flex-col sm:gap-0.5 '
+          // Six tabs in two rows on a phone, a plain column from `sm` up.
+          + 'grid grid-cols-3 sm:flex sm:flex-col sm:gap-0.5 '
           + 'w-full sm:w-[180px] px-0 sm:px-2 py-0 sm:py-3 sm:overflow-y-auto'
         }
         style={{ borderColor: 'var(--alice-border)' }}
+        onKeyDown={event => {
+          if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const current = SETTINGS_TABS.findIndex(tab => tab.id === active.id);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? SETTINGS_TABS.length - 1
+            : (current + (event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1) + SETTINGS_TABS.length) % SETTINGS_TABS.length;
+          onSelectTab(SETTINGS_TABS[next].id);
+          document.getElementById(`settings-tab-${SETTINGS_TABS[next].id}`)?.focus();
+        }}
+        role="tablist"
         aria-label="Settings sections"
       >
         {SETTINGS_TABS.map((tab, index) => {
@@ -104,7 +108,7 @@ export function SettingsPanel({
         })}
       </nav>
 
-      <div className="flex-1 min-w-0 overflow-y-auto px-4 sm:px-6 py-4">
+      <div id="settings-tab-panel" role="tabpanel" aria-labelledby={`settings-tab-${active.id}`} className="flex-1 min-w-0 overflow-y-auto px-4 sm:px-6 py-6">
         <div className="max-w-2xl mx-auto">
           <ActiveComponent />
         </div>

@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { BACK_ICON, NEXT_ICON, HELP_ICON, EXTERNAL_ICON } from '@/lib/atelier-icons';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { LearnCoursePack } from '@alice-wallet/alice-content/src/learn-types';
@@ -126,7 +129,7 @@ export function LearnChapter({
   if (!pack) {
     return (
       <div style={{ width: 'min(100% - 32px, 760px)', margin: '0 auto', padding: '48px 0' }}>
-        <p className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-muted)' }}>LOADING…</p>
+        <p className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }} role="status">{lang === 'fr' ? 'Chargement…' : 'Loading…'}</p>
       </div>
     );
   }
@@ -169,19 +172,15 @@ export function LearnChapter({
     current.part.chapters[current.part.chapters.length - 1]?.chapterId === chapterId;
 
   const navButton: React.CSSProperties = {
-    fontSize: 8,
+    fontSize: 14,
     padding: '10px 14px',
-    background: 'transparent',
-    color: 'var(--alice-text)',
-    border: '2px solid var(--alice-border)',
-    borderRadius: 2,
     maxWidth: '48%',
     textAlign: 'left',
   };
 
   return (
     <div style={{ width: 'min(100% - 32px, 760px)', margin: '0 auto', padding: '24px 0 72px' }}>
-      <div className="font-pixel" style={{ fontSize: 8, color: 'var(--alice-muted)' }}>
+      <div className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
         {code.toUpperCase()} · {current.part.title.toUpperCase()}
       </div>
       <h1 className="font-pixel" style={{ fontSize: 14, lineHeight: '24px', margin: '14px 0 6px', color: 'var(--alice-text)' }}>
@@ -201,21 +200,8 @@ export function LearnChapter({
 
       {ask && (
         <button
-          className="font-pixel cursor-pointer"
-          style={{
-            position: 'fixed',
-            top: Math.max(8, ask.top - 40),
-            left: ask.left,
-            transform: 'translateX(-50%)',
-            zIndex: 20,
-            fontSize: 8,
-            padding: '8px 12px',
-            background: 'var(--alice-primary)',
-            color: 'var(--alice-on-primary)',
-            border: 0,
-            borderRadius: 2,
-            boxShadow: '0 2px 0 var(--alice-primary-dark)',
-          }}
+          className="alice-control alice-control--primary"
+          style={{ position: 'fixed', top: Math.max(8, ask.top - 40), left: ask.left, transform: 'translateX(-50%)', zIndex: 20, padding: '8px 12px', background: 'var(--alice-bg)', maxWidth: 'calc(100vw - 32px)' }}
           onClick={() => {
             // Opens the Ask-Alice sidebar with the passage attached: the
             // chapter stays on screen while Alice explains.
@@ -223,7 +209,7 @@ export function LearnChapter({
             window.getSelection()?.removeAllRanges();
           }}
         >
-          {lang === 'fr' ? 'JE N’AI PAS COMPRIS ÇA → ALICE' : 'I DID NOT GET THIS → ALICE'}
+          <SvgIcon svg={HELP_ICON} size={20} /> {lang === 'fr' ? 'Expliquer la sélection avec Alice' : 'Explain selection with Alice'}
         </button>
       )}
 
@@ -234,30 +220,30 @@ export function LearnChapter({
       <div className="flex items-center justify-between gap-3" style={{ marginTop: 40 }}>
         {previous?.chapter.chapterId ? (
           <button
-            className="font-pixel cursor-pointer"
+            className="alice-control alice-control--quiet"
             style={navButton}
             onClick={() => onNavigate({ kind: 'chapter', code, chapterId: previous.chapter.chapterId! })}
           >
-            ← {previous.chapter.title.toUpperCase()}
+            <SvgIcon svg={BACK_ICON} size={16} /> {previous.chapter.title}
           </button>
         ) : (
           <span />
         )}
         {isLastOfPart && current.part.partId ? (
           <button
-            className="font-pixel cursor-pointer"
-            style={{ ...navButton, color: 'var(--alice-on-primary)', background: 'var(--alice-primary)', border: 0 }}
+            className="alice-control alice-control--primary"
+            style={{ ...navButton }}
             onClick={() => onNavigate({ kind: 'quiz', code, partId: current.part.partId! })}
           >
-            {lang === 'fr' ? 'QUIZ DE LA PARTIE →' : 'PART QUIZ →'}
+            {lang === 'fr' ? 'Quiz de la partie' : 'Part quiz'} <SvgIcon svg={NEXT_ICON} size={16} />
           </button>
         ) : next?.chapter.chapterId ? (
           <button
-            className="font-pixel cursor-pointer"
+            className="alice-control alice-control--primary"
             style={{ ...navButton, textAlign: 'right' }}
             onClick={() => onNavigate({ kind: 'chapter', code, chapterId: next.chapter.chapterId! })}
           >
-            {next.chapter.title.toUpperCase()} →
+            {next.chapter.title} <SvgIcon svg={NEXT_ICON} size={16} />
           </button>
         ) : (
           <span />
@@ -267,7 +253,7 @@ export function LearnChapter({
       <p className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)', marginTop: 32 }}>
         {lang === 'fr' ? 'Contenu ' : 'Content by '}
         <a href="https://planb.network" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); void openExternalUrl('https://planb.network'); }} style={{ color: 'var(--alice-muted)', textDecoration: 'underline' }}>
-          Plan ₿ Academy
+          Plan ₿ Academy <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><SvgIcon svg={EXTERNAL_ICON} size={16} /></span>
         </a>
         {' · CC BY-SA 4.0'}
       </p>
@@ -296,22 +282,15 @@ function PlaygroundBridge({
   return (
     <div style={{ marginTop: 28 }}>
       <button
-        className="font-pixel cursor-pointer"
-        style={{
-          fontSize: 8,
-          padding: '12px 16px',
-          background: 'var(--alice-primary)',
-          color: 'var(--alice-on-primary)',
-          border: 0,
-          borderRadius: 2,
-        }}
+        className="alice-control alice-control--primary"
+        style={{ padding: '12px 16px' }}
         onClick={() => {
           saveLearnScroll(chapterId);
           requestPlaygroundView(view);
           router.push('/playground');
         }}
       >
-        {ui(lang) === 'fr' ? 'ESSAYER DANS LE PLAYGROUND →' : 'TRY IT IN THE PLAYGROUND →'}
+        {ui(lang) === 'fr' ? 'Essayer dans Playground' : 'Try it in Playground'} <SvgIcon svg={NEXT_ICON} size={16} />
       </button>
     </div>
   );
@@ -335,7 +314,7 @@ function AnchorCards({
   if (anchors.length === 0) return null;
   return (
     <div style={{ marginTop: 32 }}>
-      <div className="font-pixel" style={{ fontSize: 8, color: 'var(--alice-muted)', marginBottom: 10 }}>
+      <div className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)', marginBottom: 10 }}>
         {lang === 'fr' ? 'À VOIR SUR LA CHAÎNE' : 'SEE IT ON CHAIN'}
       </div>
       <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
@@ -346,23 +325,17 @@ function AnchorCards({
               saveLearnScroll(chapterId);
               openAnchorInExplorer(anchor, ui(lang), code, (path) => router.push(path));
             }}
-            className="text-left cursor-pointer transition-colors hover:bg-white/5"
-            style={{
-              border: '2px solid var(--alice-primary)',
-              borderRadius: 2,
-              background: 'var(--alice-bg-soft)',
-              color: 'var(--alice-text)',
-              padding: '12px 14px',
-            }}
+            className="alice-control alice-control--row text-left"
+            style={{ display: 'block', padding: '12px 14px', borderBottom: '1px solid var(--alice-border)' }}
           >
-            <div className="font-pixel" style={{ fontSize: 7, color: 'var(--alice-primary)' }}>
+            <div className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-primary)' }}>
               {anchor.type === 'block' ? `BLOCK ${anchor.id}` : anchor.type.toUpperCase()}
             </div>
             <div className="font-numbers" style={{ fontSize: 14, marginTop: 8, lineHeight: '21px' }}>
               {anchor.label[ui(lang)]}
             </div>
-            <div className="font-pixel" style={{ fontSize: 7, color: 'var(--alice-muted)', marginTop: 10 }}>
-              {lang === 'fr' ? 'VOIR DANS L’EXPLORER →' : 'SEE IN THE EXPLORER →'}
+            <div className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)', marginTop: 10 }}>
+              <span className="flex items-center gap-2">{lang === 'fr' ? 'Ouvrir dans Explorer' : 'Open in Explorer'} <SvgIcon svg={NEXT_ICON} size={16} /></span>
             </div>
           </button>
         ))}

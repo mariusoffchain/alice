@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { SvgIcon } from '@/components/SvgIcon';
+import { CHEVRON_LEFT_ICON, DELETE_ICON } from '@/lib/atelier-icons';
 import {
   KNOWLEDGE_CONCEPT_LABELS,
   clearAliceMemory,
@@ -35,8 +37,7 @@ const CATEGORY_LABELS: Record<AliceMemoryCategory, string> = {
 };
 
 const sectionStyle: React.CSSProperties = {
-  border: '2px solid var(--alice-border)',
-  borderRadius: 2,
+  borderBottom: '1px solid var(--alice-border)',
   marginTop: 12,
 };
 
@@ -46,7 +47,7 @@ const rowStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   gap: 16,
   minHeight: 72,
-  padding: 16,
+  padding: '16px 0',
 };
 
 function familiarityLabel(state: FamiliarityState, declared: boolean): string {
@@ -86,10 +87,9 @@ export function AliceMemoryPanel({ onBack }: { onBack?: () => void }) {
         <button
           type="button"
           onClick={onBack}
-          className="font-pixel cursor-pointer bg-transparent"
-          style={{ color: 'var(--alice-muted)', fontSize: 10, border: 'none', padding: 0 }}
+          className="alice-control alice-control--quiet font-numbers cursor-pointer"
         >
-          ‹ BACK
+          <SvgIcon svg={CHEVRON_LEFT_ICON} size={16} color="currentColor" /> Back
         </button>
       )}
 
@@ -97,7 +97,7 @@ export function AliceMemoryPanel({ onBack }: { onBack?: () => void }) {
 
       <section style={{ ...sectionStyle, ...rowStyle }}>
         <div>
-          <div className="font-pixel" style={{ fontSize: 10 }}>MEMORY</div>
+          <div className="font-numbers" style={{ fontSize: 13 }}>MEMORY</div>
           <p style={{ margin: '8px 0 0', color: 'var(--alice-muted)', lineHeight: '22px' }}>
             Useful details stay in this browser. When you use Private Cloud, the
             relevant ones travel inside the same end-to-end encrypted envelope as
@@ -106,7 +106,7 @@ export function AliceMemoryPanel({ onBack }: { onBack?: () => void }) {
         </div>
         <button
           type="button"
-          className="account-secondary-button"
+          className="alice-control alice-control--choice font-numbers"
           aria-pressed={memory?.enabled ?? true}
           onClick={() => {
             const enabled = !(memory?.enabled ?? true);
@@ -125,10 +125,10 @@ export function AliceMemoryPanel({ onBack }: { onBack?: () => void }) {
         ) : memory.items.map((item, index) => (
           <div key={item.id} style={{ ...rowStyle, borderTop: index > 0 ? '1px solid var(--alice-border)' : undefined }}>
             <div>
-              <div className="font-pixel" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{CATEGORY_LABELS[item.category]}</div>
+              <div className="font-numbers" style={{ fontSize: 13, color: 'var(--alice-muted)' }}>{CATEGORY_LABELS[item.category]}</div>
               <div style={{ marginTop: 8, fontSize: 17 }}>{item.text}</div>
             </div>
-            <button type="button" className="account-danger-button" onClick={() => void forgetAliceMemoryItem(item.id).then(setMemory)}>FORGET</button>
+            <button type="button" className="alice-control alice-control--danger font-numbers" onClick={() => void forgetAliceMemoryItem(item.id).then(setMemory)}><SvgIcon svg={DELETE_ICON} size={16} color="currentColor" /> Forget</button>
           </div>
         ))}
       </section>
@@ -143,11 +143,11 @@ export function AliceMemoryPanel({ onBack }: { onBack?: () => void }) {
             <div key={concept} style={{ ...rowStyle, borderTop: index > 0 ? '1px solid var(--alice-border)' : undefined }}>
               <div>
                 <div style={{ fontSize: 17 }}>{KNOWLEDGE_CONCEPT_LABELS[concept]}</div>
-                <div className="font-pixel" style={{ fontSize: 10, color: 'var(--alice-muted)', marginTop: 8 }}>
+                <div className="font-numbers" style={{ fontSize: 13, color: 'var(--alice-muted)', marginTop: 8 }}>
                   {familiarityLabel(familiarityFor(progress), Boolean(progress?.declaredFamiliarity))}
                 </div>
               </div>
-              <button type="button" className="account-danger-button" onClick={() => void forgetPedagogicalConcept(concept).then(setLearning)}>FORGET</button>
+              <button type="button" className="alice-control alice-control--danger font-numbers" onClick={() => void forgetPedagogicalConcept(concept).then(setLearning)}><SvgIcon svg={DELETE_ICON} size={16} color="currentColor" /> Forget</button>
             </div>
           );
         })}
@@ -157,7 +157,10 @@ export function AliceMemoryPanel({ onBack }: { onBack?: () => void }) {
         Alice never saves message text, seeds, private keys, addresses, balances, transactions, direct identifiers, precise location, or sensitive personal attributes in this memory.
       </p>
 
-      <button type="button" className="account-danger-button" style={{ marginTop: 32, width: '100%' }} onClick={erase}>FORGET EVERYTHING</button>
+      <div className="mt-8 pt-4" style={{ borderTop: '1px solid var(--alice-border)' }}>
+        <p className="text-sm" style={{ color: 'var(--alice-muted)' }}>Forget all local memories and learning signals on this device. Your conversations and wallet remain.</p>
+        <button type="button" className="alice-control alice-control--danger font-numbers" onClick={erase}>Forget everything</button>
+      </div>
     </div>
   );
 }

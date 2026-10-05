@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { SEARCH_ICON } from '@/lib/atelier-icons';
+
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { classifySearch } from '@/lib/explorer/search';
@@ -72,7 +75,7 @@ function FeatureCard({ glyph, title, text }: { glyph: ReactNode; title: string; 
   return (
     <div
       className="flex flex-col gap-2 px-4 py-4"
-      style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+      style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)', backgroundColor: 'transparent' }}
     >
       <div style={{ height: 32 }}>{glyph}</div>
       <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-text)', marginTop: 4 }}>
@@ -98,16 +101,16 @@ function ExampleChip({ example, onOpen }: { example: ExploreExample; onOpen: () 
     <button
       type="button"
       onClick={onOpen}
-      className="flex items-center gap-2 cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+      className="alice-control"
       style={{
-        padding: '7px 10px',
-        border: '1px solid var(--alice-border)',
-        borderRadius: 2,
-        backgroundColor: 'var(--alice-bg-soft)',
+        padding: '10px 14px',
+        minHeight: 44,
+        borderColor: 'var(--alice-control-border)',
+        borderRadius: 'var(--alice-radius-control)',
       }}
       title={example.note}
     >
-      <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-text)' }}>
+      <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>
         {example.label}
       </span>
     </button>
@@ -198,10 +201,18 @@ export function ExplorerOverviewTab({
 
   return (
     <div className="flex flex-col gap-8">
+      <header className="workspace-heading">
+        <h1 className="font-pixel">Explorer</h1>
+        <p>Follow transactions, inspect blocks and understand the network.</p>
+      </header>
       {/* The universal search, centrepiece of the page. */}
       <div className="flex flex-col gap-2">
+        <label htmlFor="explorer-search" className="font-numbers text-sm">Transaction, address, block or extended key</label>
         <div className="relative">
           <input
+            id="explorer-search"
+            aria-describedby="explorer-search-hint"
+            aria-invalid={showError}
             ref={inputRef}
             type="text"
             value={raw}
@@ -210,7 +221,7 @@ export function ExplorerOverviewTab({
             onChange={(e) => setRaw(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
             placeholder={arkade ? 'Search a transaction, block, or address (bc1… or ark1…)' : 'Search a transaction, address or block'}
-            className="w-full font-numbers outline-none"
+            className="alice-field w-full font-numbers "
             style={{
               height: 46,
               fontSize: 14.5,
@@ -218,8 +229,8 @@ export function ExplorerOverviewTab({
               paddingRight: routable ? 96 : 12,
               color: 'var(--alice-text)',
               backgroundColor: 'var(--alice-bg)',
-              border: `1px solid ${showError ? 'var(--alice-danger)' : routable ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
-              borderRadius: 2,
+              border: `1px solid ${showError ? 'var(--alice-danger)' : routable ? 'var(--alice-primary)' : 'var(--alice-control-border)'}`,
+              borderRadius: 'var(--alice-radius-control)',
             }}
           />
           {/* Live badge: what the pasted string was recognised as. */}
@@ -234,7 +245,7 @@ export function ExplorerOverviewTab({
                 padding: '4px 6px',
                 color: 'var(--alice-primary)',
                 border: '1px solid var(--alice-primary)',
-                borderRadius: 2,
+                borderRadius: 'var(--alice-radius-control)',
               }}
             >
               {KIND_LABEL[result.kind]}
@@ -242,10 +253,11 @@ export function ExplorerOverviewTab({
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3" style={{ minHeight: 20 }}>
+        <div className="flex flex-wrap items-center justify-between gap-3" style={{ minHeight: 20 }}>
           <span
+            id="explorer-search-hint"
             className="font-numbers"
-            style={{ fontSize: 12, color: showError ? 'var(--alice-danger)' : 'var(--alice-muted)', opacity: showError ? 1 : 0.6 }}
+            style={{ fontSize: 12, color: showError ? 'var(--alice-danger)' : 'var(--alice-muted)', opacity: 1 }}
           >
             {showError
               ? errorMessage()
@@ -257,18 +269,15 @@ export function ExplorerOverviewTab({
             type="button"
             disabled={!routable}
             onClick={submit}
-            className="font-pixel tracking-widest cursor-pointer disabled:cursor-not-allowed"
+            className="alice-control alice-control--primary font-numbers cursor-pointer disabled:cursor-not-allowed"
             style={{
-              fontSize: 10,
+              fontSize: 14,
               padding: '10px 18px',
-              border: `2px solid ${routable ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
-              borderRadius: 2,
-              backgroundColor: routable ? 'var(--alice-primary)' : 'transparent',
-              color: routable ? 'var(--alice-on-primary)' : 'var(--alice-muted)',
+              borderRadius: 'var(--alice-radius-control)',
               opacity: routable ? 1 : 0.5,
             }}
           >
-            SEARCH
+            <SvgIcon svg={SEARCH_ICON} size={16} /> Search
           </button>
         </div>
 
@@ -336,10 +345,10 @@ export function ExplorerOverviewTab({
       <div
         className="flex flex-col gap-1 px-4 py-3"
         style={{
-          border: '1px solid var(--alice-border)',
+          borderTop: '1px solid var(--alice-border)',
           borderLeft: '3px solid var(--alice-primary)',
-          borderRadius: 2,
-          backgroundColor: 'var(--alice-bg-soft)',
+          borderRadius: 'var(--alice-radius-control)',
+          backgroundColor: 'transparent',
         }}
       >
         <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>

@@ -1,5 +1,7 @@
 'use client';
 
+import { ExplorerCopy } from '@/components/ExplorerUI';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChainDataProvider, RequestOptions } from '@/lib/explorer/provider';
 import { ChainDataError } from '@/lib/explorer/provider';
@@ -40,7 +42,7 @@ function ReceivedSentBar({ received, sent }: { received: number; sent: number })
   const unit = useAmountState();
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex h-3 w-full overflow-hidden" style={{ borderRadius: 2, backgroundColor: 'var(--alice-bg)' }}>
+      <div className="flex h-3 w-full overflow-hidden" style={{ borderRadius: 3, backgroundColor: 'var(--alice-bg)' }}>
         <div style={{ width: `${sentPct}%`, backgroundColor: 'var(--alice-muted)' }} />
         <div style={{ width: `${100 - sentPct}%`, backgroundColor: 'var(--alice-primary)' }} />
       </div>
@@ -66,7 +68,7 @@ type State =
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex flex-col">
-      <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{label}</span>
+      <span className="font-numbers" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{label}</span>
       <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>{value}</span>
     </div>
   );
@@ -88,9 +90,9 @@ function TxRow({ tx, onOpen }: { tx: NormalizedTransaction; onOpen: () => void }
     <button
       type="button"
       onClick={onOpen}
-      className="flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
-      style={{ borderTop: '1px solid var(--alice-border)' }}
-    >
+      className="alice-control alice-control--quiet flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
+
+    style={{ justifyContent: 'space-between' }}>
       <div className="flex flex-col min-w-0">
         <span className="font-numbers truncate" style={{ fontSize: 12, color: 'var(--alice-text)' }} title={tx.txid}>{shortTxid(tx.txid)}</span>
         <span className="font-numbers" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
@@ -271,7 +273,7 @@ export function ExplorerAddressTab({
     // shows as a skeleton and is later swapped in place, so nothing pops in.
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 px-4 py-3" style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="flex flex-col gap-3 px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}>
           <Skeleton width="60%" />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3">
             {['BALANCE', 'TRANSACTIONS', 'TIMES RECEIVED', 'RECEIVED', 'FIRST SEEN', 'AVG COIN AGE'].map(l => (
@@ -297,7 +299,7 @@ export function ExplorerAddressTab({
   }
   if (state.kind === 'error') {
     return (
-      <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+      <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 3 }}>
         <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>COULD NOT LOAD</span>
         <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{state.message}</p>
       </div>
@@ -312,9 +314,9 @@ export function ExplorerAddressTab({
       {/* Dashboard */}
       <div
         className="flex flex-col gap-3 px-4 py-3 rh-fade-in"
-        style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+        style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}
       >
-        <p className="font-numbers m-0 break-all" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{s.address}</p>
+        <div className="flex items-start gap-2"><p className="font-numbers m-0 break-all min-w-0 flex-1" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{s.address}</p><ExplorerCopy value={s.address} label="address" /></div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3">
           {/* On Liquid the balance is blinded: show it as unknown, keep the
               counts (they are public), and drop the amount-derived metrics. */}
@@ -408,12 +410,12 @@ export function ExplorerAddressTab({
       {reused && (
         <div
           className="flex flex-col gap-2 px-4 py-3"
-          style={{ border: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-warning)', borderRadius: 2 }}
+          style={{ borderTop: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-warning)', borderRadius: 3 }}
         >
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>Address reuse</span>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-warning)', borderRadius: 2, color: 'var(--alice-warning)' }}>MEDIUM</span>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}>CERTAIN CONFIDENCE</span>
+            <span className="font-numbers" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-warning)', borderRadius: 3, color: 'var(--alice-warning)' }}>MEDIUM</span>
+            <span className="font-numbers" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 3, color: 'var(--alice-muted)' }}>CERTAIN CONFIDENCE</span>
           </div>
           <p className="font-numbers m-0" style={{ fontSize: 13, lineHeight: '19px', color: 'var(--alice-muted)' }}>
             This address has received funds {s.fundedCount} times. Reusing an address publicly ties
@@ -427,13 +429,13 @@ export function ExplorerAddressTab({
       {linked.length > 0 && (
         <div
           className="flex flex-col gap-2 px-4 py-3 rh-fade-in"
-          style={{ border: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-warning)', borderRadius: 2 }}
+          style={{ borderTop: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-warning)', borderRadius: 3 }}
         >
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>
               {linked.length} linked address{linked.length > 1 ? 'es' : ''}
             </span>
-            <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}>PROBABLE</span>
+            <span className="font-numbers" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 3, color: 'var(--alice-muted)' }}>PROBABLE</span>
           </div>
           <p className="font-numbers m-0" style={{ fontSize: 13, lineHeight: '19px', color: 'var(--alice-muted)' }}>
             These addresses were spent together with this one, so common-input ownership ties them
@@ -445,8 +447,8 @@ export function ExplorerAddressTab({
                 key={a}
                 type="button"
                 onClick={() => onOpenAddress(a)}
-                className="font-numbers cursor-pointer"
-                style={{ fontSize: 11, padding: '3px 8px', border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-primary)' }}
+                className="alice-control alice-control--quiet font-numbers cursor-pointer"
+                style={{ fontSize: 11, padding: '3px 8px', borderRadius: 3, color: 'var(--alice-primary)' }}
                 title={a}
               >
                 {shortAddr(a)}
@@ -473,7 +475,7 @@ export function ExplorerAddressTab({
           accusation, which the engine's rules forbid. */}
       <div
         className="flex flex-col gap-1 px-4 py-3"
-        style={{ border: '1px dashed var(--alice-border)', borderRadius: 2 }}
+        style={{ border: '1px dashed var(--alice-border)', borderRadius: 3 }}
       >
         <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>KYC EXPOSURE</span>
         <p className="font-numbers m-0" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
@@ -511,10 +513,10 @@ export function ExplorerAddressTab({
         <button
           type="button"
           onClick={() => setVisible(v => v + LIST_PAGE)}
-          className="font-pixel tracking-widest self-center cursor-pointer"
+          className="alice-control alice-control--quiet font-numbers self-center cursor-pointer"
           style={{
-            fontSize: 10, padding: '8px 16px', borderRadius: 2,
-            border: '2px solid var(--alice-border)', backgroundColor: 'transparent', color: 'var(--alice-primary)',
+            fontSize: 13, padding: '8px 16px', borderRadius: 3,
+            color: 'var(--alice-primary)',
           }}
         >
           SHOW MORE

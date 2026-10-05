@@ -17,9 +17,6 @@ export function SiteFooter() {
               {link.label}
             </a>
           ))}
-          <a href="/trust/" className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
-            Trust
-          </a>
           <a href="/privacy/" className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
             Privacy
           </a>

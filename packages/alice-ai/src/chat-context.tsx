@@ -255,6 +255,8 @@ type ChatContextValue = {
   busy: boolean;
   backendType: AIBackendType;
   backendStatus: AIBackendStatus;
+  /** Last generation failed; backend initialization alone is not proof of a healthy request. */
+  lastRequestFailed: boolean;
   setBackendType: (type: AIBackendType) => void;
   localAvailable: boolean;
   aiEnabled: boolean;
@@ -288,6 +290,7 @@ export function ChatProvider({
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [lastRequestFailed, setLastRequestFailed] = useState(false);
   const [backendType, setBackendTypeState] = useState<AIBackendType>(() =>
     // Desktop used to start on 'local'. No model ships with the app, so a fresh
     // install sat on a fifteen-second wait and then an error, while Private
@@ -350,6 +353,7 @@ export function ChatProvider({
   }, [localAvailable]);
 
   useEffect(() => {
+    setLastRequestFailed(false);
     if (!activeBackendEnabled) {
       backendRef.current = null;
       setBackendStatus({ state: 'error', message: `${backendType} AI is disabled. Re-enable it in Alice settings.` });
@@ -495,6 +499,7 @@ export function ChatProvider({
   }, [greetingRequest]);
 
   const clearMessages = useCallback(() => {
+    setLastRequestFailed(false);
     const sessionId = currentSessionIdRef.current;
     currentSessionIdRef.current = null;
     setActiveSessionId(null);
@@ -510,6 +515,7 @@ export function ChatProvider({
   }, [persistSessionMessages, showGreeting]);
 
   const openSession = useCallback(async (id: string) => {
+    setLastRequestFailed(false);
     const sessionId = currentSessionIdRef.current;
     setMessages(prev => {
       if (sessionDirtyRef.current) persistSessionMessages(prev, sessionId, false);
@@ -588,6 +594,7 @@ export function ChatProvider({
       persistSessionMessages(next);
       return next;
     });
+    setLastRequestFailed(false);
     setBusy(true);
 
     // Keep the saved conversation raw. RAG is transient request context, not
@@ -650,6 +657,7 @@ export function ChatProvider({
         bs = backend.status();
       }
       if (!backend || backend.type !== backendType || bs?.state !== 'ready') {
+        setLastRequestFailed(true);
         const reason = bs?.state === 'error' ? (bs as any).message : 'AI is still loading. Please wait a moment.';
         setMessages(prev => {
           const next = prev.map(message => (
@@ -717,6 +725,7 @@ export function ChatProvider({
       historyRef.current.push({ role: 'assistant', content: full });
     } catch (err) {
       console.warn('[chat] send failed:', err);
+      setLastRequestFailed(true);
       setMessages(prev => {
         const content = userFacingSendError(err, backendType);
         const quotaBlocked = quotaBlockOf(err) ?? undefined;
@@ -802,6 +811,7 @@ export function ChatProvider({
 
     if (msg.role !== 'user') return;
 
+    setLastRequestFailed(false);
     setBusy(true);
 
     const userVariants = msg.variants ?? [{ content: msg.content, time: msg.time }];
@@ -825,6 +835,7 @@ export function ChatProvider({
 
     const backend = backendRef.current;
     if (!backend || backend.type !== backendType || backend.status().state !== 'ready') {
+      setLastRequestFailed(true);
       setBusy(false);
       return;
     }
@@ -943,6 +954,7 @@ export function ChatProvider({
       }
     } catch (err) {
       console.warn('[chat] edit re-send failed:', err);
+      setLastRequestFailed(true);
       if (pendingAssistantId) {
         const errorMessage = userFacingSendError(err, backendType);
         const quotaBlocked = quotaBlockOf(err) ?? undefined;
@@ -998,8 +1010,8 @@ export function ChatProvider({
   }, [persistSessionMessages, rebuildHistory]);
 
   const value = useMemo(
-    () => ({ messages, input, setInput, send, busy, backendType, backendStatus, setBackendType, localAvailable, aiEnabled, setAiEnabled, backendEnabled, setBackendEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant }),
-    [messages, input, send, busy, backendType, backendStatus, setBackendType, localAvailable, aiEnabled, setAiEnabled, backendEnabled, setBackendEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant],
+    () => ({ messages, input, setInput, send, busy, backendType, backendStatus, lastRequestFailed, setBackendType, localAvailable, aiEnabled, setAiEnabled, backendEnabled, setBackendEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant }),
+    [messages, input, send, busy, backendType, backendStatus, lastRequestFailed, setBackendType, localAvailable, aiEnabled, setAiEnabled, backendEnabled, setBackendEnabled, clearMessages, showGreeting, sessions, activeSessionId, refreshSessions, openSession, removeSession, cleanSessionHistory, getSessionStorageSummary, deleteMessage, editMessage, setMessageVariant],
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

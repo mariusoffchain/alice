@@ -3,11 +3,33 @@
 Alice ships as four surfaces from one repository, and they are versioned
 together: a single number means a tester and a log line refer to the same code.
 
-- `0.2.1`, current release
+- `0.2.2`, current release
+- `0.2.1`, previous release
 - `0.2.0`, previous release
 - `0.1.0`, previous closed beta
 - `0.0.1`, first public baseline
 - `1.0.0`, public launch, planned
+
+## 0.2.2
+
+Unreleased preparation branch. No 0.2.2 installers or release tag have been
+published yet; website download links retain the existing 0.2.1 desktop and
+0.2.0 Android artifacts until replacements are available.
+
+### Application and website
+
+- A pixel rabbit, restrained controls, theme-aware assets and clearer chat,
+  Explorer, Learn and settings layouts.
+- Distinct model and reasoning labels in the application and website preview.
+- Refreshed product screenshots and pixel icons, with the original scrolling
+  website tour, dark grid and display typography preserved.
+- A separate experimental section for Alice Wallet, outside the main download
+  menus and product tour. The mobile wallet interface is unchanged.
+- Dependency maintenance and web client boundary checks carried over from the
+  validated application work.
+
+Only integrated changes are included. Ongoing retrieval and model-catalog
+work will be reviewed separately before inclusion.
 
 ## 0.2.1
 

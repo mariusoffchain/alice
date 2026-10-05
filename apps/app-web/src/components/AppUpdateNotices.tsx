@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { EXTERNAL_ICON, REFRESH_ICON, CLOSE_ICON, NEXT_ICON } from '@/lib/atelier-icons';
+
 import { useEffect, useState } from 'react';
 import {
   RELEASE_NOTES_URL,
@@ -81,40 +84,27 @@ export function AppUpdateNotices() {
               href={RELEASE_NOTES_URL}
               target="_blank"
               rel="noreferrer"
-              className="font-pixel tracking-widest"
-              style={{
-                fontSize: 10,
-                padding: '6px 10px',
-                backgroundColor: 'var(--alice-primary)',
-                color: 'var(--alice-on-primary)',
-                borderRadius: 2,
-              }}
+              className="alice-control alice-control--primary"
+              style={{ padding: '6px 10px' }}
             >
-              GET THE UPDATE
+              <SvgIcon svg={EXTERNAL_ICON} size={16} /> Get the update
             </a>
           ) : (
             <button
               onClick={() => window.location.reload()}
-              className="font-pixel tracking-widest cursor-pointer"
-              style={{
-                fontSize: 10,
-                padding: '6px 10px',
-                backgroundColor: 'var(--alice-primary)',
-                color: 'var(--alice-on-primary)',
-                border: 'none',
-                borderRadius: 2,
-              }}
+              className="alice-control alice-control--primary"
+              style={{ padding: '6px 10px' }}
             >
-              RELOAD TO UPDATE
+              <SvgIcon svg={REFRESH_ICON} size={20} /> Reload to update
             </button>
           )}
           <button
             onClick={() => setDismissed(true)}
             aria-label="Dismiss update notice"
-            className="font-pixel cursor-pointer"
-            style={{ fontSize: 10, background: 'none', border: 'none', color: 'var(--alice-muted)' }}
+            className="alice-control alice-control--quiet"
+            style={{  }}
           >
-            LATER
+            <SvgIcon svg={CLOSE_ICON} size={16} /> Later
           </button>
         </div>
       )}
@@ -127,6 +117,8 @@ export function AppUpdateNotices() {
         >
           <div
             role="dialog"
+            aria-modal="true"
+            onKeyDown={(event) => { if (event.key === 'Escape') setWhatsNew(null); }}
             aria-label={`What's new in Alice ${whatsNew.version}`}
             onClick={event => event.stopPropagation()}
             style={{
@@ -134,7 +126,7 @@ export function AppUpdateNotices() {
               width: '100%',
               backgroundColor: 'var(--alice-bg)',
               border: '2px solid var(--alice-border)',
-              borderRadius: 4,
+              borderRadius: 3,
               padding: 20,
             }}
           >
@@ -153,30 +145,24 @@ export function AppUpdateNotices() {
             </ul>
             <p className="font-numbers mt-4 mb-0" style={{ fontSize: 13, color: 'var(--alice-muted)' }}>
               Bug fixes and the full detail:{' '}
-              <a
+              <a className="alice-control alice-control--quiet"
                 href={RELEASE_NOTES_URL}
                 target="_blank"
                 rel="noreferrer"
-                style={{ color: 'var(--alice-primary)', textDecoration: 'underline' }}
+                style={{ textDecoration: 'underline' }}
               >
-                release notes
+                release notes <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><SvgIcon svg={EXTERNAL_ICON} size={16} /></span>
               </a>
               .
             </p>
             <div className="mt-5 flex justify-end">
               <button
+                autoFocus
                 onClick={() => setWhatsNew(null)}
-                className="font-pixel tracking-widest cursor-pointer"
-                style={{
-                  fontSize: 10,
-                  padding: '8px 14px',
-                  backgroundColor: 'var(--alice-primary)',
-                  color: 'var(--alice-on-primary)',
-                  border: 'none',
-                  borderRadius: 2,
-                }}
+                className="alice-control alice-control--primary"
+                style={{ padding: '8px 14px' }}
               >
-                EXPLORE
+                <SvgIcon svg={NEXT_ICON} size={16} /> Explore
               </button>
             </div>
           </div>

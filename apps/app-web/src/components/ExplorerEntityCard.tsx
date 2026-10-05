@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { EXTERNAL_ICON } from '@/lib/atelier-icons';
+
 // The entity card: "probably belongs to X". Shown when the address matches a
 // sourced attribution. It never asserts certainty on its own: the wording, the
 // confidence pill, the source link and the date are always present, so the user
@@ -35,17 +38,17 @@ function Row({ label }: { label: EntityLabel }) {
         <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>
           {CONFIDENCE_LEAD[label.confidence]} {label.name}
         </span>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}>
+        <span className="font-numbers" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 3, color: 'var(--alice-muted)' }}>
           {CATEGORY_LABEL[label.category]}
         </span>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}>
+        <span className="font-numbers" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 3, color: 'var(--alice-muted)' }}>
           {label.confidence} confidence
         </span>
       </div>
       <span className="font-numbers" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>
         Source:{' '}
-        <a href={label.source} target="_blank" rel="noreferrer noopener" style={{ color: 'var(--alice-primary)' }}>
-          {label.sourceLabel}
+        <a href={label.source} target="_blank" rel="noreferrer noopener" className="alice-control alice-control--quiet inline-flex" style={{ color: 'var(--alice-primary)' }}>
+          {label.sourceLabel} <SvgIcon svg={EXTERNAL_ICON} size={16} />
         </a>
         {' · verified '}{label.date}
       </span>
@@ -59,7 +62,7 @@ export function ExplorerEntityCard({ labels }: { labels: EntityLabel[] }) {
     // Remote (Worker) labels can land after the page painted: fade in.
     <div
       className="flex flex-col gap-3 px-4 py-3 rh-fade-in"
-      style={{ border: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-primary)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+      style={{ borderTop: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-primary)', borderRadius: 3, backgroundColor: 'transparent' }}
     >
       <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>ENTITY</span>
       {labels.map((l, i) => <Row key={`${l.name}-${l.source}-${i}`} label={l} />)}

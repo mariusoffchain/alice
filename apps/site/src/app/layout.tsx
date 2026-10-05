@@ -42,9 +42,9 @@ export const metadata: Metadata = {
     ? { index: true, follow: true }
     : { index: false, follow: false, nocache: true },
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
-    apple: '/favicon.png',
+    icon: '/alice-rabbit.svg',
+    shortcut: '/alice-rabbit.svg',
+    apple: '/apple-touch-icon.png',
   },
 };
 
@@ -52,7 +52,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#0d1117',
+  themeColor: '#0b1016',
 };
 
 // Organization + WebSite structured data, sitewide. Helps search engines and

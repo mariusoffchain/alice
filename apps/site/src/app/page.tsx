@@ -1,7 +1,7 @@
+import { ExperimentalWallet } from '@/components/ExperimentalWallet';
 import {
-  ANDROID_APK_URL,
-  ANDROID_RELEASE_URL,
-  ANDROID_VERSION,
+  DESKTOP_RELEASE_URL,
+  DESKTOP_VERSION,
   SITE_URL,
 } from '@/lib/site';
 import { SiteNav } from '@/components/SiteNav';
@@ -17,14 +17,13 @@ const appSchema = {
   '@type': 'SoftwareApplication',
   name: 'Alice',
   applicationCategory: 'FinanceApplication',
-  operatingSystem: 'Web, Android',
+  operatingSystem: 'Web, macOS, Windows, Linux',
   url: SITE_URL,
   description:
     'A private AI companion that helps you understand, hold, and use Bitcoin. Self-custody is built in; the AI explains and guides but never holds your keys.',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-  softwareVersion: ANDROID_VERSION,
-  downloadUrl: ANDROID_APK_URL,
-  releaseNotes: ANDROID_RELEASE_URL,
+  softwareVersion: DESKTOP_VERSION,
+  releaseNotes: DESKTOP_RELEASE_URL,
 };
 
 export default function HomePage() {
@@ -65,12 +64,13 @@ export default function HomePage() {
             </div>
             <a
               href="/vs/chatgpt/"
-              className="shrink-0 rounded-[3px] border-2 border-[var(--alice-primary)] px-5 py-3 font-semibold text-[var(--alice-primary)] transition-colors hover:bg-[var(--alice-primary)] hover:text-[var(--alice-on-primary)]"
+              className="shrink-0 rounded-[3px] border border-[var(--alice-primary)] px-5 py-3 font-semibold text-[var(--alice-primary)] transition-colors hover:bg-[var(--alice-primary)] hover:text-[var(--alice-on-primary)]"
             >
               Alice vs ChatGPT →
             </a>
           </div>
         </section>
+        <ExperimentalWallet />
       </main>
       <SiteFooter />
     </>

@@ -66,7 +66,7 @@ export function SettlementBadge({ children = 'ARKADE TX SETTLEMENT' }: { childre
     <span
       className="font-pixel tracking-widest inline-flex items-center shrink-0"
       style={{
-        fontSize: 10, lineHeight: 1, padding: '3px 6px', borderRadius: 2,
+        fontSize: 10, lineHeight: 1, padding: '3px 6px', borderRadius: 3,
         border: `1px solid ${ARKADE_ACCENT}`, color: '#ffffff',
         backgroundColor: ARKADE_ACCENT, whiteSpace: 'nowrap',
       }}
@@ -94,8 +94,8 @@ function VtxoRow({ v, onOpenTx }: { v: ArkadeVtxo; onOpenTx?: (txid: string) => 
               // Register the anchor as a settlement first, so the tab opens
               // as a Bitcoin (on-chain) tab, not an Arkade one.
               onClick={() => { noteSeenSettlement(anchor); onOpenTx(anchor); }}
-              className="font-numbers text-left cursor-pointer bg-transparent p-0"
-              style={{ fontSize: 10, color: 'var(--alice-primary)' }}
+              className="alice-control alice-control--quiet font-numbers text-left cursor-pointer bg-transparent p-0"
+              style={{ fontSize: 13, color: 'var(--alice-primary)' }}
               title="Open the on-chain settlement anchoring this VTXO"
             >
               anchored in {shortHex(anchor, 8, 6)}
@@ -126,7 +126,7 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
   const age = averageUtxoAge(spendable.map(v => ({ valueSats: v.amountSats, blockTime: v.createdAt })), nowSec);
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 px-4 py-3" style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}>
+      <div className="flex flex-col gap-3 px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}>
         <div className="flex items-center gap-2 flex-wrap">
           <Badge tone="primary">ARKADE ADDRESS</Badge>
           <span className="font-numbers break-all" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{info.address}</span>
@@ -159,8 +159,8 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
           one row per Arkade transaction that touched the address, newest
           first, with its net effect. */}
       {txHistory.length > 0 && (
-        <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
-          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="flex flex-col" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
+          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'transparent' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>TRANSACTIONS</span>
             <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
               {Math.min(txLimit, txHistory.length).toLocaleString('en-US')} of {txHistory.length.toLocaleString('en-US')}
@@ -171,8 +171,9 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
               key={e.txid}
               type="button"
               onClick={() => onOpenTx?.(e.txid)}
-              className="flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
-              style={{ borderTop: '1px solid var(--alice-border)' }}
+              className="alice-control alice-control--quiet flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
+
+              style={{ justifyContent: 'space-between' }}
               disabled={!onOpenTx}
             >
               <div className="flex flex-col min-w-0">
@@ -193,10 +194,9 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
             <button
               type="button"
               onClick={() => setTxLimit(l => l + FEED_STEP)}
-              className="font-pixel tracking-widest cursor-pointer"
+              className="alice-control alice-control--quiet font-numbers cursor-pointer"
               style={{
-                fontSize: 10, padding: '8px 16px', borderTop: '1px solid var(--alice-border)',
-                backgroundColor: 'transparent', color: 'var(--alice-primary)',
+                fontSize: 13, padding: '8px 16px', color: 'var(--alice-primary)',
               }}
             >
               SHOW MORE
@@ -206,8 +206,8 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
       )}
 
       {info.vtxos.length > 0 ? (
-        <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
-          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="flex flex-col" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
+          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'transparent' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>VTXOS</span>
             <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
               {Math.min(vtxoLimit, info.vtxos.length).toLocaleString('en-US')} of {info.vtxos.length.toLocaleString('en-US')}
@@ -218,10 +218,9 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
             <button
               type="button"
               onClick={() => setVtxoLimit(l => l + FEED_STEP)}
-              className="font-pixel tracking-widest cursor-pointer"
+              className="alice-control alice-control--quiet font-numbers cursor-pointer"
               style={{
-                fontSize: 10, padding: '8px 16px', borderTop: '1px solid var(--alice-border)',
-                backgroundColor: 'transparent', color: 'var(--alice-primary)',
+                fontSize: 13, padding: '8px 16px', color: 'var(--alice-primary)',
               }}
             >
               SHOW MORE
@@ -229,7 +228,7 @@ function AddressCard({ info, onOpenTx }: { info: ArkadeAddressInfo; onOpenTx?: (
           )}
         </div>
       ) : (
-        <EmptyState glyph="○" title="No VTXOs on this address" hint="This Arkade address holds no off-chain coins that the ASP knows about." />
+        <EmptyState title="No VTXOs on this address" hint="This Arkade address holds no off-chain coins that the ASP knows about." />
       )}
     </div>
   );
@@ -244,7 +243,7 @@ export function CommitmentCard({ c, onOpenTx }: { c: ArkadeCommitment; onOpenTx?
     <div className="flex flex-col gap-4">
       <div
         className="flex flex-col gap-3 px-4 py-3"
-        style={{ border: '1px solid var(--alice-border)', borderLeft: `3px solid ${ARKADE_ACCENT}`, borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+        style={{ borderTop: '1px solid var(--alice-border)', borderLeft: `3px solid ${ARKADE_ACCENT}`, borderRadius: 3, backgroundColor: 'transparent' }}
       >
         <div className="flex items-center gap-2 flex-wrap">
           <SettlementBadge>ARKADE COMMITMENT ROUND</SettlementBadge>
@@ -252,7 +251,7 @@ export function CommitmentCard({ c, onOpenTx }: { c: ArkadeCommitment; onOpenTx?
             <button
               type="button"
               onClick={() => { noteSeenSettlement(c.txid); onOpenTx(c.txid); }}
-              className="font-numbers break-all text-left cursor-pointer bg-transparent"
+              className="alice-control alice-control--quiet font-numbers break-all text-left cursor-pointer bg-transparent"
               style={{ fontSize: 11, color: 'var(--alice-primary)' }}
               title="Open the on-chain transaction"
             >
@@ -275,8 +274,8 @@ export function CommitmentCard({ c, onOpenTx }: { c: ArkadeCommitment; onOpenTx?
       </div>
 
       {c.batches.length > 0 && (
-        <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
-          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="flex flex-col" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
+          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'transparent' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>BATCHES</span>
             <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>{c.batches.length}</span>
           </div>
@@ -355,7 +354,7 @@ export function ArkadeLiveSettlements({ apiBaseUrl, onOpenTx }: { apiBaseUrl: st
           <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>{live ? 'LIVE' : 'CONNECTING'}</span>
         </span>
       </div>
-      <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
+      <div className="flex flex-col" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
         {shown.length === 0 ? (
           <Analyzing label="identifying settlements on the Bitcoin chain…" />
         ) : (
@@ -364,8 +363,8 @@ export function ArkadeLiveSettlements({ apiBaseUrl, onOpenTx }: { apiBaseUrl: st
               key={s.txid}
               type="button"
               onClick={() => onOpenTx(s.txid)}
-              className="flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
-              style={{ borderTop: i > 0 ? '1px solid var(--alice-border)' : undefined }}
+              className="alice-control alice-control--quiet flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
+              style={{ borderTop: i > 0 ? '1px solid var(--alice-border)' : undefined, justifyContent: 'space-between' }}
             >
               <div className="flex flex-col min-w-0">
                 <span className="font-numbers truncate" style={{ fontSize: 12, color: 'var(--alice-primary)' }} title={s.txid}>{shortHex(s.txid, 12, 8)}</span>
@@ -383,10 +382,9 @@ export function ArkadeLiveSettlements({ apiBaseUrl, onOpenTx }: { apiBaseUrl: st
         <button
           type="button"
           onClick={() => setLimit(l => l + FEED_STEP)}
-          className="font-pixel tracking-widest self-center cursor-pointer"
+          className="alice-control alice-control--quiet font-numbers self-center cursor-pointer"
           style={{
-            fontSize: 10, padding: '8px 16px', border: '2px solid var(--alice-border)',
-            borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-primary)',
+            fontSize: 13, padding: '8px 16px', borderRadius: 3, color: 'var(--alice-primary)',
           }}
         >
           SHOW {Math.min(FEED_STEP, known.length - shown.length)} MORE
@@ -418,12 +416,12 @@ export function ArkadeAspInfo({ apiBaseUrl }: { apiBaseUrl: string }) {
     <div className="flex flex-col gap-2">
       <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>SERVICE PROVIDER</span>
       {infoErr ? (
-        <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+        <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 3 }}>
           <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>ASP UNREACHABLE</span>
           <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{infoErr}</p>
         </div>
       ) : info ? (
-        <div className="flex flex-col gap-3 px-4 py-3" style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="flex flex-col gap-3 px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
             <Metric label="ROUND EVERY" value={fmtDuration(info.sessionDurationSec)} />
             <Metric label="DUST" value={<Amount sats={info.dustSats} style={{ fontSize: 13, color: 'var(--alice-text)' }} />} />
@@ -446,7 +444,7 @@ export function ArkadeAspInfo({ apiBaseUrl }: { apiBaseUrl: string }) {
           )}
         </div>
       ) : (
-        <div className="px-4 py-3" style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}>
           <SkeletonLines lines={3} />
         </div>
       )}
@@ -465,7 +463,7 @@ export function ArkadeVirtualTxCard({ vtx, onOpenTx }: { vtx: ArkadeVirtualTx; o
     <div className="flex flex-col gap-4">
       <div
         className="flex flex-col gap-3 px-4 py-3"
-        style={{ border: '1px solid var(--alice-border)', borderLeft: `3px solid ${ARKADE_ACCENT}`, borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+        style={{ borderTop: '1px solid var(--alice-border)', borderLeft: `3px solid ${ARKADE_ACCENT}`, borderRadius: 3, backgroundColor: 'transparent' }}
       >
         <div className="flex items-center gap-2 flex-wrap">
           <SettlementBadge>ARKADE VIRTUAL TX</SettlementBadge>
@@ -486,8 +484,8 @@ export function ArkadeVirtualTxCard({ vtx, onOpenTx }: { vtx: ArkadeVirtualTx; o
       />
 
       <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1 flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
-          <div className="px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="flex-1 flex flex-col" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
+          <div className="px-3 py-2" style={{ backgroundColor: 'transparent' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>INPUTS ({vtx.inputs.length})</span>
           </div>
           {vtx.inputs.map((inp, i) => (
@@ -496,7 +494,7 @@ export function ArkadeVirtualTxCard({ vtx, onOpenTx }: { vtx: ArkadeVirtualTx; o
                 <button
                   type="button"
                   onClick={() => onOpenTx(inp.txid)}
-                  className="font-numbers truncate text-left cursor-pointer bg-transparent p-0"
+                  className="alice-control alice-control--quiet font-numbers truncate text-left cursor-pointer bg-transparent p-0"
                   style={{ fontSize: 12, color: 'var(--alice-primary)' }}
                   title={`${inp.txid}:${inp.vout}`}
                 >
@@ -510,8 +508,8 @@ export function ArkadeVirtualTxCard({ vtx, onOpenTx }: { vtx: ArkadeVirtualTx; o
           ))}
         </div>
 
-        <div className="flex-1 flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
-          <div className="px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="flex-1 flex flex-col" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
+          <div className="px-3 py-2" style={{ backgroundColor: 'transparent' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>OUTPUTS ({vtx.outputs.length})</span>
           </div>
           {vtx.outputs.map(o => (
@@ -531,8 +529,8 @@ export function ArkadeVirtualTxCard({ vtx, onOpenTx }: { vtx: ArkadeVirtualTx; o
                     <button
                       type="button"
                       onClick={() => { noteSeenSettlement(o.vtxo!.commitmentTxids[0]); onOpenTx(o.vtxo!.commitmentTxids[0]); }}
-                      className="font-numbers text-left cursor-pointer bg-transparent p-0"
-                      style={{ fontSize: 10, color: 'var(--alice-primary)' }}
+                      className="alice-control alice-control--quiet font-numbers text-left cursor-pointer bg-transparent p-0"
+                      style={{ fontSize: 13, color: 'var(--alice-primary)' }}
                       title="Open the on-chain settlement anchoring this VTXO"
                     >
                       anchored in {shortHex(o.vtxo.commitmentTxids[0], 8, 6)}
@@ -586,7 +584,7 @@ export function ExplorerArkadeAddressTab({ apiBaseUrl, address, onOpenTx }: {
     // VTXO bubbles, lists) and the data swaps in place, like the on-chain tab.
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 px-4 py-3" style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="flex flex-col gap-3 px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}>
           <Skeleton width="60%" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
             {['SPENDABLE', 'SPENDABLE VTXOS', 'TOTAL VTXOS', 'AVG COIN AGE'].map(l => (
@@ -612,16 +610,15 @@ export function ExplorerArkadeAddressTab({ apiBaseUrl, address, onOpenTx }: {
   }
   if (state.kind === 'error') {
     return (
-      <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+      <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 3 }}>
         <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>COULD NOT LOAD</span>
         <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{state.message}</p>
         <button
           type="button"
           onClick={() => setRetryToken(t => t + 1)}
-          className="font-pixel tracking-widest self-start cursor-pointer"
+          className="alice-control alice-control--quiet font-numbers self-start cursor-pointer"
           style={{
-            fontSize: 10, padding: '8px 16px', border: '2px solid var(--alice-border)',
-            borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-primary)',
+            fontSize: 13, padding: '8px 16px', borderRadius: 3, color: 'var(--alice-primary)',
           }}
         >
           RETRY

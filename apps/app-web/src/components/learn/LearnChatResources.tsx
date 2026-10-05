@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { NEXT_ICON } from '@/lib/atelier-icons';
+
 import { useRouter } from 'next/navigation';
 import type { ChatMsg } from '@alice-wallet/alice-ai';
 import type { LearnExplorerAnchor } from '@alice-wallet/alice-content/src/learn-anchors';
@@ -50,7 +53,7 @@ export function LearnChatResources({
         maxWidth: 480,
       }}
     >
-      <span className="font-pixel" style={{ fontSize: 7, letterSpacing: 1, color: 'var(--alice-muted)' }}>
+      <span className="font-pixel" style={{ fontSize: 9, letterSpacing: 0, color: 'var(--alice-muted)' }}>
         {lang === 'fr' ? 'POUR ALLER PLUS LOIN' : 'TO GO FURTHER'}
       </span>
 
@@ -59,38 +62,38 @@ export function LearnChatResources({
           onClick={() =>
             router.push(learn.kind === 'course' ? `/learn/?course=${learn.code}` : `/learn/?tutorial=${learn.code}`)
           }
-          className="flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-white/5"
-          style={{ background: 'transparent', border: 0, padding: '8px 2px', color: 'var(--alice-text)' }}
+          className="alice-control alice-control--row flex items-center gap-3 text-left"
+          style={{ padding: '8px 2px' }}
         >
-          <span className="font-pixel shrink-0" style={{ fontSize: 7, color: 'var(--alice-primary)' }}>
+          <span className="font-numbers shrink-0" style={{ fontSize: 12, color: 'var(--alice-primary)' }}>
             LEARN
           </span>
           <span className="font-numbers min-w-0 truncate" style={{ fontSize: 14 }}>{learn.title}</span>
-          <span className="font-pixel shrink-0" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+          <span className="font-numbers shrink-0" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
             {learn.kind === 'course'
               ? started
                 ? (lang === 'fr' ? `${learn.code.toUpperCase()} · REPRENDRE` : `${learn.code.toUpperCase()} · RESUME`)
                 : learn.code.toUpperCase()
               : (lang === 'fr' ? 'TUTORIEL' : 'TUTORIAL')}
           </span>
-          <span className="font-pixel shrink-0 ml-auto" style={{ fontSize: 9, color: 'var(--alice-primary)' }}>→</span>
+          <span className="ml-auto"><SvgIcon svg={NEXT_ICON} size={16} /></span>
         </button>
       )}
 
       {chapter && (
         <button
           onClick={() => router.push(`/learn/?course=${chapter.courseCode}&chapter=${chapter.chapterId}`)}
-          className="flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-white/5"
-          style={{ background: 'transparent', border: 0, padding: '8px 2px', color: 'var(--alice-text)' }}
+          className="alice-control alice-control--row flex items-center gap-3 text-left"
+          style={{ padding: '8px 2px' }}
         >
-          <span className="font-pixel shrink-0" style={{ fontSize: 7, color: 'var(--alice-primary)' }}>
+          <span className="font-numbers shrink-0" style={{ fontSize: 12, color: 'var(--alice-primary)' }}>
             LEARN
           </span>
           <span className="font-numbers min-w-0 truncate" style={{ fontSize: 14 }}>{chapter.title}</span>
-          <span className="font-pixel shrink-0" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+          <span className="font-numbers shrink-0" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
             {chapter.courseCode.toUpperCase()}
           </span>
-          <span className="font-pixel shrink-0 ml-auto" style={{ fontSize: 9, color: 'var(--alice-primary)' }}>→</span>
+          <span className="ml-auto"><SvgIcon svg={NEXT_ICON} size={16} /></span>
         </button>
       )}
 
@@ -100,16 +103,16 @@ export function LearnChatResources({
             requestPlaygroundView(playground);
             router.push('/playground');
           }}
-          className="flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-white/5"
-          style={{ background: 'transparent', border: 0, padding: '8px 2px', color: 'var(--alice-text)' }}
+          className="alice-control alice-control--row flex items-center gap-3 text-left"
+          style={{ padding: '8px 2px' }}
         >
-          <span className="font-pixel shrink-0" style={{ fontSize: 7, color: 'var(--alice-primary)' }}>
+          <span className="font-numbers shrink-0" style={{ fontSize: 12, color: 'var(--alice-primary)' }}>
             PLAYGROUND
           </span>
           <span className="font-numbers min-w-0 truncate" style={{ fontSize: 14 }}>
             {lang === 'fr' ? 'Essayez-le avec des sats d’entraînement' : 'Try it with training sats'}
           </span>
-          <span className="font-pixel shrink-0 ml-auto" style={{ fontSize: 9, color: 'var(--alice-primary)' }}>→</span>
+          <span className="ml-auto"><SvgIcon svg={NEXT_ICON} size={16} /></span>
         </button>
       )}
 
@@ -117,17 +120,17 @@ export function LearnChatResources({
         <button
           key={`${anchor.type}:${anchor.id}`}
           onClick={() => openAnchorFromChat(anchor, lang, (path) => router.push(path))}
-          className="flex items-center gap-3 text-left cursor-pointer transition-colors hover:bg-white/5"
-          style={{ background: 'transparent', border: 0, padding: '8px 2px', color: 'var(--alice-text)' }}
+          className="alice-control alice-control--row flex items-center gap-3 text-left"
+          style={{ padding: '8px 2px' }}
         >
-          <span className="font-pixel shrink-0" style={{ fontSize: 7, color: 'var(--alice-primary)' }}>
+          <span className="font-numbers shrink-0" style={{ fontSize: 12, color: 'var(--alice-primary)' }}>
             EXPLORER
           </span>
           <span className="font-numbers min-w-0 truncate" style={{ fontSize: 14 }}>{anchor.label[lang]}</span>
-          <span className="font-pixel shrink-0" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+          <span className="font-numbers shrink-0" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
             {anchor.type === 'block' ? `${lang === 'fr' ? 'BLOC' : 'BLOCK'} ${anchor.id}` : anchor.type.toUpperCase()}
           </span>
-          <span className="font-pixel shrink-0 ml-auto" style={{ fontSize: 9, color: 'var(--alice-primary)' }}>→</span>
+          <span className="ml-auto"><SvgIcon svg={NEXT_ICON} size={16} /></span>
         </button>
       ))}
     </div>

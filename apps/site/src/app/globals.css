@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
-/* Brand fonts, shared with the wallet app for a consistent identity. The pixel
-   face is reserved for accents/logos; the terminal grotesque carries body copy. */
+/* Display headings and pixel labels complement the system reading face. */
 @font-face {
   font-family: 'TerminalGrotesque';
   src: url('/fonts/terminal-grotesque.ttf') format('truetype');
@@ -20,15 +19,16 @@
 
 :root {
   /* Alice dark-blue palette, matches apps/app-web (PALETTES.blue.dark). */
-  --alice-bg: #0d1117;
+  --alice-bg: #0b1016;
+  color-scheme: dark;
   --alice-bg-soft: #161b22;
   --alice-primary: #8bb8ff;
   --alice-primary-dark: #a8ccff;
   --alice-text: #f2efe6;
   --alice-heading: #eaf1ff;
   --alice-border: #2a3a52;
-  --alice-muted: #7f97bd;
-  --alice-card-bg: rgba(22, 27, 34, 0.72);
+  --alice-muted: #a2a6ac;
+  --alice-card-bg: transparent;
   --alice-on-primary: #0b1b34;
 }
 
@@ -39,7 +39,7 @@ html {
 body {
   background-color: var(--alice-bg);
   color: var(--alice-text);
-  font-family: 'TerminalGrotesque', system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   margin: 0;
   padding: 0;
@@ -50,15 +50,15 @@ body {
   /* Faint crossed grid, blueprint/circuit texture, reinforces the pixel/
      terminal identity without a glow or gradient falloff. */
   background-image:
-    linear-gradient(rgba(139, 184, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 184, 255, 0.07) 1px, transparent 1px);
+    linear-gradient(rgba(139, 184, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 184, 255, 0.045) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
 /* Nav's bottom seam, the exact same line color/opacity as the page's grid
    texture, so the bar reads as distinct without a jarring UI-style divider. */
 .nav-seam {
-  border-bottom: 1px solid rgba(139, 184, 255, 0.07);
+  border-bottom: 1px solid rgba(139, 184, 255, 0.045);
 }
 
 /* In Tailwind v4's real CSS cascade layers, an unlayered rule always beats a
@@ -96,8 +96,8 @@ button:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border: 2px solid var(--alice-primary);
-  border-radius: 3px;
+  border: 1px solid var(--alice-border);
+  border-radius: 4px;
   font-weight: 600;
   color: var(--alice-heading);
   background: transparent;
@@ -105,16 +105,10 @@ button:focus-visible {
      pour rester dans le langage terminal. */
   transition: transform 0.1s steps(2, jump-none), box-shadow 0.1s steps(2, jump-none);
 }
-.cta:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 color-mix(in srgb, var(--alice-primary) 35%, transparent);
-}
-.cta:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 color-mix(in srgb, var(--alice-primary) 35%, transparent);
-}
+.cta:hover { background-color: var(--alice-bg-soft); border-color: var(--alice-primary); }
+.cta:active { transform: translateY(1px); }
 
-/* Menus de plateforme (Alice App / Alice Wallet). Fermes par defaut, ouverts
+/* Menus de plateforme Alice App. Fermes par defaut, ouverts
    par l'etat clique (data-open), et, seulement sur les appareils a vrai
    pointeur, ouverts au survol du bouton. Sur tactile, hover: hover est faux,
    donc seul le tap ouvre. */
@@ -132,17 +126,8 @@ button:focus-visible {
 
 /* Meme affordance pour les boutons qui ne sont pas des .cta (couleurs
    intactes, seulement le mouvement et l'ombre). */
-.raise {
-  transition: transform 0.1s steps(2, jump-none), box-shadow 0.1s steps(2, jump-none);
-}
-.raise:hover:not(:disabled) {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 color-mix(in srgb, var(--alice-primary) 35%, transparent);
-}
-.raise:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 color-mix(in srgb, var(--alice-primary) 35%, transparent);
-}
+.raise { transition: border-color 120ms, background-color 120ms; }
+.raise:hover:not(:disabled) { border-color: var(--alice-primary); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -187,3 +172,30 @@ button:focus-visible {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(139, 184, 255, 0.25); border-radius: 4px; }
 * { scrollbar-width: thin; scrollbar-color: rgba(139, 184, 255, 0.25) transparent; }
+
+/* Three deliberate roles: display titles, pixel labels, readable body copy. */
+h1:not(.font-pixel), h2:not(.font-pixel), h3:not(.font-pixel), h4:not(.font-pixel) {
+  font-family: 'TerminalGrotesque', monospace;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.font-pixel { font-family: 'PressStart2P', monospace; line-height: 1.8; }
+.cta-solid:hover { background: var(--alice-primary-dark); color: var(--alice-on-primary); }
+.wallet-experiment { scroll-margin-top: 96px; }
+.wallet-experiment .experimental-label { color: #d7bd8a; font-family: 'PressStart2P', monospace; font-size: 10px; line-height: 1.8; }
+.wallet-experiment .wallet-link { display: inline-flex; align-items: center; padding: 9px 12px; border: 1px solid var(--alice-border); border-radius: 4px; font-size: 14px; color: var(--alice-text); }
+.wallet-experiment .wallet-link:hover { background: var(--alice-bg-soft); border-color: var(--alice-muted); }
+
+/* Product previews use application typography, independent of site headings. */
+.mini-app { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.mini-app .mini-course-title { font-family: inherit; font-weight: 500; }
+.mini-suggestion { padding: 4px 0; border: 0; background: transparent; color: var(--alice-muted); font-size: 11px; line-height: 1.5; text-align: left; cursor: pointer; }
+.mini-suggestion:hover:not(:disabled) { color: var(--alice-text); text-decoration: underline; text-underline-offset: 3px; }
+.mini-suggestion:disabled { cursor: wait; opacity: .6; }
+.mini-app .font-pixel { line-height: 1.65; }
+.mini-course-progress { display: flex; gap: 3px; }
+.mini-course-progress span { height: 5px; flex: 1; background: var(--alice-border); }
+.mini-course-progress span:first-child { background: var(--alice-primary); }
+
+@media (max-width: 767px) { .cta-mobile:hover { background: var(--alice-primary-dark); color: var(--alice-on-primary); } }
+@media (min-width: 768px) { .cta-desktop:hover { background: var(--alice-primary-dark); color: var(--alice-on-primary); } }

@@ -20,7 +20,7 @@ const FAQS: { q: string; a: string; link?: { label: string; href: string } }[] =
   },
   {
     q: 'Is Alice on mainnet?',
-    a: 'Real funds are only possible today in Alice Wallet on mobile, through the Arkade protocol, and it is still in beta: keep amounts small while it is validated. The Playground inside Alice App only ever uses Mutinynet test coins, nothing there is real money. Private Cloud’s own end-to-end verification is also still being completed, and the trust page says exactly what is proven today.',
+    a: 'Real funds are only possible today in Alice Wallet on mobile, through the Arkade protocol, and it is an experimental beta: keep amounts small while it is validated. The Playground inside Alice App only ever uses Mutinynet test coins, nothing there is real money. Private Cloud’s own end-to-end verification is also still being completed, and the trust page says exactly what is proven today.',
   },
   {
     q: 'What is Mutinynet?',

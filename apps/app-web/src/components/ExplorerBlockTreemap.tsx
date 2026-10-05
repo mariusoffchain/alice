@@ -27,11 +27,15 @@ export function ExplorerBlockTreemap({
   hash,
   provider,
   onOpenTx,
+  selectedTxid,
+  onSelectTx,
   highlight,
 }: {
   hash: string;
   provider: ChainDataProvider;
   onOpenTx: (txid: string) => void;
+  selectedTxid: string | null;
+  onSelectTx: (txid: string) => void;
   /** Transactions to spotlight in the map (the Arkade settlement): their
    *  square is filled with `color` instead of the fee colour, and the hover
    *  card names them with `label` (in `textColor`, legible on the tooltip). */
@@ -118,7 +122,21 @@ export function ExplorerBlockTreemap({
     placedRef.current = placed;
     baseRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
     setHover(null);
-  }, [txs, grid, boxSize, highlight]);
+  }, [txs, grid, boxSize, highlight?.txids, highlight?.color]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx || !baseRef.current) return;
+    ctx.putImageData(baseRef.current, 0, 0);
+    const selected = placedRef.current.find(square => square.tx.txid === selectedTxid);
+    if (!selected) return;
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(selected.px, selected.py, selected.pside, selected.pside);
+  }, [selectedTxid, txs, grid, boxSize, highlight?.txids, highlight?.color, hover]);
 
   function squareAt(clientX: number, clientY: number): Placed | null {
     const canvas = canvasRef.current;
@@ -151,13 +169,13 @@ export function ExplorerBlockTreemap({
     if (p && wrap) {
       const wr = wrap.getBoundingClientRect();
       setHover({ x: e.clientX - wr.left, y: e.clientY - wr.top, tx: p.tx });
+      onSelectTx?.(p.tx.txid);
     } else setHover(null);
   }
 
   function onLeave() {
+    // The selection effect restores the base image and selected outline.
     setHover(null);
-    const ctx = canvasRef.current?.getContext('2d');
-    if (ctx && baseRef.current) ctx.putImageData(baseRef.current, 0, 0);
   }
 
   if (status === 'unsupported') return null;
@@ -183,7 +201,26 @@ export function ExplorerBlockTreemap({
         <div ref={wrapRef} className="relative w-full rh-fade-in">
           <canvas
             ref={canvasRef}
-            style={{ display: 'block', border: '1px solid var(--alice-border)', borderRadius: 2, cursor: hover ? 'pointer' : 'default' }}
+            tabIndex={0}
+            role="group"
+            aria-label="Transaction map. Use arrow keys to inspect transactions and Enter to open. The transaction list follows below."
+            onFocus={() => {
+              const first = placedRef.current.find(p => p.tx.txid === selectedTxid) ?? placedRef.current[0];
+              if (first) { onSelectTx?.(first.tx.txid); setHover({ x: first.px, y: first.py, tx: first.tx }); }
+            }}
+            onKeyDown={event => {
+              const entries = placedRef.current;
+              if (!entries.length) return;
+              if (event.key === 'Enter' && selectedTxid) { event.preventDefault(); onOpenTx(selectedTxid); return; }
+              if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+              event.preventDefault();
+              const index = entries.findIndex(p => p.tx.txid === selectedTxid);
+              const step = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+              const next = entries[(index + step + entries.length) % entries.length];
+              onSelectTx?.(next.tx.txid); setHover({ x: next.px, y: next.py, tx: next.tx });
+            }}
+            style={{ display: 'block', border: '1px solid var(--alice-border)', borderRadius: 3, cursor: hover ? 'pointer' : 'default' }}
+            className="focus-visible:outline-2 focus-visible:outline-offset-2"
             onMouseMove={onMove}
             onMouseLeave={onLeave}
             onClick={() => { if (hover) onOpenTx(hover.tx.txid); }}
@@ -194,7 +231,7 @@ export function ExplorerBlockTreemap({
               style={{
                 left: Math.min(hover.x + 12, (wrapRef.current?.clientWidth ?? 0) - 170),
                 top: hover.y + 12,
-                padding: '6px 8px', border: '1px solid var(--alice-border)', borderRadius: 2,
+                padding: '6px 8px', border: '1px solid var(--alice-border)', borderRadius: 3,
                 backgroundColor: 'var(--alice-bg)', zIndex: 10, maxWidth: 200,
               }}
             >
@@ -232,10 +269,9 @@ export function ExplorerBlockTreemap({
               <button
                 type="button"
                 onClick={() => setView(v => (v === 'actual' ? 'expected' : 'actual'))}
-                className="font-pixel tracking-widest cursor-pointer"
+                className="alice-control alice-control--quiet font-numbers cursor-pointer"
                 style={{
-                  fontSize: 10, padding: '6px 12px', borderRadius: 2,
-                  border: '2px solid var(--alice-border)', backgroundColor: 'transparent',
+                  fontSize: 13, padding: '6px 12px', borderRadius: 3,
                   color: 'var(--alice-primary)',
                 }}
               >

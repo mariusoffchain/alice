@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { EXPLORE_ICON, NETWORK_ICON, WALLET_ICON, DATA_ICON, CLOSE_ICON, CHEVRON_DOWN_ICON, CHECK_ICON } from '@/lib/atelier-icons';
+
 import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Tab, TabKind } from '@/lib/explorer/tabs';
 import { NETWORKS, getNetwork } from '@/lib/explorer/networks';
@@ -7,7 +10,7 @@ import { NETWORKS, getNetwork } from '@/lib/explorer/networks';
 // A glyph per tab kind, so a tab's type is legible at a glance and not carried
 // by colour alone (item 11 / item 5).
 const TAB_GLYPH: Record<TabKind, string> = {
-  overview: '⌂', tx: '⇄', address: '◈', block: '▦', xpub: '☰',
+  overview: EXPLORE_ICON, tx: NETWORK_ICON, address: WALLET_ICON, block: DATA_ICON, xpub: WALLET_ICON,
 };
 
 // Standalone network button: it only opens the explorer dropdown, it is not a
@@ -51,26 +54,30 @@ function NetworkButton({
         ref={btnRef}
         type="button"
         onClick={toggle}
-        className="flex items-center gap-1 shrink-0 cursor-pointer my-1"
+        onKeyDown={e => { if (e.key === 'Escape') setOpen(false); }}
+        className="alice-control alice-control--quiet flex items-center gap-1 shrink-0 cursor-pointer my-1"
         style={{
-          padding: '5px 10px', borderRadius: 2,
-          border: '1px solid var(--alice-border)', backgroundColor: 'var(--alice-bg-soft)',
-        }}
+          padding: '5px 10px', borderRadius: 'var(--alice-radius-control)',
+          }}
         aria-label="Choose network"
+        aria-expanded={open}
+        aria-controls="explorer-network-menu"
         title={`Network: ${net.label}`}
       >
         <span className="font-numbers" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{net.label}</span>
-        <span style={{ fontSize: 10, color: 'var(--alice-muted)' }}>▾</span>
+        <SvgIcon svg={CHEVRON_DOWN_ICON} size={16} />
       </button>
 
       {open && pos && (
         <div
           ref={menuRef}
+          id="explorer-network-menu"
+          onKeyDown={e => { if (e.key === 'Escape') { setOpen(false); btnRef.current?.focus(); } }}
           className="fixed flex flex-col"
           style={{
             left: pos.left, top: pos.top, zIndex: 50, minWidth: 170,
-            backgroundColor: 'var(--alice-bg)', border: '1px solid var(--alice-border)', borderRadius: 2,
-            boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
+            backgroundColor: 'var(--alice-bg)', border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)',
+            boxShadow: '0 2px 0 var(--alice-border)',
           }}
         >
           {NETWORKS.map((n, i) => (
@@ -85,13 +92,15 @@ function NetworkButton({
               <button
                 type="button"
                 disabled={!n.available}
-                onClick={() => { if (n.available) { onSelectNetwork(n.id); setOpen(false); } }}
-                className="flex items-center gap-2 text-left px-3 py-2 cursor-pointer disabled:cursor-not-allowed hover:bg-white/5 w-full"
-                style={{ backgroundColor: n.id === activeNetworkId ? 'var(--alice-bg-soft)' : 'transparent', opacity: n.available ? 1 : 0.5 }}
+                onClick={() => { if (n.available) { onSelectNetwork(n.id); setOpen(false); btnRef.current?.focus(); } }}
+                className="alice-control alice-control--option flex items-center gap-2 text-left px-3 py-2 cursor-pointer disabled:cursor-not-allowed  w-full"
+                aria-pressed={n.id === activeNetworkId}
+                style={{ opacity: n.available ? 1 : 0.5 }}
                 title={n.note}
               >
-                <span style={{ width: 8, height: 8, borderRadius: 8, backgroundColor: n.color, flexShrink: 0 }} />
+                <span style={{ width: 8, height: 8, borderRadius: 1, backgroundColor: n.color, flexShrink: 0 }} />
                 <span className="font-numbers flex-1 min-w-0 truncate" style={{ fontSize: 13, color: n.id === activeNetworkId ? 'var(--alice-primary)' : 'var(--alice-text)' }}>{n.label}</span>
+                {n.id === activeNetworkId && <SvgIcon svg={CHECK_ICON} size={16} />}
                 {!n.available && <span className="font-numbers" style={{ fontSize: 9, color: 'var(--alice-muted)' }}>soon</span>}
               </button>
             </Fragment>
@@ -125,24 +134,21 @@ export function ExplorerTabBar({
 
   return (
     <div
-      className="flex items-stretch gap-1 overflow-x-auto shrink-0 px-2 pt-2"
+      className="flex items-stretch gap-2 overflow-x-auto shrink-0 px-4 pt-2"
       style={{ borderBottom: '1px solid var(--alice-border)' }}
     >
       <NetworkButton activeNetworkId={activeNetworkId} onSelectNetwork={onSelectNetwork} />
 
       {tabs.map((tab) => {
         const active = tab.id === activeId;
-        // Home is permanent and network-neutral: it always wears the theme's
-        // primary colour, never a network's. Every other tab wears its network.
+        // Network identity stays in the selector; tab selection is neutral.
         const isHome = tab.kind === 'overview';
-        const color = isHome ? 'var(--alice-primary)' : getNetwork(tab.networkId).color;
+        const color = 'var(--alice-selected)';
         return (
           <div
             key={tab.id}
-            role="tab"
-            aria-selected={active}
+            role="group"
             className="group flex items-center gap-2 shrink-0 cursor-pointer"
-            onClick={() => onSelect(tab.id)}
             // Tabs reorder by drag and drop; Home stays put, but dropping ON
             // it is allowed and lands just after it.
             draggable={!isHome && !!onReorder}
@@ -169,18 +175,19 @@ export function ExplorerTabBar({
               padding: '7px 10px',
               maxWidth: 200,
               borderRadius: '3px 3px 0 0',
-              // The accent colour shows on the top line only when the tab is
-              // active; inactive tabs hide it to keep the bar calm.
-              borderTop: `2px solid ${active ? color : 'transparent'}`,
-              backgroundColor: active ? 'var(--alice-bg-soft)' : 'transparent',
+              // A neutral underline marks selection without a filled tile.
+              borderBottom: `2px solid ${active ? color : 'transparent'}`,
+              backgroundColor: 'transparent',
               opacity: draggingId === tab.id ? 0.4 : 1,
               boxShadow: dropTargetId === tab.id && draggingId !== tab.id
                 ? 'inset 2px 0 0 var(--alice-primary)'
                 : undefined,
             }}
           >
+            <button type="button" onClick={() => onSelect(tab.id)} aria-pressed={active}
+              className="alice-control alice-control--quiet flex items-center gap-2 min-w-0 cursor-pointer" style={{ minHeight: 32, padding: '4px 0', flexShrink: 1 }}>
             <span aria-hidden style={{ fontSize: 11, color: active ? color : 'var(--alice-muted)', lineHeight: 1 }}>
-              {TAB_GLYPH[tab.kind]}
+              <SvgIcon svg={TAB_GLYPH[tab.kind]} size={20} />
             </span>
             <span
               className="font-numbers truncate"
@@ -189,16 +196,17 @@ export function ExplorerTabBar({
             >
               {tab.label}
             </span>
+            </button>
             {/* Home cannot be closed; it is the fixed landing tab. */}
             {!isHome && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}
-                className="shrink-0 cursor-pointer bg-transparent border-none outline-none"
+                className="alice-control alice-control--tool shrink-0 cursor-pointer bg-transparent border-none "
                 style={{ color: 'var(--alice-muted)', fontSize: 14, lineHeight: '14px' }}
-                aria-label="Close tab"
+                aria-label={`Close ${tab.label} tab`}
               >
-                ×
+                <SvgIcon svg={CLOSE_ICON} size={16} />
               </button>
             )}
           </div>

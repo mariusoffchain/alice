@@ -163,7 +163,7 @@ export default function VsChatGptPage() {
         </section>
 
         {/* CTA */}
-        <section className="mt-12 flex flex-col items-start gap-4 rounded-[4px] border-2 border-[var(--alice-primary)] p-7 sm:flex-row sm:items-center sm:justify-between">
+        <section className="mt-12 flex flex-col items-start gap-4 rounded-[4px] border border-[var(--alice-primary)] p-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold">Try a private Bitcoin companion</h2>
             <p className="mt-1 text-sm text-[var(--alice-muted)]">Free, self-custodial, and open source.</p>
@@ -171,7 +171,7 @@ export default function VsChatGptPage() {
           <a
             href={APP_URL}
             {...externalLinkProps(APP_URL)}
-            className="shrink-0 rounded-[3px] border-2 border-[var(--alice-primary)] bg-[var(--alice-primary)] px-5 py-3 font-semibold text-[var(--alice-on-primary)] transition-transform hover:-translate-y-0.5"
+            className="shrink-0 rounded-[3px] border border-[var(--alice-primary)] bg-[var(--alice-primary)] px-5 py-3 font-semibold text-[var(--alice-on-primary)] transition-colors hover:bg-[var(--alice-primary-dark)]"
           >
             Open web app
           </a>

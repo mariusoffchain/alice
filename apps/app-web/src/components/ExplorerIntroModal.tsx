@@ -1,5 +1,10 @@
 'use client';
 
+import { useExplorerDialog } from '@/components/ExplorerUI';
+
+import { SvgIcon } from '@/components/SvgIcon';
+import { CLOSE_ICON } from '@/lib/atelier-icons';
+
 import { useState } from 'react';
 
 // First-open welcome for the Explorer section. Shown every time the section
@@ -19,6 +24,7 @@ export function wasIntroDismissed(): boolean {
 }
 
 export function ExplorerIntroModal({ onClose }: { onClose: () => void }) {
+  const dialogRef = useExplorerDialog(onClose);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   function confirm() {
@@ -39,39 +45,47 @@ export function ExplorerIntroModal({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="explorer-intro-title"
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
           maxWidth: 480,
-          padding: 18,
+          padding: 20,
+          maxHeight: 'calc(100dvh - 48px)',
+          overflowY: 'auto',
           backgroundColor: 'var(--alice-bg)',
-          border: '2px solid var(--alice-border)',
-          borderRadius: 2,
+          border: '1px solid var(--alice-border)',
+          borderRadius: 'var(--alice-radius-control)',
           color: 'var(--alice-text)',
         }}
       >
+        <div className="flex justify-end"><button type="button" aria-label="Close introduction" onClick={onClose} className="alice-control alice-control--tool"><SvgIcon svg={CLOSE_ICON} size={16} /></button></div>
         <h3
+          id="explorer-intro-title"
           className="font-pixel tracking-widest m-0"
-          style={{ fontSize: 13, color: 'var(--alice-primary-dark)' }}
+          style={{ fontSize: 12, lineHeight: 1.8, color: 'var(--alice-text)' }}
         >
           WELCOME TO EXPLORER
         </h3>
         <p
           className="font-numbers m-0 mt-3"
-          style={{ fontSize: 15, lineHeight: '21px', opacity: 0.85 }}
+          style={{ fontSize: 15, lineHeight: '21px', color: 'var(--alice-muted)' }}
         >
           Explorer browses the Bitcoin chain with a privacy lens. Search a transaction,
           an address or a block, follow the coins, and see what the chain quietly reveals.
         </p>
         <p
           className="font-numbers m-0 mt-2"
-          style={{ fontSize: 15, lineHeight: '21px', opacity: 0.85 }}
+          style={{ fontSize: 15, lineHeight: '21px', color: 'var(--alice-muted)' }}
         >
           Everything here is deterministic, on-chain data. Alice, the AI companion, is
           strictly optional.
         </p>
 
-        <div className="flex items-center justify-between gap-3 mt-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-5">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -86,17 +100,17 @@ export function ExplorerIntroModal({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={confirm}
-            className="font-pixel tracking-widest cursor-pointer"
+            className="alice-control alice-control--primary font-numbers cursor-pointer"
             style={{
-              fontSize: 10,
+              fontSize: 14,
               padding: '10px 22px',
-              border: '2px solid var(--alice-primary)',
-              borderRadius: 2,
-              backgroundColor: 'var(--alice-primary)',
-              color: 'var(--alice-on-primary)',
+
+              borderRadius: 'var(--alice-radius-control)',
+
+
             }}
           >
-            OK
+            Start exploring
           </button>
         </div>
       </div>

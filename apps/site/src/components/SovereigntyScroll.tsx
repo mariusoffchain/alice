@@ -33,7 +33,7 @@ const STEPS: { eyebrow: string; title: string; body: string }[] = [
   {
     eyebrow: 'Whichever you pick',
     title: 'One companion, from the first question to the first payment',
-    body: 'The AI that answers your everyday questions is growing an everyday Bitcoin wallet beside it. Learn in the app, practise in the Playground, then hold and spend real bitcoin in Alice Wallet, with the same Alice explaining each step. However she runs, your keys stay yours: you hold them, and Alice never can.',
+    body: 'The AI that answers your everyday questions is growing an everyday Bitcoin wallet beside it. Learn in the app and practise in the Playground. Alice Wallet is a separate experimental project, presented further down this page. However she runs, your keys stay yours: you hold them, and Alice never can.',
   },
 ];
 
@@ -41,10 +41,10 @@ function LayerRow({ layer, on }: { layer: Layer; on: boolean }) {
   return (
     <div
       aria-current={on}
-      className={`flex items-center gap-3 rounded-[4px] border-2 px-4 py-3.5 transition-all duration-300 ${
+      className={`flex items-center gap-3 rounded-[4px] border px-4 py-3.5 transition-all duration-300 ${
         on
-          ? 'border-[var(--alice-primary)] bg-[color-mix(in_srgb,var(--alice-primary)_14%,transparent)] text-[var(--alice-heading)]'
-          : 'border-[var(--alice-border)] text-[var(--alice-muted)] opacity-60'
+          ? 'border-[var(--alice-primary)] bg-[color-mix(in_srgb,var(--alice-primary)_6%,transparent)] text-[var(--alice-heading)]'
+          : 'border-[var(--alice-border)] text-[var(--alice-muted)]'
       }`}
     >
       <span className={on ? 'text-[var(--alice-primary)]' : ''}>{layer.icon}</span>
@@ -88,7 +88,7 @@ export function SovereigntyScroll() {
             transparent so the page grid shows around the card; the step text
             is cut clean at an invisible line under it (useStepClip). */}
         <div ref={pinnedRef} className="sticky top-16 z-10 self-start md:top-24">
-          <div className="rounded-[6px] border-2 border-[var(--alice-border)] bg-[var(--alice-card-bg)] p-6">
+          <div className="rounded-[4px] border border-[var(--alice-border)] bg-[var(--alice-card-bg)] p-6">
             <p className="font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-primary)]">
               How Alice runs, you choose
             </p>

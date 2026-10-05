@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { BACK_ICON } from '@/lib/atelier-icons';
+
 import { AliceMemoryPanel } from '@/components/settings/AliceMemoryPanel';
 
 // The standalone route is now a thin frame around the shared panel, so the
@@ -8,7 +11,7 @@ import { AliceMemoryPanel } from '@/components/settings/AliceMemoryPanel';
 export default function WhatAliceKnowsPage() {
   return (
     <main style={{ width: 'min(100% - 32px, 760px)', margin: '0 auto', padding: '48px 0 72px' }}>
-      <a href="/" className="font-pixel" style={{ color: 'var(--alice-muted)', fontSize: 10, textDecoration: 'none' }}>BACK TO ALICE</a>
+      <a href="/" className="alice-control alice-control--quiet" style={{ textDecoration: 'none' }}><SvgIcon svg={BACK_ICON} size={20} /> Back to Alice</a>
       <div style={{ marginTop: 24 }}>
         <AliceMemoryPanel />
       </div>

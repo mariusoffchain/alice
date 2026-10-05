@@ -1,5 +1,6 @@
 'use client';
 
+import { SendMessageButton } from '@/components/SendMessageButton';
 import { useRef, useEffect, type ReactNode } from 'react';
 
 interface ChatInputProps {
@@ -13,8 +14,6 @@ interface ChatInputProps {
   panel?: boolean;
 }
 
-// Minimal brain glyph, the app has no icon library, so this matches the
-// existing hand-rolled SVG icons (see AliceIcon).
 export function ChatInput({
   input,
   setInput,
@@ -33,7 +32,7 @@ export function ChatInput({
   }, [input]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       if (input.trim() && !disabled) onSend();
     }
@@ -43,6 +42,7 @@ export function ChatInput({
     <div className={panel ? 'chat-composer-shell chat-composer-shell--panel' : 'chat-composer-shell'}>
       <div className="chat-composer">
         <textarea
+          aria-label="Message Alice"
           ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -50,7 +50,7 @@ export function ChatInput({
           placeholder="Ask Alice something..."
           maxLength={500}
           rows={1}
-          className="chat-composer-input w-full min-w-0 resize-none bg-transparent border-none outline-none font-numbers text-lg py-0 placeholder:opacity-50"
+          className="chat-composer-input w-full min-w-0 resize-none bg-transparent border-none outline-none font-numbers text-lg py-0 placeholder:opacity-100"
           style={{
             color: 'var(--alice-text)',
             height: '26px',
@@ -62,26 +62,11 @@ export function ChatInput({
         />
         <div className="chat-composer-controls flex min-w-0 items-center justify-end gap-1.5">
           {modelSelector && (
-            <div className="hidden min-w-0 flex-1 items-center justify-end md:flex">
+            <div className="flex min-w-0 flex-1 items-center justify-start">
               {modelSelector}
             </div>
           )}
-          <button
-            onClick={onSend}
-            disabled={!input.trim() || disabled}
-            className="px-raise w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: 'var(--alice-primary)',
-              borderRadius: '2px',
-            }}
-          >
-            <span
-              className="font-pixel leading-none"
-              style={{ color: 'var(--alice-on-primary)', fontSize: 18, transform: 'translateY(1px)' }}
-            >
-              ↑
-            </span>
-          </button>
+          <SendMessageButton onClick={onSend} disabled={!input.trim() || disabled} />
         </div>
       </div>
     </div>

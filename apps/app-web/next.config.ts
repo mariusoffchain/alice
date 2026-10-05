@@ -7,6 +7,7 @@ import path from 'path';
 const internalHost = process.env.TAURI_DEV_HOST;
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   output: 'export',
   // A stray package-lock.json outside the monorepo makes Next infer the wrong
   // workspace root, which breaks `next build` (PageNotFoundError on /_document).
@@ -59,7 +60,13 @@ const nextConfig: NextConfig = {
     EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED:
       process.env.EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED ?? 'true',
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Security exceptions apply only to build tools, never to shipped JS.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { WebClientBoundaryPlugin } = require('../../scripts/web-client-boundary.cjs');
+      config.plugins.push(new WebClientBoundaryPlugin());
+    }
     config.resolve.alias = {
       ...config.resolve.alias,
       '@react-native-async-storage/async-storage': path.resolve(

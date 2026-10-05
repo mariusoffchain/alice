@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { REFRESH_ICON, BACK_ICON, RECEIVE_ICON } from '@/lib/atelier-icons';
+
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ChainDataProvider } from '@/lib/explorer/provider';
 import type { NormalizedBlock, ProjectedBlock, RibbonFocus } from '@/lib/explorer/types';
@@ -27,13 +30,13 @@ function ConfirmedBlock({ block, now, focused, marked, markColor, markTextColor,
       type="button"
       onClick={onClick}
       data-block-height={block.height}
-      className="shrink-0 text-left cursor-pointer"
+      className="shrink-0 text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2"
       style={{
         width: BLOCK_W,
         padding: '8px 10px',
         border: `1px solid ${marked && markColor ? markColor : 'var(--alice-border)'}`,
         borderTop: `3px solid ${marked && markColor ? markColor : color}`,
-        borderRadius: 2,
+        borderRadius: 3,
         // The focus highlight is a ring plus a background, never the border, so
         // no shorthand/longhand border property changes across a rerender.
         backgroundColor: focused ? 'var(--alice-bg)' : 'var(--alice-bg-soft)',
@@ -78,7 +81,7 @@ function PendingBlock({ block, index, focused }: { block: ProjectedBlock; index:
         padding: '8px 10px',
         border: '1px dashed var(--alice-border)',
         borderTop: `3px solid ${color}`,
-        borderRadius: 2,
+        borderRadius: 3,
         backgroundColor: focused ? 'var(--alice-bg)' : undefined,
         boxShadow: focused ? '0 0 0 2px var(--alice-primary)' : undefined,
       }}
@@ -315,25 +318,24 @@ export function ExplorerBlocks({
       <button
         type="button"
         onClick={() => setOrientation(o => (o === 'confirmed-right' ? 'confirmed-left' : 'confirmed-right'))}
-        className="cursor-pointer my-1"
+        className="alice-control alice-control--quiet cursor-pointer my-1"
         style={{
-          width: dividerBtn, height: dividerBtn, borderRadius: 2,
-          border: '1px solid var(--alice-border)', backgroundColor: 'var(--alice-bg-soft)',
+          width: dividerBtn, height: dividerBtn, minHeight: dividerBtn, padding: 2, borderRadius: 3,
           color: 'var(--alice-primary)', fontSize: 12, lineHeight: '12px',
         }}
         aria-label="Swap confirmed and pending sides"
         title="Swap sides"
       >
-        ⇄
+        <SvgIcon svg={REFRESH_ICON} size={20} />
       </button>
       {latestMarked !== undefined && (
         <button
           type="button"
           onClick={jumpToLatestMarked}
-          className="cursor-pointer mb-1 flex items-center justify-center"
+          className="alice-control alice-control--quiet cursor-pointer mb-1 flex items-center justify-center"
           style={{
-            width: dividerBtn, height: dividerBtn, borderRadius: 2,
-            border: `1px solid ${highlight!.color}`, backgroundColor: highlight!.color,
+            width: dividerBtn, height: dividerBtn, minHeight: dividerBtn, padding: 2, borderRadius: 3,
+            color: highlight!.textColor ?? highlight!.color,
           }}
           aria-label="Jump to the latest settlement block"
           title={`Jump to the latest settlement (block ${latestMarked.toLocaleString('en-US')}): where Arkade last committed into Bitcoin`}
@@ -341,13 +343,7 @@ export function ExplorerBlocks({
           {/* An arrow sinking halfway into a square: the commitment landing
               inside a Bitcoin block. The square's top edge is split so the
               shaft visibly enters it. */}
-          <svg width={14} height={14} viewBox="0 0 16 16" aria-hidden="true">
-            <g stroke="#ffffff" strokeWidth={1.8} fill="none">
-              <path d="M3 6 H6 M10 6 H13 M3 6 V14 H13 V6" />
-              <path d="M8 1 V11" />
-              <path d="M5.2 8.6 L8 11.4 L10.8 8.6" />
-            </g>
-          </svg>
+          <SvgIcon svg={RECEIVE_ICON} size={20} />
         </button>
       )}
       <div style={{ width: 2, flex: 1, minHeight: 16, backgroundColor: 'var(--alice-border)' }} />
@@ -359,15 +355,15 @@ export function ExplorerBlocks({
       type="button"
       onClick={() => void loadOlder()}
       disabled={loadingOlder}
-      className="shrink-0 font-pixel tracking-widest cursor-pointer disabled:cursor-not-allowed"
+      className="alice-control alice-control--quiet shrink-0 font-numbers cursor-pointer disabled:cursor-not-allowed"
       style={{
-        width: 64, borderRadius: 2, border: '1px dashed var(--alice-border)',
-        backgroundColor: 'transparent', color: 'var(--alice-muted)', fontSize: 10,
+        width: 96, borderRadius: 3, color: 'var(--alice-muted)', fontSize: 13,
         opacity: loadingOlder ? 0.5 : 1,
       }}
       aria-label="Load older blocks"
     >
-      {loadingOlder ? '...' : 'OLDER +'}
+      <SvgIcon svg={BACK_ICON} size={16} />
+      {loadingOlder ? 'Loading…' : 'Older'}
     </button>
   ) : null;
 
