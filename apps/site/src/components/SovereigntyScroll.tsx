@@ -33,7 +33,7 @@ const STEPS: { eyebrow: string; title: string; body: string }[] = [
   {
     eyebrow: 'Whichever you pick',
     title: 'One companion, from the first question to the first payment',
-    body: 'The AI that answers your everyday questions is growing an everyday Bitcoin wallet beside it. Learn in the app and practise in the Playground. Alice Wallet is a separate experimental project, presented further down this page. However she runs, your keys stay yours: you hold them, and Alice never can.',
+    body: 'The AI that answers your everyday questions is growing an everyday Bitcoin wallet beside it. Learn in the app and practise in the Playground. Alice Wallet is a separate, experimental project that holds real bitcoin: small amounts only. It is presented further down this page. However she runs, your keys stay yours: you hold them, and Alice never can.',
   },
 ];
 

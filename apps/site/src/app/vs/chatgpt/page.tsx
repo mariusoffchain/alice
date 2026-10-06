@@ -42,7 +42,7 @@ const rows: { dimension: string; alice: string; chatgpt: string }[] = [
   },
   {
     dimension: 'Bitcoin focus',
-    alice: 'Purpose-built for Bitcoin, self-custody, and privacy, with the wallet in the same place.',
+    alice: 'Purpose-built for Bitcoin, self-custody, and privacy. Alice Wallet sits alongside it as an experimental beta: real bitcoin, small amounts only.',
     chatgpt: 'General-purpose; strong broad knowledge, not specialized or connected to your wallet.',
   },
   {
@@ -67,7 +67,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: 'Do I need to trust Alice with my coins to try her?',
-    a: 'No. You can try Alice without any coins at all: the companion answers your questions on its own. And when you do use the wallet, it is self-custodial. Your keys are generated on your device, stay on your device, and Alice can never touch them.',
+    a: 'No. You can try Alice without any coins at all: the companion answers your questions on its own. And when you do use the wallet, it is self-custodial. Your keys are generated on your device, stay on your device, and Alice can never touch them. Alice Wallet is still an experimental beta holding real bitcoin, so use small amounts only.',
   },
 ];
 

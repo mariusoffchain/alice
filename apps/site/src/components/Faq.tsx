@@ -8,7 +8,7 @@ const FAQS: { q: string; a: string; link?: { label: string; href: string } }[] =
   },
   {
     q: 'Can Alice spend or move my Bitcoin?',
-    a: 'No. Alice is self-custodial: your keys stay on your device and the AI never holds them. The AI and the wallet are separate code, by construction: inside the app, the Playground is its own wallet with nothing shared with the model, and Alice Wallet on mobile keeps that same separation for your real Bitcoin. The wallet, not the model, validates and signs, so a prompt can never move your funds.',
+    a: 'No. Alice is self-custodial: your keys stay on your device and the AI never holds them. The AI and the wallet are separate code, by construction: inside the app, the Playground is its own wallet with nothing shared with the model, and Alice Wallet on mobile, an experimental beta that holds real bitcoin and is meant for small amounts only, keeps that same separation. The wallet, not the model, validates and signs, so a prompt can never move your funds.',
   },
   {
     q: 'Do you track me?',
