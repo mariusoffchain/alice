@@ -12,9 +12,8 @@ together: a single number means a tester and a log line refer to the same code.
 
 ## 0.2.2
 
-Unreleased preparation branch. No 0.2.2 installers or release tag have been
-published yet; website download links retain the existing 0.2.1 desktop and
-0.2.0 Android artifacts until replacements are available.
+Desktop installers for macOS, Windows and Linux ship with this release. The
+Android build is unchanged and stays on `0.2.0`.
 
 ### Application and website
 

@@ -7,10 +7,10 @@ testers using a fresh wallet and small amounts only.
 
 Alice's source lives at <https://github.com/mariusoffchain/alice>.
 
-- Version: `0.2.1` for the desktop apps, `0.2.0` for the Android APK. The
-  0.2.1 repairs are desktop-only, so the published APK is unchanged and its
+- Version: `0.2.2` for the desktop apps, `0.2.0` for the Android APK. No new
+  Android build ships with 0.2.2, so the published APK is unchanged and its
   checksum and signature below still apply.
-- Source: public tags `v0.2.1` (desktop) and `v0.2.0` (Android) in
+- Source: public tags `v0.2.2` (desktop) and `v0.2.0` (Android) in
   <https://github.com/mariusoffchain/alice>.
 - Android: the official APK, its version code and its SHA-256 are published
   together in the GitHub Release attached to that tag.
@@ -84,7 +84,7 @@ APK forwarded by an unknown person.
 - Alice Mutinynet: <https://mutinynet.alicebtc.com>
 - Android: APK distributed directly through the closed-beta channel
 
-Desktop installers are attached to the `0.2.1` GitHub Release. The first beta
+Desktop installers are attached to the `0.2.2` GitHub Release. The first beta
 can be distributed before trusted Apple and Windows certificates are available.
 
 ## Updating Alice Wallet from 0.1.0
@@ -94,7 +94,7 @@ it installs as a separate app next to 0.1.0 rather than over it. Back up
 your recovery phrase from 0.1.0 first, install 0.2.0, import the phrase,
 check your balance, then uninstall 0.1.0.
 
-## Installing Alice Desktop 0.2.1
+## Installing Alice Desktop 0.2.2
 
 The GitHub Release contains a universal macOS DMG, a Windows MSI, a Linux
 AppImage and a Debian package. It also contains one build information file per
@@ -102,7 +102,7 @@ platform. Read its `signing` line before installing. Early beta builds can be
 published without a trusted certificate. This is expected to produce the
 warnings described below, but it does not replace checksum verification.
 
-Compare the downloaded installer with `SHA256SUMS-desktop-v0.2.1.txt` from the
+Compare the downloaded installer with `SHA256SUMS-desktop-v0.2.2.txt` from the
 same release before opening it.
 
 ### macOS
@@ -156,14 +156,14 @@ Linux shows no comparable platform signature warning for these files. For the
 AppImage, make it executable and run it:
 
 ```bash
-chmod +x Alice_0.2.1_*.AppImage
-./Alice_0.2.1_*.AppImage
+chmod +x Alice_0.2.2_*.AppImage
+./Alice_0.2.2_*.AppImage
 ```
 
 On Debian or Ubuntu, install the local package with:
 
 ```bash
-sudo apt install ./Alice_0.2.1_*.deb
+sudo apt install ./Alice_0.2.2_*.deb
 ```
 
 ## Publishing the Android 0.2.0 APK
