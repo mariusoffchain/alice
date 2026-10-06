@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { APP_URL, appQuestionUrl } from '@/lib/site';
-import { AliceMark, NextIcon } from '@/components/icons';
+import { AliceMascot, NextIcon } from '@/components/icons';
 
 // Persistent "ask Alice" bar, docked to the bottom of the viewport on every page.
 // Submitting hands off to the app with the question attached (and autosend), so
@@ -48,7 +48,7 @@ export function StickyAsk() {
         className="mx-auto flex max-w-3xl items-center gap-2.5 px-4 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))]"
       >
         <span className="hidden shrink-0 items-center gap-2 pr-1 sm:flex">
-          <AliceMark size={26} showWordmark={false} />
+          <AliceMascot size={26} />
           <span className="text-[15px] font-semibold text-[var(--alice-heading)]">Ask Alice</span>
         </span>
         <input

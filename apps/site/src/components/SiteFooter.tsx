@@ -6,7 +6,7 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-[var(--alice-border)] px-5 py-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-        <AliceMark size={24} />
+        <AliceMark size={20} />
         <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           {NAV_LINKS.map((link) => (
             <a
@@ -19,6 +19,9 @@ export function SiteFooter() {
           ))}
           <a href="/privacy/" className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
             Privacy
+          </a>
+          <a href="/memory/" className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
+            Memory
           </a>
           <a href="/credits/" className="text-[var(--alice-muted)] hover:text-[var(--alice-primary)]">
             Credits

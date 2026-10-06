@@ -1,49 +1,22 @@
-'use client';
+import { ALICE_SYMBOL_PATH, ALICE_WORDMARK_PATH } from '@/lib/brand';
 
-import { useEffect, useState } from 'react';
-
-let cachedMarkup: string | null = null;
-let pendingFetch: Promise<string> | null = null;
-
-async function loadLogoMarkup(): Promise<string> {
-  if (cachedMarkup) return cachedMarkup;
-  if (!pendingFetch) {
-    pendingFetch = fetch('/alice-logo.svg')
-      .then(res => res.text())
-      .then(text => {
-        cachedMarkup = text;
-        return text;
-      });
-  }
-  return pendingFetch;
-}
-
-interface AliceLogoProps {
+export function AliceLogo({ size = 20, showWordmark = false }: {
   size?: number;
-}
-
-export function AliceLogo({ size = 20 }: AliceLogoProps) {
-  const [markup, setMarkup] = useState(cachedMarkup);
-
-  useEffect(() => {
-    if (markup) return;
-    let cancelled = false;
-    loadLogoMarkup().then(text => {
-      if (!cancelled) setMarkup(text);
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [markup]);
-
-  if (!markup) return <div style={{ width: size, height: size, flexShrink: 0 }} />;
-
-  const sized = markup
-    .replace(/width="[^"]*"/, `width="${size}"`)
-    .replace(/height="[^"]*"/, `height="${size}"`);
-
+  showWordmark?: boolean;
+}) {
   return (
-    <div
-      style={{ width: size, height: size, flexShrink: 0, display: 'flex' }}
-      dangerouslySetInnerHTML={{ __html: sized }}
-    />
+    <svg
+      role="img"
+      aria-label="Alice"
+      data-alice-brand="d2"
+      width={showWordmark ? size * 248 / 48 : size}
+      height={size}
+      viewBox={showWordmark ? '0 0 248 48' : '0 0 48 48'}
+      fill="currentColor"
+      shapeRendering="crispEdges"
+      style={{ display: 'block', flexShrink: 0 }}
+    >
+      <path d={showWordmark ? ALICE_WORDMARK_PATH : ALICE_SYMBOL_PATH} />
+    </svg>
   );
 }

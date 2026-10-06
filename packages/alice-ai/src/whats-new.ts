@@ -17,6 +17,7 @@ export const WHATS_NEW: WhatsNewEntry[] = [
       'A refreshed interface with a pixel rabbit, calmer controls and colors that follow your theme.',
       'Cleaner navigation across Chat, Explorer, Learn and settings.',
       'The model name and reasoning level are easier to tell apart.',
+      'Update details are now available from Settings → General, and appear after an upgrade.',
     ],
   },
   {

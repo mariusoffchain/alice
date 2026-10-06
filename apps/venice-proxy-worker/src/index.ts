@@ -213,6 +213,13 @@ export type Env = Omit<CloudflareEnv, 'AUTH_EMAIL_PROVIDER' | 'EMAIL'> & {
    * 3.7, which suits French and English prose.
    */
   BYTES_PER_TOKEN?: string;
+  /**
+   * Bytes of relayed stream per output token. A response is not text on the
+   * wire: it is one encrypted event per token, each in its JSON envelope, so
+   * a token weighs a few hundred bytes there. Calibrated the same way as
+   * BYTES_PER_TOKEN, from the ledger against Venice's invoice. Default 200.
+   */
+  OUTPUT_BYTES_PER_TOKEN?: string;
 
   /**
    * Prices are quoted in satoshis. These two govern the quote: the currency

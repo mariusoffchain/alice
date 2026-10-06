@@ -26,7 +26,7 @@ export default function SettingsPage() {
 
   return (
     <div
-      className="h-screen flex flex-col"
+      className="h-full flex flex-col"
       style={{ backgroundColor: 'var(--alice-bg)', color: 'var(--alice-text)' }}
     >
       {isTauriDesktop() && (

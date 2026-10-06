@@ -79,8 +79,8 @@ export function PaymentConfirmedDialog() {
         style={{
           maxWidth: 420,
           padding: 20,
-          border: '2px solid var(--alice-primary)',
-          borderRadius: 2,
+          border: '1px solid var(--alice-border)',
+          borderRadius: 'var(--alice-radius-field)',
           backgroundColor: 'var(--alice-bg)',
           color: 'var(--alice-text)',
         }}
@@ -103,7 +103,7 @@ export function PaymentConfirmedDialog() {
 
         <p
           className="font-numbers m-0 mt-2"
-          style={{ fontSize: 13, lineHeight: '19px', opacity: 0.6 }}
+          style={{ fontSize: 13, lineHeight: '19px', color: 'var(--alice-muted)' }}
         >
           Nothing renews on its own and no payment method is stored. Alice will
           tell you before the plan runs out.

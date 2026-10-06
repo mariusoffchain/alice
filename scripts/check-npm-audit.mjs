@@ -2,10 +2,12 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
-const REVIEW_BY = '2026-10-20';
-// Reviewed 2026-10-04. Only the 3 direct advisories below remain; other
-// package findings are propagation through their dependency chains.
-// See docs/security/dependency-audit.md. Expiration is NOT extended.
+const REVIEW_BY = '2026-11-02';
+// Reviewed 2026-10-05. Only the 2 direct advisories below remain (braces and
+// node-forge, both still without a patched release); other package findings
+// are propagation through their dependency chains. The ws exception under
+// viem is closed: the scoped override now resolves it to 8.22.0.
+// See docs/security/dependency-audit.md.
 const KNOWN_HIGH_PACKAGES = new Set([
   '@arkade-os/boltz-swap',
   '@arkade-os/sdk',
@@ -32,15 +34,12 @@ const KNOWN_HIGH_PACKAGES = new Set([
   'micromatch',
   'node-forge',
   'react-native',
-  'viem',
-  'ws',
 ]);
-const KNOWN_HIGH_ADVISORIES = new Set([1123259, 1240992, 1240912]);
+const KNOWN_HIGH_ADVISORIES = new Set([1240992, 1240912]);
 // Scope the exceptions to the exact reviewed package locations and versions.
 const REVIEWED_HIGH_NODES = new Map([
   ['node_modules/braces', '3.0.3'],
   ['node_modules/node-forge', '1.4.0'],
-  ['node_modules/viem/node_modules/ws', '8.20.1'],
 ]);
 const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
 

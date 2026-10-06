@@ -55,6 +55,23 @@ const REMINDER_LEAD_MS = 3 * 24 * 60 * 60 * 1_000;
  */
 const DEFAULT_BYTES_PER_TOKEN = 3.7;
 
+/**
+ * Fallback bytes per token on the output side, used when
+ * OUTPUT_BYTES_PER_TOKEN is unset.
+ *
+ * Output is not weighed on text. The counter sits on the relayed stream, and
+ * what streams back from Venice is one encrypted event per token, each inside
+ * its JSON envelope, so a token weighs a few hundred bytes on the wire rather
+ * than a few. The ledger measured 247 KB per paid answer and 111 KB per free
+ * one over September and October 2026, for answers of one to two KB of text.
+ * With the prose ratio applied to that stream, a month's output allowance was
+ * gone after some thirty answers. 200 is the first calibration: it lines the
+ * output budget up with the input one at roughly 1,600 answers a month, and
+ * it is corrected the same way as the input ratio, from the ledger against
+ * Venice's invoice.
+ */
+const DEFAULT_OUTPUT_BYTES_PER_TOKEN = 200;
+
 export type PaidPlan = 'cloud';
 export type Plan = 'free' | PaidPlan;
 
@@ -113,17 +130,23 @@ export function bytesPerToken(env: Env): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_BYTES_PER_TOKEN;
 }
 
+/** Bytes of relayed stream per output token; see DEFAULT_OUTPUT_BYTES_PER_TOKEN. */
+export function outputBytesPerToken(env: Env): number {
+  const parsed = Number(env.OUTPUT_BYTES_PER_TOKEN);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_OUTPUT_BYTES_PER_TOKEN;
+}
+
 /**
  * The commercial grid, entirely in config so a price change is a variable
  * change and never a code change. Token allowances are declared the way they
- * are advertised, then converted to the byte budgets actually enforced.
+ * are advertised, then converted to the byte budgets actually enforced, each
+ * side with its own ratio: a request body is text, a response stream is not.
  */
 export function planCatalog(env: Env): Record<PaidPlan, PlanDefinition> {
-  const ratio = bytesPerToken(env);
   const inputTokens = positiveInt(env.PLAN_INPUT_TOKENS, 8_000_000);
   const outputTokens = positiveInt(env.PLAN_OUTPUT_TOKENS, 2_000_000);
-  const inputBytesLimit = Math.floor(inputTokens * ratio);
-  const outputBytesLimit = Math.floor(outputTokens * ratio);
+  const inputBytesLimit = Math.floor(inputTokens * bytesPerToken(env));
+  const outputBytesLimit = Math.floor(outputTokens * outputBytesPerToken(env));
   return {
     cloud: {
       plan: 'cloud',
@@ -254,6 +277,33 @@ async function loadEntitlement(env: Env, userId: string): Promise<EntitlementRow
   return row;
 }
 
+/**
+ * The byte budget a plan is enforced against, read from the catalog rather
+ * than from the figures written on the entitlement at purchase.
+ *
+ * The allowance was sold in tokens; the bytes behind it are a calibration,
+ * and a recalibration has to reach the plans already running, not only the
+ * next purchase. The columns on the entitlement keep what was current when
+ * the plan was granted, for the record, and still rule a plan the catalog no
+ * longer knows.
+ */
+function budgetFor(
+  env: Env,
+  entitlement: EntitlementRow,
+): { inputBytesLimit: number; outputBytesLimit: number } {
+  const definition = (planCatalog(env) as Record<string, PlanDefinition | undefined>)[entitlement.plan];
+  if (!definition) {
+    return {
+      inputBytesLimit: entitlement.input_bytes_limit,
+      outputBytesLimit: entitlement.output_bytes_limit,
+    };
+  }
+  return {
+    inputBytesLimit: definition.inputBytesLimit,
+    outputBytesLimit: definition.outputBytesLimit,
+  };
+}
+
 async function loadUsage(env: Env, userId: string): Promise<UsageRow> {
   const row = await env.ACCOUNT_DB.prepare(`
     SELECT input_bytes_used, output_bytes_used, period_started_at
@@ -315,6 +365,7 @@ export async function getBillingSnapshot(
   // that bought nothing.
   const contact = await accountEmailMasked(env, userId);
   const periodStart = currentPeriodStart(usage, now);
+  const budget = budgetFor(env, entitlement);
 
   // One figure, not two, because a user cannot act on two independent gauges.
   // The plan runs out when either budget does, so the honest number to show is
@@ -322,11 +373,11 @@ export async function getBillingSnapshot(
   const usagePercent = plan === 'free'
     ? null
     : Math.min(100, Math.round(Math.max(
-      entitlement.input_bytes_limit > 0
-        ? (usage.input_bytes_used / entitlement.input_bytes_limit) * 100
+      budget.inputBytesLimit > 0
+        ? (usage.input_bytes_used / budget.inputBytesLimit) * 100
         : 0,
-      entitlement.output_bytes_limit > 0
-        ? (usage.output_bytes_used / entitlement.output_bytes_limit) * 100
+      budget.outputBytesLimit > 0
+        ? (usage.output_bytes_used / budget.outputBytesLimit) * 100
         : 0,
     )));
 
@@ -339,9 +390,9 @@ export async function getBillingSnapshot(
     period_ends_at: periodStart === null ? null : periodStart + BILLING_PERIOD_MS,
     usage_percent: usagePercent,
     input_bytes_used: usage.input_bytes_used,
-    input_bytes_limit: entitlement.input_bytes_limit,
+    input_bytes_limit: budget.inputBytesLimit,
     output_bytes_used: usage.output_bytes_used,
-    output_bytes_limit: entitlement.output_bytes_limit,
+    output_bytes_limit: budget.outputBytesLimit,
     billing_email_masked: contact?.masked ?? null,
   };
 }
@@ -374,16 +425,17 @@ export async function reserveCloudBytes(
 ): Promise<ByteReservation> {
   const now = Date.now();
   const ledgerId = uuid();
-  const reservedOutputBytes = Math.ceil(maxOutputTokens * bytesPerToken(env));
+  const reservedOutputBytes = Math.ceil(maxOutputTokens * outputBytesPerToken(env));
   const entitlement = await loadEntitlement(env, userId);
   if (entitlement.cloud_enabled !== 1) {
     throw new AccountHttpError(403, 'cloud_disabled', 'Private Cloud is disabled on this account.');
   }
   const usage = await rollPeriod(env, userId, await loadUsage(env, userId), now);
+  const budget = budgetFor(env, entitlement);
 
   if (
-    usage.input_bytes_used + inputBytes > entitlement.input_bytes_limit
-    || usage.output_bytes_used + reservedOutputBytes > entitlement.output_bytes_limit
+    usage.input_bytes_used + inputBytes > budget.inputBytesLimit
+    || usage.output_bytes_used + reservedOutputBytes > budget.outputBytesLimit
   ) {
     throw new AccountHttpError(
       402,

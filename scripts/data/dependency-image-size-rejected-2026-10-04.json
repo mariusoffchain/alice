@@ -1,0 +1,95 @@
+{
+  "method": "Invoke actual unchanged Metro 0.83.3 Assets.js with its current image-size then inject official 2.0.4 solely at require. Read existing local PNG; no production mutation.",
+  "rows": [
+    {
+      "label": "before",
+      "api": "getAssetSize",
+      "success": true,
+      "width": 512,
+      "height": 512
+    },
+    {
+      "label": "before",
+      "api": "getAssetData",
+      "success": true,
+      "width": 512,
+      "height": 512
+    },
+    {
+      "label": "candidate",
+      "api": "getAssetSize",
+      "success": true,
+      "width": 512,
+      "height": 512
+    },
+    {
+      "label": "candidate",
+      "api": "getAssetData",
+      "success": false,
+      "error": "The \"list\" argument must be an instance of SharedArrayBuffer, ArrayBuffer or ArrayBufferView."
+    }
+  ],
+  "date": "2026-10-04",
+  "baseRef": "bbb93c7cde97d2e79677cc9372447aa9ff50dd51",
+  "decision": "Reject direct Metro0.83.3 > image-size2.0.4 override: getAssetSize(Buffer) works but getAssetData(path) throws. No manifest/lock change adopted for image-size. Investigate compatible Metro patch migration separately.",
+  "registry": {
+    "version": "2.0.4",
+    "engines": {
+      "node": ">=18"
+    },
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/esm/index.d.ts",
+          "default": "./dist/esm/index.js"
+        },
+        "require": {
+          "types": "./dist/cjs/index.d.ts",
+          "default": "./dist/cjs/index.js"
+        }
+      },
+      "./types/*": {
+        "import": {
+          "types": "./dist/esm/types/*.d.ts",
+          "default": "./dist/esm/types/*.js"
+        },
+        "require": {
+          "types": "./dist/cjs/types/*.d.ts",
+          "default": "./dist/cjs/types/*.js"
+        }
+      },
+      "./fromFile": {
+        "import": {
+          "types": "./dist/esm/fromFile.d.ts",
+          "default": "./dist/esm/fromFile.js"
+        },
+        "require": {
+          "types": "./dist/cjs/fromFile.d.ts",
+          "default": "./dist/cjs/fromFile.js"
+        }
+      }
+    },
+    "dist": {
+      "shasum": "bbc1933173e4ee1adbbdf9d4958ded15fdb710e3",
+      "tarball": "https://registry.npmjs.org/image-size/-/image-size-2.0.4.tgz",
+      "fileCount": 118,
+      "integrity": "sha512-QRUkFFsRV/6fuESxb9Vkq+a0LkSrgKXuc2NEqfikiXxxN/G3tjWt5EVUlMaImRBZRZK/jRBEbYvpPYZL8t08Zw==",
+      "signatures": [
+        {
+          "sig": "MEYCIQCB3M/ZwE7r90r94kl9XTNW2o/IYOh9OaJBlUvU+5hKKgIhANSaSG1oQWPRBAtjSDZPv5H8JXzjta7fTWffYSfJKx0B",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        },
+        {
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+          "sig": "MEUCIHowVKtpPOLZGqADp7BzprcA1e7HBwFAFXXSgWpwc5XmAiEAseM6zLFlquiF4RqZZ3i1YRzNXeFwPyhluqT9FNW+5cw="
+        }
+      ],
+      "unpackedSize": 95510
+    }
+  },
+  "reproducerSource": "const fs=require('node:fs');const assert=require('node:assert/strict');const Module=require('node:module');\nconst metroPath='<tmp>/alice-admzip-verify-3xx3rn3i/node_modules/metro/src/Assets.js';\nconst image='<tmp>/alice-admzip-verify-3xx3rn3i/apps/wallet-mobile/assets/app-icon.png';\nconst rows=[];\n(async()=>{for(const [label,candidate] of [['before',null],['candidate','<tmp>/alice-image-size-candidate/package/dist/cjs/index.js']]){\n delete require.cache[metroPath];const originalLoad=Module._load;\n if(candidate)Module._load=function(id,...rest){return id==='image-size'?require(candidate):originalLoad.call(this,id,...rest)};\n let metro;try{metro=require(metroPath)}finally{Module._load=originalLoad}\n for(const [api,call] of [['getAssetSize',()=>metro.getAssetSize('png',fs.readFileSync(image),image)],['getAssetData',()=>metro.getAssetData(image,'assets/app-icon.png',[],null,'/assets')]]){\n  try {const out=await call();rows.push({label,api,success:true,width:out.width,height:out.height})}\n  catch(e){rows.push({label,api,success:false,error:e.message})}\n }\n}assert.equal(rows[0].success,true);assert.equal(rows[1].success,true);assert.equal(rows[2].success,true);assert.equal(rows[3].success,false);\nfs.writeFileSync('<tmp>/alice-image-size-rejected-probe.json',JSON.stringify({method:'Invoke actual unchanged Metro 0.83.3 Assets.js with its current image-size then inject official 2.0.4 solely at require. Read existing local PNG; no production mutation.',rows},null,2)+'\\n');console.log(rows);\n})().catch(e=>{console.error(e);process.exitCode=1});\n",
+  "sources": [
+    "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq",
+    "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr"
+  ]
+}

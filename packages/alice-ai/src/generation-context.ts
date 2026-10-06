@@ -61,6 +61,7 @@ export function composeGenerationHistory(
   memoryCaptureInstruction = '',
   turnDirective = '',
   needsConversationContext = false,
+  answerRules = '',
 ): Message[] {
   const outboundHistory = assistantHistoryDropped
     ? privateCloudHistory(history, needsConversationContext)
@@ -81,6 +82,9 @@ export function composeGenerationHistory(
     memoryContext ? `[Personal memory]\n${memoryContext}` : null,
     memoryCaptureInstruction ? `[Private memory protocol]\n${memoryCaptureInstruction}` : null,
     turnDirective ? `[Current turn intent]\n${turnDirective}` : null,
+    // Mandatory points and ruled-out claims of the retrieved notes
+    // (answer-rules.ts); the block carries its own header.
+    answerRules || null,
     hasPrivateContext
       ? `[Conversation rule]\n${PRIVATE_CONTEXT_RULE}`
       : null,

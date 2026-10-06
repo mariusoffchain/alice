@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import type { BalanceFormat } from '@alice-wallet/alice-ui/balance-format';
 import {
+  currentAppVersion,
   getResponseLanguagePreference,
   setResponseLanguagePreference,
   type ResponseLanguagePreference,
   useChat,
 } from '@alice-wallet/alice-ai';
+import { openWhatsNew } from '@/lib/update-notices';
 import { setAmountFormat, useAmountState } from '@/components/AmountDisplay';
 import { ChoiceButton, SectionHint, SectionLabel, sectionStyle } from './ui';
 
@@ -76,6 +78,11 @@ export function GeneralTab() {
             />
           ))}
         </div>
+      </div>
+      <div style={sectionStyle}>
+        <SectionLabel>ABOUT ALICE</SectionLabel>
+        <SectionHint>Version {currentAppVersion() ?? 'unknown'}</SectionHint>
+        <button type="button" onClick={openWhatsNew} className="alice-control alice-control--quiet">What’s new</button>
       </div>
     </>
   );

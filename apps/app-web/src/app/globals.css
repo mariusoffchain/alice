@@ -219,13 +219,13 @@ a.font-pixel:active,
   box-shadow: 4px 4px 0 color-mix(in srgb, var(--alice-primary) 22%, transparent);
 }
 
-/* Curseur terminal du streaming: un bloc plein qui clignote pendant
+/* Curseur du streaming: une barre qui suit le texte pendant
    qu'Alice ecrit, retire des que la reponse est terminee. */
 @keyframes stream-blink { 50% { opacity: 0; } }
 .stream-cursor {
   display: inline-block;
-  width: 9px;
-  height: 1.05em;
+  width: 2px;
+  height: 1em;
   margin-left: 2px;
   vertical-align: -0.15em;
   background: var(--alice-primary);
@@ -518,4 +518,43 @@ body, .font-numbers { font-family: var(--alice-font-reading); }
 @media (prefers-reduced-motion: reduce) {
   .alice-sidebar[data-mobile-open=true] { animation: none; }
   .atelier-mobile-menu, .workspace-mobile-header > button { transition: none; }
+}
+
+/* The update notice owns a footer row, never covers the workspace controls. */
+.alice-app-frame {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+.alice-app-viewport {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  position: relative;
+  /* Mobile drawers and contextual chats stay inside the available workspace. */
+  contain: layout;
+}
+.alice-update-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  background: var(--alice-bg);
+  border-top: 1px solid var(--alice-border);
+  color: var(--alice-text);
+  font-size: 14px;
+}
+.alice-update-banner-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 16px;
+  min-width: 0;
+}
+@media (max-width: 767px) {
+  .alice-update-banner { align-items: start; }
+  .alice-update-banner-content { justify-content: flex-start; }
 }

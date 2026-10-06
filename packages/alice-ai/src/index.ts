@@ -39,6 +39,7 @@ export {
   getPreset,
   setPreset,
   getActiveModelId,
+  findInstalledLocalModelId,
   getActiveCloudModelId,
   setActiveCloudModelId,
   getCloudVeniceId,
@@ -48,6 +49,16 @@ export {
   getResponseLanguagePreference,
   setResponseLanguagePreference,
   getModelEntry,
+  findModelEntry,
+  getModelName,
+  listKnownLocalModels,
+  getCustomModels,
+  addCustomModel,
+  removeCustomModel,
+  LEGACY_MODELS,
+  DEFAULT_LOCAL_MODEL_ID,
+  type CatalogModelId,
+  type LocalModelSource,
   formatSize,
   getModelStatus,
   getModelPath,
@@ -77,6 +88,16 @@ export {
   resolveResponseLanguage,
   isResponseLanguageAcceptable,
 } from './language-policy';
+export {
+  normalizeHuggingFaceRepo,
+  parseHuggingFaceModelListing,
+  buildCustomModelEntry,
+  isCustomModelId,
+  fetchHuggingFaceGgufListing,
+  HUGGING_FACE_ORIGIN,
+  type HuggingFaceGgufListing,
+  type HuggingFaceGgufFile,
+} from './local-model-registry';
 export { buildAliceSystemPrompt } from './ai-system-prompt';
 export { generateLanguageChecked, WrongResponseLanguageError } from './language-generation';
 export {
@@ -98,13 +119,25 @@ export {
   type AliceMemoryCandidate,
   type AliceMemoryItem,
   type AliceMemory,
+  type AliceMemoryRefusalReason,
+  type AliceMemoryWrite,
   ALICE_MEMORY_CAPTURE_INSTRUCTION,
+  MAX_TEXT_LENGTH,
+  ALICE_MEMORY_CATEGORIES,
+  ALICE_MEMORY_CATEGORY_LABELS,
+  ALICE_MEMORY_RECENT_LIMIT,
+  ALICE_MEMORY_WARNING,
+  aliceMemoryRefusalMessage,
   createAliceMemory,
   getAliceMemory,
   forgetAliceMemoryItem,
+  editAliceMemoryItem,
+  clearAliceMemoryCategory,
+  setAliceMemoryCategoryPaused,
   setAliceMemoryEnabled,
   clearAliceMemory,
   aliceMemoryContext,
+  isAliceMemoryCategoryPaused,
 } from './alice-memory';
 export {
   type KnowledgeConcept,
@@ -263,3 +296,5 @@ export {
   setProductEventsEnabled,
   type AliceProductEvent,
 } from './product-events';
+
+export { pendingWhatsNew, acknowledgeWhatsNew } from './whats-new-state';

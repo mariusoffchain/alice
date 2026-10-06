@@ -7,8 +7,9 @@ import { quotaBlockOf } from './venice-errors';
 import { createBackend, canUseLocal, isTauriDesktop } from './ai-backend-factory';
 import { generateLanguageChecked, WrongResponseLanguageError } from './language-generation';
 import { buildRagTurnContext, isTechnicalRagQuery } from './rag';
-import { ragContextChunkLimit } from './rag-context-budget';
-import { isDefinitionQuestion, pedagogicalContext, recordPedagogicalSignal } from './pedagogical-profile';
+import { knowledgeContextCharLimit } from './knowledge-context-budget';
+import { ragQueryChunkBudget } from './rag-query-policy';
+import { pedagogicalContext, recordPedagogicalSignal } from './pedagogical-profile';
 import {
   ALICE_MEMORY_CAPTURE_INSTRUCTION,
   aliceMemoryContext,
@@ -57,8 +58,7 @@ import {
 const BACKEND_KEY = 'alice_ai_backend';
 
 function ragChunkLimit(backendType: AIBackendType, userMessage: string): number {
-  if (isDefinitionQuestion(userMessage)) return 1;
-  return ragContextChunkLimit(backendType === 'local', isTechnicalRagQuery(userMessage));
+  return ragQueryChunkBudget(userMessage, backendType === 'local', () => isTechnicalRagQuery(userMessage));
 }
 
 async function buildGenerationHistory(
@@ -83,7 +83,8 @@ async function buildGenerationHistory(
         requestedCapability: 'text-generation',
         retrieval: 'none',
         retrievedChunkIds: [],
-        phaseMs: { plan: 0, pedagogy: 0, retrieval: 0, memory: 0, total: 0 },
+        answerRuleNoteIds: [],
+        phaseMs: { plan: 0, rewrite: 0, compose: 0, pedagogy: 0, retrieval: 0, memory: 0, total: 0 },
       },
     };
   }
@@ -98,6 +99,7 @@ async function buildGenerationHistory(
     recordPedagogicalSignal,
     retrieveKnowledge: query => buildRagTurnContext(query, storageCipher, {
       maxChunks: ragChunkLimit(backendType, query),
+      maxContextChars: knowledgeContextCharLimit(backendType === 'local'),
       targetLanguage,
     }),
     getMemory: getAliceMemory,
@@ -713,6 +715,7 @@ export function ChatProvider({
         completionTokens,
         tokensPerSecond,
         attempts: result.attempts,
+        answerRuleCorrections: result.answerRuleCorrections,
         backendTimings: result.backendTimings ?? null,
       }));
       full = applyAliceResponseConstraints(instructions, result.text);
@@ -901,6 +904,7 @@ export function ChatProvider({
           generationMs: result.durationMs ?? null,
           firstDisplayMs: result.firstDisplayMs ?? null,
           attempts: result.attempts,
+          answerRuleCorrections: result.answerRuleCorrections,
           backendTimings: result.backendTimings ?? null,
         }));
 
@@ -941,6 +945,7 @@ export function ChatProvider({
           generationMs: result.durationMs ?? null,
           firstDisplayMs: result.firstDisplayMs ?? null,
           attempts: result.attempts,
+          answerRuleCorrections: result.answerRuleCorrections,
           backendTimings: result.backendTimings ?? null,
         }));
         full = applyAliceResponseConstraints(instructions, result.text);

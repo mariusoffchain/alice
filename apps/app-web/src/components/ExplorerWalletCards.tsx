@@ -96,7 +96,7 @@ function WalletCard({
       onKeyDown={event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onOpen(); } }}
       aria-label={`Open ${wallet.label}`}
       className="rh-card focus-visible:outline-2 focus-visible:outline-offset-2 flex flex-col gap-2 px-4 py-4 cursor-pointer"
-      style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent', minHeight: 200 }}
+      style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)', backgroundColor: 'transparent', minHeight: 200 }}
     >
       <div className="flex items-center justify-between gap-2">
         <span
@@ -416,7 +416,7 @@ export function ExplorerWalletCards({
           onClick={() => { setAdding(a => !a); setError(''); }}
           aria-expanded={adding}
           className="alice-control alice-control--quiet rh-touch font-numbers cursor-pointer bg-transparent inline-flex items-center"
-          style={{ fontSize: 13, padding: '6px 12px', borderRadius: 3, color: 'var(--alice-primary)' }}
+          style={{ fontSize: 13, padding: '6px 12px', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-primary)' }}
         >
           <SvgIcon svg={adding ? CLOSE_ICON : PLUS_ICON} size={16} />
           {adding ? 'Cancel' : 'Add a watch'}
@@ -424,7 +424,7 @@ export function ExplorerWalletCards({
       </div>
 
       {adding && (
-        <div className="flex flex-col gap-2 px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
+        <div className="flex flex-col gap-2 px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)' }}>
           <label htmlFor="explorer-watch-input" className="font-numbers text-sm">Address, extended key or descriptor</label>
           <input
             id="explorer-watch-input"
@@ -435,7 +435,7 @@ export function ExplorerWalletCards({
             onChange={e => setInput(e.target.value)}
             placeholder="Address, xpub / ypub / zpub, or a descriptor like wpkh(xpub.../<0;1>/*)"
             className="alice-field font-numbers w-full"
-            style={{ fontSize: 13, padding: '8px 12px', backgroundColor: 'var(--alice-bg)', border: '2px solid var(--alice-primary)', borderRadius: 3, color: 'var(--alice-primary-dark)', boxSizing: 'border-box' }}
+            style={{ fontSize: 13, padding: '8px 12px', backgroundColor: 'var(--alice-bg)', border: '1px solid var(--alice-control-border)', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-text)', boxSizing: 'border-box' }}
           />
           {/* Import helpers: from a file (text/JSON/image) or a scanned QR. */}
           <div className="flex flex-wrap gap-2">
@@ -450,7 +450,7 @@ export function ExplorerWalletCards({
               type="button"
               onClick={() => fileRef.current?.click()}
               className="alice-control alice-control--quiet font-numbers cursor-pointer bg-transparent"
-              style={{ fontSize: 13, padding: '7px 12px', borderRadius: 3, color: 'var(--alice-primary)' }}
+              style={{ fontSize: 13, padding: '7px 12px', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-primary)' }}
             >
               <SvgIcon svg={DOWNLOAD_ICON} size={20} /> Import a file
             </button>
@@ -459,7 +459,7 @@ export function ExplorerWalletCards({
               onClick={() => { setError(''); setScanningQr(true); }}
               disabled={!qrDecodingSupported()}
               className="alice-control alice-control--quiet font-numbers cursor-pointer bg-transparent disabled:cursor-not-allowed"
-              style={{ fontSize: 13, padding: '7px 12px', borderRadius: 3, color: 'var(--alice-primary)', opacity: qrDecodingSupported() ? 1 : 0.4 }}
+              style={{ fontSize: 13, padding: '7px 12px', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-primary)', opacity: qrDecodingSupported() ? 1 : 0.4 }}
               title={qrDecodingSupported() ? 'Scan a QR with the camera' : 'QR scanning is not supported by this browser'}
             >
               <SvgIcon svg={QR_ICON} size={20} /> Scan a QR
@@ -473,14 +473,14 @@ export function ExplorerWalletCards({
             onChange={e => setLabel(e.target.value)}
             placeholder="Label (optional)"
             className="alice-field font-numbers w-full"
-            style={{ fontSize: 13, padding: '8px 12px', backgroundColor: 'var(--alice-bg)', border: '2px solid var(--alice-primary)', borderRadius: 3, color: 'var(--alice-primary-dark)', boxSizing: 'border-box' }}
+            style={{ fontSize: 13, padding: '8px 12px', backgroundColor: 'var(--alice-bg)', border: '1px solid var(--alice-control-border)', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-text)', boxSizing: 'border-box' }}
           />
           {error && <p id="explorer-watch-error" role="alert" className="font-numbers m-0" style={{ fontSize: 12, color: 'var(--alice-danger)' }}>{error}</p>}
           <button
             type="button"
             onClick={() => void handleAdd()}
             className="alice-control alice-control--primary font-numbers self-start cursor-pointer"
-            style={{ fontSize: 10, padding: '8px 16px', borderRadius: 3,  }}
+            style={{ fontSize: 10, padding: '8px 16px', borderRadius: 'var(--alice-radius-control)',  }}
           >
             <SvgIcon svg={PLUS_ICON} size={20} /> Add the watch
           </button>
@@ -491,7 +491,7 @@ export function ExplorerWalletCards({
       )}
 
       {wallets.length === 0 && !adding && (
-        <div style={{ border: '1px dashed var(--alice-border)', borderRadius: 3 }}>
+        <div style={{ border: '1px dashed var(--alice-border)', borderRadius: 'var(--alice-radius-control)' }}>
           <EmptyState
             icon={WALLET_ICON}
             title="No wallets yet"

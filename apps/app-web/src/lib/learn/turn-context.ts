@@ -6,7 +6,7 @@ import { registerLearnContextProvider, type LearnTurnContext } from '@alice-wall
 import { fetchCoursePack, fetchTutorialPack } from './packs';
 import { defaultLearnLanguage, isWhitelistedLang, loadLearnLanguage } from './language';
 import { takeSuggestion } from './suggest';
-import { excerptOf, pickChapter } from './turn-context-score';
+import { excerptOf, pickChapter, relevantExcerpt } from './turn-context-score';
 
 
 // Feeds the chat turn with the text of the course a question points at (see
@@ -22,8 +22,10 @@ function learnLanguage(): string {
     ?? defaultLearnLanguage(typeof navigator === 'undefined' ? undefined : navigator.language);
 }
 
-async function courseContext(query: string): Promise<LearnTurnContext | null> {
-  const lang = learnLanguage();
+async function courseContext(query: string, options?: { targetLanguage?: 'fr' | 'en' }): Promise<LearnTurnContext | null> {
+  // Reading preferences choose the reader UI, not the language of a chat
+  // excerpt. The resolved conversation language takes precedence here.
+  const lang = options?.targetLanguage ?? learnLanguage();
   // A throwaway Set: the context lookup must never consume the "suggest each
   // content once per session" budget owned by the visible block.
   const suggestion = takeSuggestion(query, [lang, 'fr', 'en'], LEARN_COURSES, LEARN_TUTORIALS, new Set());
@@ -34,10 +36,9 @@ async function courseContext(query: string): Promise<LearnTurnContext | null> {
     const packLang = tutorial?.languages.includes(lang) ? lang : 'en';
     if (!isWhitelistedLang(packLang)) return null;
     const pack = await fetchTutorialPack(packLang, suggestion.category, suggestion.slug);
-    return {
-      label: `${pack.name} (Plan ₿ Academy tutorial)`,
-      excerpt: excerptOf(pack.markdown),
-    };
+    const excerpt = relevantExcerpt(query, pack.name, pack.markdown);
+    if (!excerpt) return null;
+    return { label: `${pack.name} (Plan ₿ Academy tutorial)`, excerpt };
   }
 
   const course = LEARN_COURSES.find(c => c.code === suggestion.code);

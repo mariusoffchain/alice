@@ -59,8 +59,8 @@ function UsageBar({ percent, label }: { percent: number; label: string }) {
         aria-valuemax={100}
         style={{
           height: 12,
-          border: '2px solid var(--alice-border)',
-          borderRadius: 2,
+          border: '1px solid var(--alice-border)',
+          borderRadius: 'var(--alice-radius-control)',
           backgroundColor: 'var(--alice-bg)',
         }}
       >

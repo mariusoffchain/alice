@@ -128,7 +128,7 @@ export function ChatPanel() {
     ? [...visible].reverse().find(m => m.role === 'assistant')?.id : undefined;
 
   return (
-    <div className="atelier-shell flex h-dvh overflow-hidden">
+    <div className="atelier-shell flex h-full overflow-hidden">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(v => !v)}

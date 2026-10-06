@@ -62,7 +62,7 @@ interface SidebarAccountMenuProps {
 /**
  * The single entry point to everything that is not a conversation: settings,
  * the Alice account, bug reports and the project's public links. It sits at the
- * bottom of the sidebar where ChatGPT and Claude put the same control, so the
+ * bottom of the sidebar where most chat applications put the same control, so the
  * command list above stays limited to what the user does every day.
  */
 export function SidebarAccountMenu({

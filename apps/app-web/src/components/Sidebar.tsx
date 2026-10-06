@@ -9,6 +9,7 @@ import {
   isTauriDesktop,
 } from '@alice-wallet/alice-ai';
 import { MENU_ICON, PLUS_ICON, EXPLORE_ICON, LEARN_ICON, PLAY_ICON, SEARCH_ICON, DELETE_ICON, CLOSE_ICON } from '@/lib/atelier-icons';
+import { AliceLogo } from '@/components/AliceLogo';
 import { SvgIcon } from '@/components/SvgIcon';
 import { ConfirmDialog } from '@/components/settings/ui';
 import { FeedbackModal } from '@/components/FeedbackModal';
@@ -302,8 +303,8 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
         >
           <div className="flex items-center gap-2">
 
-            <span className="font-pixel" style={{ fontSize: 11, lineHeight: '20px', color: 'var(--alice-text)' }}>
-              ALICE
+            <span style={{ color: 'var(--alice-text)' }}>
+              <AliceLogo size={16} showWordmark />
             </span>
           </div>
           <button

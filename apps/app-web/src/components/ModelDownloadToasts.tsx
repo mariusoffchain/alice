@@ -4,7 +4,7 @@ import { SvgIcon } from '@/components/SvgIcon';
 import { CHECK_ICON, CLOSE_ICON, DOWNLOAD_ICON } from '@/lib/atelier-icons';
 
 import { useEffect, useState } from 'react';
-import { MODEL_CATALOG, type LocalModelId } from '@alice-wallet/alice-ai';
+import { getModelName, type LocalModelId } from '@alice-wallet/alice-ai';
 import {
   MODEL_DOWNLOAD_EVENT,
   clearModelDownload,
@@ -57,7 +57,7 @@ export function ModelDownloadToasts() {
   return (
     <div aria-live="polite" aria-relevant="additions" className="fixed z-50 flex flex-col gap-2" style={{ right: 16, bottom: 76, maxWidth: 'calc(100vw - 32px)' }}>
       {toasts.map((toast) => {
-        const name = MODEL_CATALOG.find((m) => m.id === toast.id)?.name ?? toast.id;
+        const name = getModelName(toast.id);
         return (
           <button
             key={`${toast.id}:${toast.kind}`}
@@ -71,9 +71,9 @@ export function ModelDownloadToasts() {
             style={{
               maxWidth: 320, display: 'block',
               padding: '10px 14px',
-              border: `2px solid ${toast.kind === 'installed' ? 'var(--alice-primary)' : 'var(--alice-danger, #c74f4f)'}`,
-              borderRadius: 2,
-              background: 'var(--alice-bg-soft)',
+              border: '1px solid var(--alice-border)',
+              borderRadius: 'var(--alice-radius-control)',
+              background: 'var(--alice-bg)',
               color: 'var(--alice-text)',
             }}
           >
@@ -84,7 +84,7 @@ export function ModelDownloadToasts() {
                 color: toast.kind === 'installed' ? 'var(--alice-primary)' : 'var(--alice-danger, #c74f4f)',
               }}
             >
-              <SvgIcon svg={toast.kind === 'installed' ? CHECK_ICON : DOWNLOAD_ICON} size={20} />
+              <SvgIcon svg={toast.kind === 'installed' ? CHECK_ICON : DOWNLOAD_ICON} size={16} />
               {toast.kind === 'installed' ? 'MODEL READY' : 'DOWNLOAD FAILED'}
               <span className="ml-auto"><SvgIcon svg={CLOSE_ICON} size={16} /></span>
             </div>

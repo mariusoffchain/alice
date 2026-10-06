@@ -127,7 +127,7 @@ export function ExplorerQrScanner({
     >
       <div
         className="flex flex-col gap-3 px-4 py-4"
-        style={{ maxWidth: 420, width: '100%', backgroundColor: 'var(--alice-bg)', border: '2px solid var(--alice-primary)', borderRadius: 3 }}
+        style={{ maxWidth: 420, width: '100%', backgroundColor: 'var(--alice-bg)', border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)' }}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
@@ -138,7 +138,7 @@ export function ExplorerQrScanner({
         {error ? (
           <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-danger)' }}>{error}</p>
         ) : (
-          <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', borderRadius: 3, backgroundColor: '#000' }}>
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', borderRadius: 'var(--alice-radius-control)', backgroundColor: '#000' }}>
             <video ref={videoRef} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             <div style={{ position: 'absolute', inset: '18%', border: '2px solid var(--alice-primary)', borderRadius: 4, opacity: 0.8 }} />
           </div>
@@ -151,7 +151,7 @@ export function ExplorerQrScanner({
           onClick={onClose}
 
           className="alice-control alice-control--quiet font-numbers self-start cursor-pointer"
-          style={{ fontSize: 13, padding: '8px 16px', borderRadius: 3, color: 'var(--alice-primary)' }}
+          style={{ fontSize: 13, padding: '8px 16px', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-primary)' }}
         >
           <SvgIcon svg={CLOSE_ICON} size={16} /> Cancel
         </button>

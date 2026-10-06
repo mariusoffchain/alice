@@ -130,7 +130,7 @@ function AttachmentChip({
           {contextLabel}
         </span>
         {full && (
-          <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 10, padding: '2px 4px', border: '1px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)' }}>
+          <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 10, padding: '2px 4px', border: '1px solid var(--alice-primary)', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-primary)' }}>
             FULL
           </span>
         )}
@@ -345,7 +345,7 @@ export function AskAliceDock({
       {/* Composer: attachments, prefilled questions, input, reason. */}
       <div className="alice-panel-composer flex flex-col gap-2 shrink-0">
         {decision.blocked && (
-          <div className="flex flex-col gap-1 px-3 py-2" style={{ border: `1px solid ${ERROR_COLOR}`, borderRadius: 2 }}>
+          <div className="flex flex-col gap-1 px-3 py-2" style={{ border: `1px solid ${ERROR_COLOR}`, borderRadius: 'var(--alice-radius-control)' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: ERROR_COLOR }}>NOTHING SENT</span>
             <p className="font-numbers m-0" style={{ fontSize: 12, color: 'var(--alice-text)' }}>{decision.reason}</p>
           </div>
@@ -353,7 +353,7 @@ export function AskAliceDock({
 
         {/* The exact payload, opened from the attachment chip below. */}
         {payloadOpen && composition.abstractSignals.length > 0 && (
-          <div className="flex flex-col gap-2 px-3 py-2" style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg)' }}>
+          <div className="flex flex-col gap-2 px-3 py-2" style={{ border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)', backgroundColor: 'var(--alice-bg)' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
               SENT TO ALICE, EXACTLY:
             </span>
@@ -447,7 +447,7 @@ export function AskAliceDock({
           Never persisted: the default is always de-identified. */}
       {identifiedPrompt && (
         <div className="absolute inset-0 flex items-center justify-center px-6" style={{ backgroundColor: 'rgba(0, 0, 0, 0.55)', zIndex: 10 }}>
-          <div className="flex flex-col gap-3 px-4 py-4 w-full" style={{ backgroundColor: 'var(--alice-bg-soft)', border: '2px solid var(--alice-border)', borderRadius: 2 }}>
+          <div className="flex flex-col gap-3 px-4 py-4 w-full" style={{ backgroundColor: 'var(--alice-bg)', border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-primary)' }}>IDENTIFIED MODE</span>
             <p className="font-numbers m-0" style={{ fontSize: 13, lineHeight: '19px', color: 'var(--alice-text)' }}>
               The full details of this page (txid, addresses, amounts) will ride
@@ -490,7 +490,7 @@ export function AskAliceDock({
           of every opening, until "don't show this again" is ticked. */}
       {disclaimer && (
         <div className="absolute inset-0 flex items-center justify-center px-6" style={{ backgroundColor: 'rgba(0, 0, 0, 0.55)', zIndex: 10 }}>
-          <div className="flex flex-col gap-3 px-4 py-4 w-full" style={{ backgroundColor: 'var(--alice-bg-soft)', border: '2px solid var(--alice-border)', borderRadius: 2 }}>
+          <div className="flex flex-col gap-3 px-4 py-4 w-full" style={{ backgroundColor: 'var(--alice-bg)', border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-primary)' }}>PRIVATE CLOUD</span>
             <p className="font-numbers m-0" style={{ fontSize: 13, lineHeight: '19px', color: 'var(--alice-text)' }}>
               Your question and the de-identified signals will be processed on Alice&apos;s Private

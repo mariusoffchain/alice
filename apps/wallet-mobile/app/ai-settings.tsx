@@ -24,6 +24,13 @@ import {
 } from '@alice-wallet/alice-ai';
 import {
   MODEL_CATALOG,
+  listKnownLocalModels,
+  addCustomModel,
+  buildCustomModelEntry,
+  fetchHuggingFaceGgufListing,
+  DEFAULT_LOCAL_MODEL_ID,
+  type ModelEntry,
+  type HuggingFaceGgufListing,
   NATIVE_SEMANTIC_MODEL_DOWNLOAD_BYTES,
   SEMANTIC_SEARCH_STATE_EVENT,
   disableSemanticSearch,
@@ -85,11 +92,17 @@ export default function AISettingsScreen() {
   const s = useMemo(() => makeStyles(colors, pixel), [colors, pixel]);
   const chat = useChat();
 
-  const [activeModelId, setActiveModelState] = useState<LocalModelId>('qwen3-0.6b');
+  const [activeModelId, setActiveModelState] = useState<LocalModelId>(DEFAULT_LOCAL_MODEL_ID);
   const defaultModelStates = Object.fromEntries(
     MODEL_CATALOG.map(m => [m.id, { status: 'not-installed' as ModelStatus, downloadProgress: null }]),
   ) as Record<LocalModelId, ModelState>;
   const [modelStates, setModelStates] = useState<Record<LocalModelId, ModelState>>(defaultModelStates);
+  // Catalog, previous catalog entries and custom files; refreshed with the statuses.
+  const [knownModels, setKnownModels] = useState<ModelEntry[]>(MODEL_CATALOG);
+  const [hfRepo, setHfRepo] = useState('');
+  const [hfListing, setHfListing] = useState<HuggingFaceGgufListing | null>(null);
+  const [hfBusy, setHfBusy] = useState(false);
+  const [hfError, setHfError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<LocalModelId | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<LocalModelId | 'all' | null>(null);
   const [confirmActivate, setConfirmActivate] = useState<LocalModelId | null>(null);
@@ -121,13 +134,15 @@ export default function AISettingsScreen() {
     setChatStorage(storageSummary);
     setResponseLanguageState(languagePreference);
 
+    const models = await listKnownLocalModels();
+    setKnownModels(models);
     const statuses = await Promise.all(
-      MODEL_CATALOG.map(async m => ({ id: m.id, status: await getModelStatus(m.id) })),
+      models.map(async m => ({ id: m.id, status: await getModelStatus(m.id) })),
     );
     setModelStates(prev => {
       const next = { ...prev };
       for (const { id, status } of statuses) {
-        if (next[id]?.status !== 'downloading') next[id] = { ...next[id], status };
+        if (next[id]?.status !== 'downloading') next[id] = { ...(next[id] ?? { downloadProgress: null }), status };
       }
       return next;
     });
@@ -201,11 +216,44 @@ export default function AISettingsScreen() {
         setModelStates(prev => ({ ...prev, [id]: { status: 'downloading', downloadProgress: fraction } }));
       });
       setModelStates(prev => ({ ...prev, [id]: { status: 'installed', downloadProgress: null } }));
+      // A download with no usable active model makes the new file active, as
+      // the desktop flow does; switching the chat backend stays a user gesture.
+      if ((await getModelStatus(activeModelId)) !== 'installed') {
+        await setActiveModelId(id);
+        setActiveModelState(id);
+      }
       showToast(`${getModelEntry(id).name} downloaded and ready`);
     } catch (err) {
       console.warn('[ai-settings] install failed:', err);
       setModelStates(prev => ({ ...prev, [id]: { status: 'not-installed', downloadProgress: null } }));
       showToast(err instanceof Error ? err.message : `Download failed for ${getModelEntry(id).name}`);
+    }
+  }
+
+  async function handleFetchHuggingFace() {
+    setHfBusy(true);
+    setHfError(null);
+    setHfListing(null);
+    try {
+      setHfListing(await fetchHuggingFaceGgufListing(hfRepo));
+    } catch (err) {
+      setHfError(err instanceof Error ? err.message : 'Could not read this repository.');
+    } finally {
+      setHfBusy(false);
+    }
+  }
+
+  async function handleAddCustomModel(filename: string) {
+    if (!hfListing) return;
+    try {
+      const entry = buildCustomModelEntry(hfListing, filename);
+      await addCustomModel(entry);
+      setHfListing(null);
+      setHfRepo('');
+      await refreshState();
+      await handleInstall(entry.id);
+    } catch (err) {
+      setHfError(err instanceof Error ? err.message : 'Could not add this model.');
     }
   }
 
@@ -233,14 +281,14 @@ export default function AISettingsScreen() {
     await Promise.all([
       setPreset('local', 'balanced'),
       setPreset('cloud', 'balanced'),
-      setActiveModelId('qwen3-0.6b'),
+      setActiveModelId(DEFAULT_LOCAL_MODEL_ID),
       setActiveCloudModelId('alice-cloud'),
       setAliceInstructions(''),
       setResponseLanguagePreference('auto'),
       setCustomServer(null),
     ]);
 
-    setActiveModelState('qwen3-0.6b');
+    setActiveModelState(DEFAULT_LOCAL_MODEL_ID);
     setAliceInstructionsState('');
     setInstructionsSaved(false);
     setResponseLanguageState('auto');
@@ -421,11 +469,13 @@ export default function AISettingsScreen() {
         </View>
 
         {Platform.OS !== 'web' && (() => {
-          const installedModels = MODEL_CATALOG.filter(m => {
-            const st = modelStates[m.id].status;
+          const installedModels = knownModels.filter(m => {
+            const st = modelStates[m.id]?.status;
             return st === 'installed' || st === 'downloading';
           });
-          const downloadableModels = MODEL_CATALOG.filter(m => modelStates[m.id].status === 'not-installed');
+          // Previous catalog entries are never offered again; a file already
+          // on disk stays listed above as installed.
+          const downloadableModels = knownModels.filter(m => m.source !== 'legacy' && (modelStates[m.id]?.status ?? 'not-installed') === 'not-installed');
 
           return (
             <>
@@ -463,7 +513,7 @@ export default function AISettingsScreen() {
                 <View style={s.divider} />
                 <Text style={s.subsectionLabel}>INSTALLED MODELS</Text>
                 {installedModels.map((model, i) => {
-                  const state = modelStates[model.id];
+                  const state = modelStates[model.id] ?? { status: 'not-installed' as ModelStatus, downloadProgress: null };
                   const isActive = model.id === activeModelId;
                   const activeLoadFailed = isActive
                     && chat.backendType === 'local'
@@ -490,6 +540,8 @@ export default function AISettingsScreen() {
                         {activeLoadFailed && <Text style={[s.modelBadge, { color: colors.danger }]}>Unavailable</Text>}
                         {state.status === 'installed' && <Text style={s.modelBadgeSecondary}>Installed</Text>}
                         {state.status === 'downloading' && <Text style={s.modelBadgeSecondary}>Downloading...</Text>}
+                        {model.source === 'legacy' && <Text style={s.modelBadgeSecondary}>Previous catalog</Text>}
+                        {model.source === 'custom' && <Text style={s.modelBadgeSecondary}>Custom, untested</Text>}
                       </View>
                       {state.status === 'downloading' && (
                         <View style={s.modelActions}>
@@ -507,7 +559,7 @@ export default function AISettingsScreen() {
                 )}
               </View>
 
-              {installedModels.some(m => modelStates[m.id].status === 'installed') && (
+              {installedModels.some(m => modelStates[m.id]?.status === 'installed') && (
                 <TouchableOpacity
                   style={[s.deleteAllBtn, { borderColor: colors.danger }]}
                   onPress={() => setConfirmDelete('all')}
@@ -515,6 +567,58 @@ export default function AISettingsScreen() {
                   <Text style={[s.deleteAllText, { color: colors.danger }]}>DELETE ALL DOWNLOADED MODELS</Text>
                 </TouchableOpacity>
               )}
+
+              <Text style={[s.sectionTitle, { marginTop: spacing.xxl }]}>ADD A MODEL FROM HUGGING FACE</Text>
+              <View style={s.section}>
+                <Text style={s.customHint}>
+                  Any public gguf file. Alice has not tested these models: answers, language and safety behaviour are unverified.
+                </Text>
+                <TextInput
+                  accessibilityLabel="Hugging Face repository, owner slash name"
+                  accessibilityHint="Lists the gguf files of a public repository"
+                  style={[s.customInput, { borderColor: colors.border, color: colors.primaryDark }]}
+                  value={hfRepo}
+                  onChangeText={v => { setHfRepo(v); setHfError(null); setHfListing(null); }}
+                  placeholder="owner/repository (e.g. unsloth/Qwen3.5-2B-GGUF)"
+                  placeholderTextColor={colors.muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <View style={s.customActions}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={hfBusy ? 'Looking up the repository files' : 'List the gguf files of this repository'}
+                    accessibilityState={{ disabled: hfBusy || !hfRepo.trim(), busy: hfBusy }}
+                    style={[s.actionBtn, { borderColor: colors.primary, opacity: hfBusy || !hfRepo.trim() ? 0.5 : 1 }]}
+                    disabled={hfBusy || !hfRepo.trim()}
+                    onPress={() => { void handleFetchHuggingFace(); }}
+                  >
+                    <Text style={[s.actionBtnText, { color: colors.primary }]}>{hfBusy ? 'LOOKING UP...' : 'LIST FILES'}</Text>
+                  </TouchableOpacity>
+                </View>
+                {hfError && <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={[s.modelEmptyText, { color: colors.danger }]}>{hfError}</Text>}
+                {hfListing && (
+                  <View style={s.dropdownMenu}>
+                    {hfListing.files.map((file, i) => (
+                      <TouchableOpacity
+                        key={file.filename}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Add and download ${file.filename}, ${formatSize(file.sizeBytes)}`}
+                        style={[s.dropdownOption, i > 0 && s.modelRowBorder]}
+                        onPress={() => { void handleAddCustomModel(file.filename); }}
+                      >
+                        <View style={s.modelNameRow}>
+                          <Text style={s.modelName} numberOfLines={1}>{file.filename}</Text>
+                          <Text style={s.modelSize}>{formatSize(file.sizeBytes)}</Text>
+                        </View>
+                        <Text style={s.dropdownDescription}>
+                          {`${hfListing.license ? `License ${hfListing.license}. ` : ''}Tap to add and download.`}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
             </>
           );
         })()}
@@ -587,8 +691,9 @@ export default function AISettingsScreen() {
         })()}
 
         {selectedModel && (() => {
-          const model = MODEL_CATALOG.find(m => m.id === selectedModel)!;
-          const state = modelStates[selectedModel];
+          const model = knownModels.find(m => m.id === selectedModel);
+          if (!model) return null;
+          const state = modelStates[selectedModel] ?? { status: 'not-installed' as ModelStatus, downloadProgress: null };
           const installed = state.status === 'installed';
           const isActive = selectedModel === activeModelId;
           return (
@@ -662,7 +767,7 @@ export default function AISettingsScreen() {
                 <Text style={[s.modalDescription, { color: colors.primaryDark, marginTop: spacing.lg }]}>
                   {confirmDelete === 'all'
                     ? 'This will delete every downloaded model from your device. You can download one again at any time.'
-                    : `Delete ${MODEL_CATALOG.find(m => m.id === confirmDelete)?.name ?? 'this model'} from your device? You can re-install it anytime.`}
+                    : `Delete ${knownModels.find(m => m.id === confirmDelete)?.name ?? 'this model'} from your device? You can re-install it anytime.`}
                 </Text>
                 <View style={s.modalActions}>
                   <TouchableOpacity
@@ -695,7 +800,7 @@ export default function AISettingsScreen() {
               <View style={[s.modalContent, { backgroundColor: colors.background, borderColor: colors.border }]}>
                 <Text style={[s.modalTitle, { color: colors.primaryDark }]}>ACTIVATE MODEL</Text>
                 <Text style={[s.modalDescription, { color: colors.primaryDark, marginTop: spacing.lg }]}>
-                  Use {MODEL_CATALOG.find(m => m.id === confirmActivate)?.name ?? 'this model'} for local AI?
+                  Use {knownModels.find(m => m.id === confirmActivate)?.name ?? 'this model'} for local AI?
                 </Text>
                 <View style={s.modalActions}>
                   <TouchableOpacity

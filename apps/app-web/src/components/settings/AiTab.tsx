@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
+  DEFAULT_LOCAL_MODEL_ID,
   type CustomServerConfig,
   CLOUD_MODELS,
   setPreset,
@@ -101,7 +102,7 @@ export function AiTab() {
       setAliceInstructions(''),
       setResponseLanguagePreference('auto'),
       setActiveCloudModelId('alice-cloud'),
-      setActiveModelId('qwen3-0.6b'),
+      setActiveModelId(DEFAULT_LOCAL_MODEL_ID),
       setCustomServer(null),
     ]);
     setInstructions('');

@@ -13,6 +13,9 @@ import {
   ALL_PRESETS,
   CLOUD_MODELS,
   MODEL_CATALOG,
+  listKnownLocalModels,
+  DEFAULT_LOCAL_MODEL_ID,
+  type ModelEntry,
   formatSize,
   getActiveCloudModelId,
   getActiveModelId,
@@ -56,16 +59,19 @@ export function ModelSelector({
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [hasCustomServer, setHasCustomServer] = useState(false);
-  const [activeLocalModelId, setActiveLocalModelState] = useState<LocalModelId>('qwen3-0.6b');
+  const [activeLocalModelId, setActiveLocalModelState] = useState<LocalModelId>(DEFAULT_LOCAL_MODEL_ID);
   const [activeCloudModelId, setActiveCloudModelState] = useState<CloudModelId>('alice-cloud');
   const [localPreset, setLocalPresetState] = useState<AIPreset>('balanced');
   const [cloudPreset, setCloudPresetState] = useState<AIPreset>('balanced');
   const [localModelStatus, setLocalModelStatus] = useState<Record<LocalModelId, ModelStatus>>(defaultLocalModelStatus);
+  const [knownModels, setKnownModels] = useState<ModelEntry[]>(MODEL_CATALOG);
 
   const refreshLocalModels = async () => {
     if (!isTauriDesktop()) return;
+    const models = await listKnownLocalModels();
+    setKnownModels(models);
     const statuses = await Promise.all(
-      MODEL_CATALOG.map(async (model) => ({
+      models.map(async (model) => ({
         id: model.id,
         status: await getDesktopModelStatus(model.id),
       })),
@@ -128,12 +134,12 @@ export function ModelSelector({
   }, [open]);
 
   const installedLocalModels = useMemo(
-    () => MODEL_CATALOG.filter((model) => localModelStatus[model.id] === 'installed'),
-    [localModelStatus],
+    () => knownModels.filter((model) => localModelStatus[model.id] === 'installed'),
+    [knownModels, localModelStatus],
   );
 
   const activePreset = backendType === 'cloud' ? cloudPreset : localPreset;
-  const activeLocalModel = MODEL_CATALOG.find(model => model.id === activeLocalModelId);
+  const activeLocalModel = knownModels.find(model => model.id === activeLocalModelId);
   const activeModelName =
     backendType === 'cloud'
       ? 'Private'

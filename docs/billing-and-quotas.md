@@ -189,6 +189,19 @@ defaults to 3.7 for French and English prose.
 
 Bytes are the unit of record. Tokens are a presentation unit derived from them.
 
+The two sides are not weighed the same way. A request body is text, and its
+bytes track tokens at a few bytes each. A response is a stream of encrypted
+events, one per token, each inside its JSON envelope: on the wire a token weighs
+a few hundred bytes, not a few. Each side therefore has its own ratio,
+`BYTES_PER_TOKEN` for input and `OUTPUT_BYTES_PER_TOKEN` for output, and the
+byte budgets enforced for a plan are computed from the catalog with the current
+ratios, so a recalibration reaches the plans already running and not only the
+next purchase. Until 2026-10-06 the output side used the prose ratio: the
+ledger showed 247 KB metered per paid answer and 111 KB per free one for one to
+two KB of text, and a paid month ended after some thirty answers. The output
+ratio starts at 200, which lines the output budget up with the input one at
+roughly 1,600 answers a month, and is corrected from the ledger like the other.
+
 ### How accurate this is
 
 Accurate enough to bill fairly, not accurate enough to display as an exact
@@ -235,7 +248,11 @@ WHERE status = 'confirmed' AND created_at >= ? AND created_at < ?;
 
 Against Venice's export, whose `promptTokens` and `completionTokens` columns
 give the other half. One ratio for input, one for output: they are not the same,
-because a prompt carries JSON structure and history that an answer does not.
+because a prompt carries JSON structure and history that an answer does not. On the
+output side the ratio also carries the per-token envelope of the stream, which
+is why it is two orders of magnitude larger: `OUTPUT_BYTES_PER_TOKEN` is set from
+`SUM(output_bytes)` over `completionTokens`, `BYTES_PER_TOKEN` from
+`SUM(input_bytes)` over `promptTokens`.
 
 ### What the user sees
 
@@ -316,6 +333,10 @@ npx wrangler secret put BTCPAY_API_KEY
 npx wrangler secret put BTCPAY_WEBHOOK_SECRET
 openssl rand -base64 48 | npx wrangler secret put BILLING_EMAIL_KEY
 ```
+
+Variables: `BYTES_PER_TOKEN` (default 3.7) and `OUTPUT_BYTES_PER_TOKEN` (default
+200) are the two calibration ratios; both live in `wrangler.toml` so a
+calibration is a configuration change and applies to running plans.
 
 Leaving `BTCPAY_*` unset makes checkout answer 503 and changes nothing else,
 which is the state the Worker ships in until the store is live. Leaving

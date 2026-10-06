@@ -7,7 +7,7 @@ import { type DragEvent, useEffect, useRef, useState } from 'react';
 import {
   type AIPreset,
   CLOUD_MODELS,
-  MODEL_CATALOG,
+  getModelName,
   getActiveCloudModelId,
   getActiveModelId,
   getCustomServer,
@@ -98,7 +98,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
             return server?.model || 'Unknown';
           }
           const id = await getActiveModelId();
-          return MODEL_CATALOG.find(m => m.id === id)?.name ?? 'Unknown';
+          return getModelName(id);
         })(),
       ]);
       if (!cancelled) setAiContext({ preset, model });
@@ -209,21 +209,21 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
           overflowY: 'auto',
           padding: 18,
           backgroundColor: 'var(--alice-bg)',
-          border: '2px solid var(--alice-border)',
-          borderRadius: 2,
+          border: '1px solid var(--alice-border)',
+          borderRadius: 'var(--alice-radius-field)',
           color: 'var(--alice-text)',
         }}
       >
         <h3
           id="feedback-title"
           className="font-pixel tracking-widest m-0"
-          style={{ fontSize: 16, color: 'var(--alice-primary-dark)' }}
+          style={{ fontSize: 12, color: 'var(--alice-primary-dark)' }}
         >
           REPORT
         </h3>
         <p
           className="font-numbers m-0 mt-2"
-          style={{ fontSize: 15, lineHeight: '19px', opacity: 0.7 }}
+          style={{ fontSize: 15, lineHeight: '19px', color: 'var(--alice-muted)' }}
         >
           Report a bug, flag a bad Alice response, or suggest something Alice should know. You can copy the report, email it, or continue on GitHub.
         </p>
@@ -265,7 +265,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
             color: 'var(--alice-text)',
             backgroundColor: 'transparent',
             border: '1px solid var(--alice-border)',
-            borderRadius: 2,
+            borderRadius: 'var(--alice-radius-field)',
           }}
         />
 
@@ -286,7 +286,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
             color: 'var(--alice-text)',
             backgroundColor: 'transparent',
             border: '1px solid var(--alice-border)',
-            borderRadius: 2,
+            borderRadius: 'var(--alice-radius-field)',
           }}
         />
 
@@ -308,8 +308,8 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
           style={{
             padding: 10,
             backgroundColor: 'transparent',
-            border: `2px dashed ${dragActive ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
-            borderRadius: 2,
+            border: `1px dashed ${dragActive ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
+            borderRadius: 'var(--alice-radius-field)',
           }}
         >
           <div className="flex items-center justify-between gap-3">
@@ -322,7 +322,7 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
               </p>
               <p
                 className="font-numbers m-0 mt-1"
-                style={{ fontSize: 13, lineHeight: '15px', opacity: 0.65 }}
+                style={{ fontSize: 13, lineHeight: '15px', color: 'var(--alice-muted)' }}
               >
                 Choose or drop an image to preview it. Attach it manually in your email or GitHub issue; it is not uploaded here.
               </p>
@@ -343,14 +343,14 @@ export function FeedbackModal({ onClose }: FeedbackModalProps) {
                   maxHeight: 180,
                   objectFit: 'contain',
                   border: '1px solid var(--alice-border)',
-                  borderRadius: 2,
+                  borderRadius: 'var(--alice-radius-field)',
                   backgroundColor: 'var(--alice-bg)',
                 }}
               />
               <div className="flex items-center justify-between gap-2 mt-2">
                 <p
                   className="font-numbers m-0"
-                  style={{ fontSize: 13, lineHeight: '15px', opacity: 0.7, overflowWrap: 'anywhere' }}
+                  style={{ fontSize: 13, lineHeight: '15px', color: 'var(--alice-muted)', overflowWrap: 'anywhere' }}
                 >
                   {screenshot?.name}
                 </p>

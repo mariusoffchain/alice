@@ -156,8 +156,8 @@ export function AccountPasswordDialog() {
           maxHeight: 'calc(100vh - 40px)',
           overflowY: 'auto',
           padding: 20,
-          border: '2px solid var(--alice-border)',
-          borderRadius: 2,
+          border: '1px solid var(--alice-border)',
+          borderRadius: 'var(--alice-radius-field)',
           backgroundColor: 'var(--alice-bg)',
           color: 'var(--alice-text)',
         }}
@@ -338,7 +338,7 @@ export function AccountPasswordDialog() {
                         padding: '9px 10px',
                         fontSize: 15,
                         border: '1px solid var(--alice-control-border)',
-                        borderRadius: 2,
+                        borderRadius: 'var(--alice-radius-field)',
                         backgroundColor: 'transparent',
                         color: suffixes.length ? 'var(--alice-text)' : 'var(--alice-muted)',
                       }}
@@ -363,8 +363,8 @@ export function AccountPasswordDialog() {
                         style={{
                           top: 'calc(100% + 4px)',
                           maxHeight: SUFFIX_PANEL_HEIGHT,
-                          border: '2px solid var(--alice-primary)',
-                          borderRadius: 2,
+                          border: '1px solid var(--alice-border)',
+                          borderRadius: 'var(--alice-radius-field)',
                           backgroundColor: 'var(--alice-bg)',
                         }}
                       >

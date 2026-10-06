@@ -1,0 +1,125 @@
+name: Private application previews
+
+on:
+  pull_request:
+    paths:
+      - 'assets/brand/**'
+      - 'apps/app-desktop/**'
+      - 'scripts/generate-desktop-icons.mjs'
+      - '.github/workflows/desktop-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: private-previews-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  desktop:
+    if: github.event.repository.private == true && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
+    name: Preview ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            os: macos-latest
+            bundles: dmg
+            target: --target universal-apple-darwin
+          - platform: windows
+            os: windows-latest
+            bundles: msi
+            target: ''
+          - platform: linux
+            os: ubuntu-latest
+            bundles: appimage,deb
+            target: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Add macOS targets
+        if: matrix.platform == 'macos'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/app-desktop/src-tauri -> target
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl file libappindicator3-dev librsvg2-dev libssl-dev libwebkit2gtk-4.1-dev patchelf wget xdg-utils
+      - uses: actions/cache@v4
+        with:
+          path: |
+            apps/app-web/public/learn
+            scripts/data/semantic-model
+          key: private-preview-assets-${{ runner.os }}-${{ hashFiles('scripts/prepare-learn-packs.mjs', 'scripts/prepare-semantic-model.mjs', 'packages/alice-content/src/generated/planb-learn-catalog.ts', 'package-lock.json') }}
+      - run: npm ci
+      - name: Build private desktop preview
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: '-'
+        run: npm run build --workspace @alice-wallet/app-desktop -- --bundles ${{ matrix.bundles }} ${{ matrix.target }}
+      - name: Record build provenance
+        shell: bash
+        run: |
+          git rev-parse HEAD > preview-commit.txt
+          echo 'Private test build. macOS ad hoc signature; Windows and Linux unsigned. Not notarized. Not a release.' >> preview-commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alice-preview-${{ matrix.platform }}
+          path: |
+            apps/app-desktop/src-tauri/target/**/bundle/dmg/*.dmg
+            apps/app-desktop/src-tauri/target/**/bundle/msi/*.msi
+            apps/app-desktop/src-tauri/target/**/bundle/appimage/*.AppImage
+            apps/app-desktop/src-tauri/target/**/bundle/deb/*.deb
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alice-preview-${{ matrix.platform }}-provenance
+          path: preview-commit.txt
+          retention-days: 7
+  web:
+    if: github.event.repository.private == true && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
+    name: Preview web and website
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace @alice-wallet/site
+      - name: Build web application
+        shell: bash
+        run: NEXT_PUBLIC_LEARN_PACKS_BASE=$(node scripts/prepare-learn-packs.mjs --print-base) npm run build --workspace @alice-wallet/app-web
+        env:
+          EXPO_PUBLIC_VENICE_PROXY_URL: https://proxy.alicebtc.com
+          EXPO_PUBLIC_PRIVATE_CLOUD_ENABLED: 'true'
+      - name: Record build provenance
+        run: git rev-parse HEAD > preview-commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alice-preview-web
+          path: |
+            apps/app-web/out/
+            apps/site/out/
+            preview-commit.txt
+          if-no-files-found: error
+          retention-days: 7

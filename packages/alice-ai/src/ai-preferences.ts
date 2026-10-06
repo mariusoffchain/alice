@@ -2,26 +2,21 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isExpectedModelFileSize } from './model-file-validation';
 import type { ResponseLanguagePreference } from './language-policy';
+import { isAllowedModelDownloadUrl, parseStoredCustomModels, type LocalModelEntry, type LocalModelSource } from './local-model-registry';
 
 export type AIPreset = 'fast' | 'balanced' | 'deep';
-export type LocalModelId = 'qwen3-0.6b' | 'qwen3-1.7b' | 'granite-3.3-2b' | 'smollm3-3b' | 'qwen3-4b';
+/** Ids of the default catalog; a legacy or custom entry carries any other string. */
+export type CatalogModelId = 'qwen3.5-2b' | 'qwen3.5-4b' | 'qwen3.5-9b';
+export type LocalModelId = CatalogModelId | (string & {});
+export const DEFAULT_LOCAL_MODEL_ID: CatalogModelId = 'qwen3.5-4b';
 
 export type PresetParams = {
   temperature: number;
   maxTokens: number;
 };
 
-export type ModelEntry = {
-  id: LocalModelId;
-  name: string;
-  filename: string;
-  sizeBytes: number;
-  url: string;
-  description: string;
-  speed: string;
-  ramNeeded: string;
-  recommendation: string;
-};
+export type ModelEntry = LocalModelEntry;
+export type { LocalModelSource };
 
 export type ModelStatus = 'installed' | 'downloading' | 'not-installed';
 
@@ -45,7 +40,54 @@ export const CLOUD_PRESETS: Record<AIPreset, PresetParams> = {
 
 export const ALL_PRESETS: AIPreset[] = ['fast', 'balanced', 'deep'];
 
+// The default catalog: the models Alice proposes and has measured. Every
+// other file (previous catalog entries still on disk, custom Hugging Face
+// downloads) stays usable through the registry below.
 export const MODEL_CATALOG: ModelEntry[] = [
+  // Qwen3.5 small series (March 2026, Apache 2.0), text-only GGUF files from
+  // the unsloth repositories pinned to a revision so a re-download yields the
+  // same bytes. Sizes come from the Hugging Face LFS metadata of that revision.
+  {
+    id: 'qwen3.5-2b',
+    name: 'Qwen3.5 2B',
+    filename: 'Qwen3.5-2B-Q4_K_M.gguf',
+    sizeBytes: 1_280_835_840,
+    url: 'https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/f6d5376be1edb4d416d56da11e5397a961aca8ae/Qwen3.5-2B-Q4_K_M.gguf',
+    description: 'Lightest model for older phones. Short answers; it can hallucinate a lot, verify anything important.',
+    speed: 'Fast',
+    ramNeeded: '4 GB',
+    source: 'catalog',
+    recommendation: 'For older or low-memory phones only. Expect generic answers and invented details; Alice cannot vouch for them. Pick the 4B model whenever the phone allows it.',
+  },
+  {
+    id: 'qwen3.5-4b',
+    name: 'Qwen3.5 4B',
+    filename: 'Qwen3.5-4B-Q4_K_M.gguf',
+    sizeBytes: 2_740_937_888,
+    url: 'https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-Q4_K_M.gguf',
+    description: 'The recommended local model: runs on every recent phone with the best balance of quality and speed.',
+    speed: 'Medium',
+    ramNeeded: '6 GB',
+    source: 'catalog',
+    recommendation: 'The default choice for phones and laptops. Follows instructions reliably in the Alice tests; a larger download than the 2B model.',
+  },
+  {
+    id: 'qwen3.5-9b',
+    name: 'Qwen3.5 9B',
+    filename: 'Qwen3.5-9B-Q4_K_M.gguf',
+    sizeBytes: 5_680_522_464,
+    url: 'https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/3885219b6810b007914f3a7950a8d1b469d598a5/Qwen3.5-9B-Q4_K_M.gguf',
+    description: 'The most capable local model, for computers and high-end phones with a large download.',
+    speed: 'Slow',
+    ramNeeded: '12 GB',
+    source: 'catalog',
+    recommendation: 'For desktop computers and phones with 12 GB of memory or more. Best local quality, slowest responses, 5.7 GB to download.',
+  },
+];
+
+// Previous catalog entries. They are not offered for download any more, but a
+// file already on disk keeps working and can be deleted from the settings.
+export const LEGACY_MODELS: ModelEntry[] = [
   {
     id: 'qwen3-0.6b',
     name: 'Qwen3 0.6B',
@@ -55,6 +97,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
     description: 'Smallest local model for entry-level phones. Best for short, simple questions.',
     speed: 'Fast',
     ramNeeded: '4 GB',
+    source: 'legacy',
     recommendation: 'Lite model for phones with limited memory. Answers can be generic, less accurate, or miss technical context. Not recommended for detailed Bitcoin explanations.',
   },
   {
@@ -66,6 +109,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
     description: 'A compact general-purpose model with a clear step up in quality over Lite.',
     speed: 'Medium',
     ramNeeded: '6 GB',
+    source: 'legacy',
     recommendation: 'For recent mid-range phones. Good everyday choice, but responses may slow down on entry-level devices.',
   },
   {
@@ -77,6 +121,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
     description: 'IBM instruction model designed for concise, reliable everyday answers.',
     speed: 'Medium',
     ramNeeded: '6 GB',
+    source: 'legacy',
     recommendation: 'A balanced option for recent mid-range phones. Choose it for short explanations and practical questions.',
   },
   {
@@ -88,6 +133,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
     description: 'Multilingual model with strong French support and longer-context conversations.',
     speed: 'Medium',
     ramNeeded: '8 GB',
+    source: 'legacy',
     recommendation: 'For upper mid-range phones. A good choice for longer Alice conversations and RAG-backed answers.',
   },
   {
@@ -99,6 +145,7 @@ export const MODEL_CATALOG: ModelEntry[] = [
     description: 'The strongest local option in Alice for detailed explanations and technical discussions.',
     speed: 'Slow',
     ramNeeded: '8 GB',
+    source: 'legacy',
     recommendation: 'For high-end phones. Best local quality in this catalog, with a larger download and slower responses.',
   },
 ];
@@ -139,8 +186,21 @@ export async function setPreset(backend: 'local' | 'cloud', preset: AIPreset): P
 
 export async function getActiveModelId(): Promise<LocalModelId> {
   const stored = await AsyncStorage.getItem(ACTIVE_MODEL_KEY);
-  if (stored && MODEL_CATALOG.some(m => m.id === stored)) return stored as LocalModelId;
-  return 'qwen3-0.6b';
+  if (stored && (await listKnownLocalModels()).some(m => m.id === stored)) return stored;
+  return DEFAULT_LOCAL_MODEL_ID;
+}
+
+/**
+ * The first known model whose file is complete on disk: catalog first, then
+ * the previous catalog, then custom files; null when nothing is installed.
+ * Used when the active id points at a file that is not there, for example
+ * after an update moved the default id while an older file stayed installed.
+ */
+export async function findInstalledLocalModelId(): Promise<LocalModelId | null> {
+  for (const entry of await listKnownLocalModels()) {
+    if ((await getModelStatus(entry.id)) === 'installed') return entry.id;
+  }
+  return null;
 }
 
 export async function getActiveCloudModelId(): Promise<CloudModelId> {
@@ -187,8 +247,56 @@ export async function setResponseLanguagePreference(preference: ResponseLanguage
   await AsyncStorage.setItem(RESPONSE_LANGUAGE_KEY, preference);
 }
 
+const CUSTOM_MODELS_KEY = 'alice_ai_custom_models';
+// Custom entries are read from storage on demand; this cache lets the
+// synchronous lookups below resolve a custom id once the list was loaded.
+let customModelsCache: ModelEntry[] = [];
+
+export async function getCustomModels(): Promise<ModelEntry[]> {
+  customModelsCache = parseStoredCustomModels(await AsyncStorage.getItem(CUSTOM_MODELS_KEY));
+  return customModelsCache;
+}
+
+async function saveCustomModels(entries: ModelEntry[]): Promise<void> {
+  customModelsCache = entries;
+  if (entries.length === 0) await AsyncStorage.removeItem(CUSTOM_MODELS_KEY);
+  else await AsyncStorage.setItem(CUSTOM_MODELS_KEY, JSON.stringify(entries));
+}
+
+/** Registers a user-chosen Hugging Face file; the download is a separate step. */
+export async function addCustomModel(entry: ModelEntry): Promise<void> {
+  if (entry.source !== 'custom' || !isAllowedModelDownloadUrl(entry.url)) throw new Error('Only Hugging Face gguf files can be added.');
+  if (MODEL_CATALOG.some(m => m.id === entry.id || m.filename === entry.filename) || LEGACY_MODELS.some(m => m.filename === entry.filename)) {
+    throw new Error('This model is already in the catalog.');
+  }
+  const current = (await getCustomModels()).filter(m => m.id !== entry.id && m.filename !== entry.filename);
+  await saveCustomModels([...current, entry]);
+}
+
+export async function removeCustomModel(id: LocalModelId): Promise<void> {
+  await saveCustomModels((await getCustomModels()).filter(m => m.id !== id));
+}
+
+/**
+ * Every entry the app knows: the catalog, the previous catalog entries and the
+ * custom files. Callers that only want installable choices filter on source.
+ */
+export async function listKnownLocalModels(): Promise<ModelEntry[]> {
+  return [...MODEL_CATALOG, ...LEGACY_MODELS, ...(await getCustomModels())];
+}
+
+export function findModelEntry(id: LocalModelId): ModelEntry | undefined {
+  return MODEL_CATALOG.find(m => m.id === id) ?? LEGACY_MODELS.find(m => m.id === id) ?? customModelsCache.find(m => m.id === id);
+}
+
 export function getModelEntry(id: LocalModelId): ModelEntry {
-  return MODEL_CATALOG.find(m => m.id === id)!;
+  const entry = findModelEntry(id);
+  if (!entry) throw new Error(`Unknown local model: ${id}`);
+  return entry;
+}
+
+export function getModelName(id: LocalModelId): string {
+  return findModelEntry(id)?.name ?? id;
 }
 
 export function formatSize(bytes: number): string {
@@ -276,7 +384,7 @@ export async function installModel(
 async function reassignActiveAfterDelete(deletedId: LocalModelId): Promise<void> {
   const activeId = await getActiveModelId();
   if (activeId !== deletedId) return;
-  for (const entry of MODEL_CATALOG) {
+  for (const entry of await listKnownLocalModels()) {
     if (entry.id === deletedId) continue;
     if ((await getModelStatus(entry.id)) === 'installed') {
       await setActiveModelId(entry.id);
@@ -291,20 +399,23 @@ export async function deleteModel(id: LocalModelId): Promise<void> {
   const entry = getModelEntry(id);
   const FileSystem = await import('expo-file-system/legacy');
   await FileSystem.deleteAsync(`${FileSystem.documentDirectory}models/${entry.filename}`, { idempotent: true });
+  // A deleted custom file leaves the list too; the user can add it back.
+  if (entry.source === 'custom') await removeCustomModel(id);
   await reassignActiveAfterDelete(id);
 }
 
 export async function deleteAllModels(): Promise<void> {
   if (Platform.OS === 'web') return;
   const FileSystem = await import('expo-file-system/legacy');
-  for (const entry of MODEL_CATALOG) {
+  for (const entry of await listKnownLocalModels()) {
     await FileSystem.deleteAsync(`${FileSystem.documentDirectory}models/${entry.filename}`, { idempotent: true });
   }
+  await saveCustomModels([]);
 }
 
 export async function hasAnyInstalledModel(): Promise<boolean> {
   if (Platform.OS === 'web') return false;
-  for (const entry of MODEL_CATALOG) {
+  for (const entry of await listKnownLocalModels()) {
     if ((await getModelStatus(entry.id)) === 'installed') return true;
   }
   return false;

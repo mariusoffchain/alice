@@ -42,8 +42,8 @@ export const metadata: Metadata = {
     ? { index: true, follow: true }
     : { index: false, follow: false, nocache: true },
   icons: {
-    icon: '/alice-rabbit.svg',
-    shortcut: '/alice-rabbit.svg',
+    icon: [{ url: '/alice-symbol.svg', type: 'image/svg+xml' }, { url: '/favicon.png', sizes: '32x32', type: 'image/png' }],
+    shortcut: '/alice-symbol.svg',
     apple: '/apple-touch-icon.png',
   },
 };

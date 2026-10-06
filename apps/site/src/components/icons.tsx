@@ -1,3 +1,4 @@
+import { ALICE_SYMBOL_PATH, ALICE_WORDMARK_PATH } from '@/lib/brand';
 import { rabbitPaths } from '@/lib/rabbit-paths';
 
 // Integer-grid glyphs shared visually with the approved application controls.
@@ -103,22 +104,30 @@ export function AndroidGlyph({ size = 20 }: { size?: number }) {
   );
 }
 
-// Alice brand mark: the approved rabbit silhouette and pixel wordmark.
-export function AliceMark({
-  size = 28,
-  showWordmark = true,
-}: {
+// The D2 symbol is the A in the wordmark. The rabbit remains the assistant mascot.
+export function AliceMark({ size = 22, showWordmark = true }: {
   size?: number;
   showWordmark?: boolean;
 }) {
   return (
-    <span className="flex items-center gap-2.5">
-      <svg width={size} height={size} viewBox="0 0 40 40" fill="currentColor" className="shrink-0 text-[var(--alice-primary)]" aria-hidden="true"><path d={rabbitPaths.repos} /></svg>
-      {showWordmark && (
-        <span className="font-pixel text-[11px] text-[var(--alice-heading)]">ALICE</span>
-      )}
-    </span>
+    <svg
+      role="img"
+      aria-label="Alice"
+      data-alice-brand="d2"
+      width={showWordmark ? size * 248 / 48 : size}
+      height={size}
+      viewBox={showWordmark ? '0 0 248 48' : '0 0 48 48'}
+      fill="currentColor"
+      shapeRendering="crispEdges"
+      className="shrink-0 text-[var(--alice-primary)]"
+    >
+      <path d={showWordmark ? ALICE_WORDMARK_PATH : ALICE_SYMBOL_PATH} />
+    </svg>
   );
+}
+
+export function AliceMascot({ size = 28 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 40 40" fill="currentColor" className="shrink-0 text-[var(--alice-primary)]" aria-hidden="true"><path d={rabbitPaths.repos} /></svg>;
 }
 
 export function MenuIcon({ size = 16 }: { size?: number }) {

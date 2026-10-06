@@ -67,7 +67,7 @@ function InlineNodes({ nodes, assetBase, onAnchorClick }: { nodes: LearnInline[]
                 style={{
                   background: 'var(--alice-bg-soft)',
                   border: '1px solid var(--alice-border)',
-                  borderRadius: 2,
+                  borderRadius: 'var(--alice-radius-control)',
                   padding: '1px 4px',
                   fontSize: '0.9em',
                 }}
@@ -112,7 +112,7 @@ function CourseImage({ src, alt }: { src: string; alt: string }) {
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} style={{
       maxWidth: '100%', display: 'block', margin: '16px auto',
-      border: '1px solid var(--alice-border)', borderRadius: 3,
+      border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)',
       background: 'var(--alice-illustration-bg)',
     }} />
   );
@@ -122,8 +122,8 @@ function OfflineMediaCard({ label, title = 'OFFLINE' }: { label: string; title?:
   return (
     <div
       style={{
-        border: '2px dashed var(--alice-border)',
-        borderRadius: 2,
+        border: '1px dashed var(--alice-border)',
+        borderRadius: 'var(--alice-radius-control)',
         padding: 16,
         margin: '16px 0',
         color: 'var(--alice-muted)',
@@ -157,8 +157,8 @@ function VideoBlock({
     return (
       <div
         style={{
-          border: '2px dashed var(--alice-border)',
-          borderRadius: 2,
+          border: '1px dashed var(--alice-border)',
+          borderRadius: 'var(--alice-radius-control)',
           padding: 16,
           margin: '16px 0',
           color: 'var(--alice-muted)',
@@ -181,7 +181,7 @@ function VideoBlock({
     );
   }
   return (
-    <div style={{ margin: '16px 0', border: '2px solid var(--alice-border)', borderRadius: 2 }}>
+    <div style={{ margin: '16px 0', border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)' }}>
       <iframe
         src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
         title="Course video"
@@ -257,8 +257,8 @@ function Block({
         <pre
           style={{
             background: 'var(--alice-bg-soft)',
-            border: '2px solid var(--alice-border)',
-            borderRadius: 2,
+            border: '1px solid var(--alice-border)',
+            borderRadius: 'var(--alice-radius-control)',
             padding: 12,
             margin: '16px 0',
             overflowX: 'auto',
@@ -337,7 +337,7 @@ function Block({
     case 'video':
       return <VideoBlock videoId={block.videoId} videos={videos} lang={lang} online={online} />;
     case 'hr':
-      return <hr style={{ border: 0, borderTop: '2px solid var(--alice-border)', margin: '24px 0' }} />;
+      return <hr style={{ border: 0, borderTop: '1px solid var(--alice-border)', margin: '24px 0' }} />;
     default:
       return null;
   }

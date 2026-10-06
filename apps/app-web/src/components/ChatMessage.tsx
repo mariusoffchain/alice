@@ -57,12 +57,16 @@ function renderInlineMarkdown(text: string): React.ReactNode[] {
   });
 }
 
-function ChatMarkdownText({ content }: { content: string }) {
-  const lines = (content || '...').split('\n');
+function ChatMarkdownText({ content, streaming = false }: { content: string; streaming?: boolean }) {
+  const lines = (content || (streaming ? '' : '...')).split('\n');
+  // Markdown separators and trailing blank lines have no visible text to follow.
+  const lastTextLine = lines.findLastIndex(line => line.trim() && !/^\s*\|[\s:|-]+\|\s*$/.test(line));
+  const cursor = streaming ? <span className="stream-cursor" aria-hidden="true" /> : null;
 
   return (
     <div className="flex flex-col gap-1">
       {lines.map((line, index) => {
+        const lineCursor = index === lastTextLine ? cursor : null;
         // Headings: models reach for them even when asked not to, so render
         // them rather than leaking "###" into the bubble.
         const heading = line.match(/^\s*(#{1,6})\s+(.+?)\s*#*$/);
@@ -73,7 +77,7 @@ function ChatMarkdownText({ content }: { content: string }) {
               className="m-0 mt-2 first:mt-0"
               style={{ fontWeight: 700, fontSize: heading[1].length <= 2 ? '1.15em' : '1.05em' }}
             >
-              {renderInlineMarkdown(heading[2])}
+              {renderInlineMarkdown(heading[2])}{lineCursor}
             </p>
           );
         }
@@ -88,6 +92,7 @@ function ChatMarkdownText({ content }: { content: string }) {
               {cells.map((cell, cellIndex) => (
                 <div key={cellIndex} className={cellIndex === 0 ? '' : 'pl-3'} style={{ opacity: cellIndex === 0 ? 1 : 0.85 }}>
                   {cellIndex === 0 ? <strong>{renderInlineMarkdown(cell)}</strong> : renderInlineMarkdown(cell)}
+                  {cellIndex === cells.length - 1 && lineCursor}
                 </div>
               ))}
             </div>
@@ -99,7 +104,7 @@ function ChatMarkdownText({ content }: { content: string }) {
           return (
             <div key={index} className="flex items-start gap-1.5">
               <span className="shrink-0" style={{ minWidth: '1.25em' }}>{numbered[1]}.</span>
-              <span className="flex-1">{renderInlineMarkdown(numbered[2])}</span>
+              <span className="flex-1">{renderInlineMarkdown(numbered[2])}{lineCursor}</span>
             </div>
           );
         }
@@ -109,13 +114,14 @@ function ChatMarkdownText({ content }: { content: string }) {
           return (
             <div key={index} className="flex items-start gap-1.5">
               <span className="w-3 text-center shrink-0">&bull;</span>
-              <span className="flex-1">{renderInlineMarkdown(bullet[1])}</span>
+              <span className="flex-1">{renderInlineMarkdown(bullet[1])}{lineCursor}</span>
             </div>
           );
         }
         if (!line.trim()) return <div key={index} className="h-1.5" />;
-        return <p key={index} className="m-0">{renderInlineMarkdown(line)}</p>;
+        return <p key={index} className="m-0">{renderInlineMarkdown(line)}{lineCursor}</p>;
       })}
+      {lastTextLine === -1 && cursor && <p className="m-0">{cursor}</p>}
     </div>
   );
 }
@@ -700,8 +706,7 @@ export function ChatMessage({ message, compact = false, streaming = false, showA
               className="font-numbers text-lg leading-[26px]"
               style={{ color: 'var(--alice-text)' }}
             >
-              <ChatMarkdownText content={message.content} />
-              {streaming && <span className="stream-cursor" aria-hidden="true" />}
+              <ChatMarkdownText content={message.content} streaming={streaming} />
               {message.truncated && <TruncatedNotice />}
               {message.quotaBlocked && <QuotaNotice kind={message.quotaBlocked} />}
             </div>

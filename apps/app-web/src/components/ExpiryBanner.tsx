@@ -82,11 +82,11 @@ export function ExpiryBanner() {
       role="status"
       className="flex items-center gap-3 px-4 py-2 shrink-0"
       style={{
-        backgroundColor: 'var(--alice-bg-soft)',
-        borderBottom: `2px solid ${AMBER}`,
+        backgroundColor: 'var(--alice-bg)',
+        borderBottom: '1px solid var(--alice-border)',
       }}
     >
-      <span style={{ color: AMBER }}><SvgIcon svg={CLOCK_ICON} size={20} /></span>
+      <span style={{ color: AMBER }}><SvgIcon svg={CLOCK_ICON} size={16} /></span>
       <span
         className="font-numbers flex-1 min-w-0"
         style={{ fontSize: 14, lineHeight: '19px', color: AMBER }}

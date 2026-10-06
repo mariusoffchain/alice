@@ -115,3 +115,16 @@ test('does not invent private conversation context on the first question', () =>
   );
   assert.doesNotMatch(result.at(-2)?.content ?? '', /completed exchange/);
 });
+
+test('the answer-rules block follows the turn directive in the system turn and is absent when empty', () => {
+  const history = [{ role: 'user' as const, content: 'Can I cancel a Bitcoin payment I sent by mistake?' }];
+  const context = { ragContext: 'Topic: Replace-by-fee\nLevel: intermediate\nNotes: x', localContext: null, learnContext: null };
+  const block = '[Answer rules]\nState:\n- A confirmed payment cannot be undone.';
+  const withRules = composeGenerationHistory(history, context, 'teach', false, '', '', 'Answer the explicit question.', false, block);
+  const system = withRules.at(-2)?.content ?? '';
+  assert.ok(system.endsWith(block));
+  assert.ok(system.indexOf('[Current turn intent]') < system.indexOf('[Answer rules]'));
+  assert.equal(withRules.at(-1)?.content, history[0].content);
+  const without = composeGenerationHistory(history, context, 'teach', false, '', '', 'Answer the explicit question.', false, '');
+  assert.doesNotMatch(without.at(-2)?.content ?? '', /\[Answer rules\]/);
+});

@@ -22,7 +22,7 @@ export function WorkspaceShell({ title, children, aside }: {
   }, []);
 
   return (
-    <div className="atelier-workspace flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--alice-bg)' }}>
+    <div className="atelier-workspace flex h-full overflow-hidden" style={{ backgroundColor: 'var(--alice-bg)' }}>
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(value => !value)}
         mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
       <main className="flex flex-col flex-1 min-w-0 min-h-0" aria-label={title} inert={mobileOpen || undefined}>
