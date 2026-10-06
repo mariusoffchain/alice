@@ -65,7 +65,7 @@ const card = {
             width: 880,
           },
           children: [
-            text('PRIVATE BITCOIN AI · SELF-CUSTODY · OPEN SOURCE', {
+            text('PRIVATE AI · OPEN SOURCE', {
               fontFamily: 'PressStart2P',
               fontSize: 13,
               color: PRIMARY,

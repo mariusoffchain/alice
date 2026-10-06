@@ -9,7 +9,7 @@ type Claim = { claim: string; href: string; proof: string };
 
 const CLAIMS: Claim[] = [
   { claim: 'Private Cloud is encrypted end-to-end to attested hardware', href: '/trust/', proof: 'what’s verified' },
-  { claim: 'Self-hosted and self-custody, your keys and your data never leave your device', href: '/#sovereignty', proof: 'how it works' },
+  { claim: 'Self-hosted, your data never leaves your device', href: '/#sovereignty', proof: 'how it works' },
   { claim: 'No tracking. No cookies.', href: '/privacy/', proof: 'privacy' },
   { claim: 'Honest about what’s verified, and what isn’t', href: '/trust/#status', proof: 'status' },
   { claim: 'Open source, AGPL', href: SOURCE_URL, proof: 'read the code' },

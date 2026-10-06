@@ -459,7 +459,7 @@ export function HeroTour() {
         <div>
           <div data-step={-1}>
             <p className="font-pixel text-[12px] uppercase tracking-widest text-[var(--alice-primary)]">
-              Private Bitcoin AI · Self-custody · Open source
+              Private AI · Open source
             </p>
             <h1 className="mt-5 text-4xl font-semibold leading-[1.1] sm:text-5xl">
               {HERO_TITLE}
