@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@alice-wallet/alice-ai';
 import type { LearnCoursePack } from '@alice-wallet/alice-content/src/learn-types';
-import { AliceIcon } from '@/components/AliceIcon';
-import { AskAliceIcon } from '@/components/AskAliceIcon';
-import { ChatMessage } from '@/components/ChatMessage';
 import { ModelSelector } from '@/components/ModelSelector';
+import { SideChatConversation } from '@/components/SideChatConversation';
+import { SendMessageButton } from '@/components/SendMessageButton';
+import { SvgIcon } from '@/components/SvgIcon';
+import { PLUS_ICON, CLOSE_ICON, ATTACHMENT_ICON } from '@/lib/atelier-icons';
 import { LEARN_ASK_EVENT, consumeLearnAsk, type LearnAskRequest } from '@/lib/learn/ask';
 import { findCourse, findTutorial } from '@/lib/learn/catalog';
 import type { LearnLang } from '@/lib/learn/language';
@@ -74,21 +75,6 @@ function useLearnContext(view: LearnView, lang: LearnLang): LearnContext | null 
   }, [view, lang, code, pack]);
 }
 
-function TypingIndicator() {
-  return (
-    <div className="flex items-center gap-2 px-4 py-2">
-      <AliceIcon size={22} color="var(--alice-primary)" />
-      {[0, 0.2, 0.4].map((delay) => (
-        <span
-          key={delay}
-          className="w-1.5 h-1.5 rounded-full animate-bounce"
-          style={{ backgroundColor: 'var(--alice-muted)', animationDelay: `${delay}s`, animationDuration: '1.4s' }}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function LearnAskAlice({
   view,
   lang,
@@ -101,12 +87,18 @@ export function LearnAskAlice({
   const { messages, send, busy, aiEnabled, backendType, setBackendType, setAiEnabled, clearMessages } = useChat();
   const pageContext = useLearnContext(view, lang);
   const [input, setInput] = useState('');
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const element = composerRef.current;
+    if (!element) return;
+    element.style.height = '26px';
+    element.style.height = Math.min(Math.max(element.scrollHeight, 26), 96) + 'px';
+  }, [input]);
   const [attached, setAttached] = useState(true);
   const [payloadOpen, setPayloadOpen] = useState(false);
   // A quiz debrief or selection rescue overrides the page attachment with its
   // own richer context, and prefills the composer.
   const [override, setOverride] = useState<LearnAskRequest | null>(null);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
   const context = override ?? pageContext;
 
   // A new attachment starts a new discussion: the previous thread is archived
@@ -146,10 +138,6 @@ export function LearnAskAlice({
     setPayloadOpen(false);
   }, [contextKey]);
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight);
-  }, [messages, busy]);
-
   const questionChips =
     lang === 'fr'
       ? ['Explique-moi ce chapitre autrement', 'Donne-moi un exemple concret', 'Pourquoi est-ce important ?']
@@ -162,95 +150,37 @@ export function LearnAskAlice({
     void send(attached && context ? `${context.text}${q}` : q);
   }
 
-  const latestUserIndex = messages.reduce((latest, m, i) => (m.role === 'user' ? i : latest), -1);
-  const replyStarted =
-    latestUserIndex >= 0 &&
-    messages.slice(latestUserIndex + 1).some((m) => m.role === 'assistant' && m.content.trim().length > 0);
-
   return (
     <div
-      className="relative flex flex-col h-full w-full min-h-0"
+      className="alice-ask-panel relative flex flex-col h-full w-full min-h-0"
       aria-label="Ask Alice about this course"
       style={{ backgroundColor: 'var(--alice-bg-soft)', borderLeft: '1px solid var(--alice-border)' }}
     >
-      <div className="flex items-center justify-between px-4 py-2 shrink-0">
-        <ModelSelector
-          backendType={backendType}
-          setBackendType={setBackendType}
-          setAiEnabled={setAiEnabled}
-          compactLabel
-          placement="below"
-        />
+      <div className="flex items-center justify-end px-4 py-2 shrink-0">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => clearMessages()}
-            className="cursor-pointer bg-transparent border-none"
-            style={{ color: 'var(--alice-muted)', fontSize: 18, lineHeight: '18px' }}
+            className="alice-control alice-control--tool"
             aria-label="New conversation"
             title={lang === 'fr' ? 'Nouvelle discussion' : 'New conversation'}
           >
-            +
+            <SvgIcon svg={PLUS_ICON} size={16} />
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer bg-transparent border-none"
-            style={{ color: 'var(--alice-muted)', fontSize: 18, lineHeight: '18px' }}
+            className="alice-control alice-control--tool"
             aria-label="Close"
           >
-            ×
+            <SvgIcon svg={CLOSE_ICON} size={16} />
           </button>
         </div>
       </div>
 
-      <div
-        ref={scrollRef}
-        className={
-          messages.length === 0
-            ? 'flex flex-col items-center justify-center gap-4 px-6 flex-1 overflow-y-auto'
-            : 'flex flex-col gap-1 px-4 py-3 flex-1 overflow-y-auto overflow-x-hidden'
-        }
-        style={{ overflowWrap: 'anywhere' }}
-      >
-        {messages.length === 0 ? (
-          <>
-            <AskAliceIcon size={44} />
-            <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-primary)' }}>
-              ASK ALICE
-            </span>
-            <div className="flex flex-col items-stretch gap-2 w-full" style={{ maxWidth: 300 }}>
-              {questionChips.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => requestSend(q)}
-                  disabled={busy}
-                  className="font-numbers cursor-pointer disabled:cursor-not-allowed"
-                  style={{ fontSize: 13, padding: '8px 12px', border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'transparent', color: 'var(--alice-primary)' }}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          <>
-            {(() => {
-              const streamingId =
-                busy && replyStarted
-                  ? [...messages].reverse().find((m) => m.role === 'assistant' && m.content)?.id
-                  : undefined;
-              return messages.map((m) => (
-                <ChatMessage key={m.id} message={m} compact streaming={m.id === streamingId} />
-              ));
-            })()}
-            {busy && !replyStarted && <TypingIndicator />}
-          </>
-        )}
-      </div>
+      <SideChatConversation input={input} questions={questionChips} onQuestion={requestSend} lang={lang === 'fr' ? 'fr' : 'en'} />
 
-      <div className="flex flex-col gap-2 px-4 py-3 shrink-0" style={{ borderTop: '1px solid var(--alice-border)' }}>
+      <div className="alice-panel-composer flex flex-col gap-2 shrink-0">
         {payloadOpen && attached && context && (
           <div className="flex flex-col gap-2 px-3 py-2" style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg)' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
@@ -266,35 +196,36 @@ export function LearnAskAlice({
         )}
 
         <textarea
+          aria-label="Message Alice"
+          ref={composerRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               requestSend();
             }
           }}
           placeholder={lang === 'fr' ? 'Une question sur ce cours…' : 'Ask about this course…'}
-          rows={2}
+          rows={1}
           className="font-numbers w-full resize-none bg-transparent outline-none"
-          style={{ fontSize: 14, color: 'var(--alice-text)', border: 0 }}
+          style={{ fontSize: 16, lineHeight: '26px', height: 26, minHeight: 26, maxHeight: 96, color: 'var(--alice-text)', border: 0, overflowY: 'auto' }}
         />
 
         <div className="flex items-center justify-between gap-2">
           {attached && context ? (
             <div
-              className="flex items-center gap-2 min-w-0"
-              style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg)', padding: '5px 8px' }}
+              className="alice-attachment"
             >
               <button
                 type="button"
                 onClick={() => setPayloadOpen((v) => !v)}
                 aria-expanded={payloadOpen}
                 title="Show the exact text sent to the model"
-                className="flex items-center gap-1.5 cursor-pointer bg-transparent border-none p-0 min-w-0"
+                className="alice-control alice-control--quiet alice-attachment-label"
               >
-                <span className="font-pixel shrink-0" style={{ fontSize: 8, color: 'var(--alice-primary)' }}>LEARN</span>
-                <span className="font-numbers block truncate" style={{ fontSize: 12, color: 'var(--alice-text)', maxWidth: 200 }}>
+                <SvgIcon svg={ATTACHMENT_ICON} size={16} />
+                <span className="font-numbers block truncate" style={{ fontSize: 12, color: 'var(--alice-text)' }}>
                   {context.label}
                 </span>
               </button>
@@ -302,24 +233,23 @@ export function LearnAskAlice({
                 type="button"
                 onClick={() => { setAttached(false); setOverride(null); }}
                 aria-label="Remove this attachment"
-                className="shrink-0 cursor-pointer bg-transparent border-none p-0"
-                style={{ color: 'var(--alice-muted)', fontSize: 13, lineHeight: '13px' }}
+                className="alice-control alice-control--tool"
               >
-                ×
+                <SvgIcon svg={CLOSE_ICON} size={16} />
               </button>
             </div>
           ) : (
             <span />
           )}
-          <button
-            type="button"
-            onClick={() => requestSend()}
-            disabled={busy || !input.trim() || !aiEnabled}
-            className="font-pixel cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 shrink-0"
-            style={{ fontSize: 8, padding: '10px 14px', background: 'var(--alice-primary)', color: 'var(--alice-on-primary)', border: 0, borderRadius: 2 }}
-          >
-            {lang === 'fr' ? 'ENVOYER' : 'SEND'}
-          </button>
+        </div>
+        <div className="alice-panel-controls">
+          <ModelSelector
+            backendType={backendType}
+            setBackendType={setBackendType}
+            setAiEnabled={setAiEnabled}
+            placement="composer"
+          />
+          <SendMessageButton onClick={() => requestSend()} disabled={busy || !input.trim() || !aiEnabled} label={lang === 'fr' ? 'Envoyer le message' : 'Send message'} />
         </div>
         {!aiEnabled && (
           <p className="font-numbers m-0" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>

@@ -168,7 +168,7 @@ export function ExplorerTxTab({
         // graph area, the details card and the in/out columns as skeletons.
         <div className="flex flex-col gap-4" aria-label={`Reading transaction from ${provider.source.name}`}>
           <Skeleton height={150} />
-          <div className="flex flex-col gap-3 px-4 py-3" style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}>
+          <div className="flex flex-col gap-3 px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}>
             <Skeleton width="70%" />
             <SkeletonLines lines={2} />
           </div>
@@ -180,7 +180,7 @@ export function ExplorerTxTab({
       )}
 
       {state.kind === 'error' && (
-        <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+        <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 3 }}>
           <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>
             COULD NOT LOAD
           </span>

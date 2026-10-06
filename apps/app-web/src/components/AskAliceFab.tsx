@@ -13,7 +13,7 @@ export function AskAliceFab({ onOpen }: { onOpen: () => void }) {
       type="button"
       onClick={onOpen}
       aria-label="Ask Alice"
-      className="fixed z-40 flex items-center justify-center cursor-pointer"
+      className="alice-control alice-control--tool fixed z-40 flex items-center justify-center cursor-pointer"
       style={{
         right: 16,
         bottom: 16,
@@ -22,7 +22,6 @@ export function AskAliceFab({ onOpen }: { onOpen: () => void }) {
         border: 'none',
         padding: 0,
         backgroundColor: 'transparent',
-        opacity: 0.92,
       }}
     >
       <AskAliceIcon size={48} />

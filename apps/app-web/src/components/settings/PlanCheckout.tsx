@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { SvgIcon } from '@/components/SvgIcon';
+import { CHECK_ICON, CLOCK_ICON } from '@/lib/atelier-icons';
 import {
   getPlanQuotes,
   useAccount,
@@ -9,7 +11,7 @@ import {
   type AlicePlanQuotes,
 } from '@alice-wallet/alice-ai';
 import { isBillingPreview } from './billing-preview';
-import { btnBase, SectionHint, SectionLabel, sectionStyle } from './ui';
+import { SectionHint, SectionLabel, sectionStyle } from './ui';
 
 const MONTH_CHOICES = [1, 3, 6, 12];
 
@@ -173,21 +175,21 @@ export function PlanCheckout() {
     return (
       <section style={sectionStyle}>
         <SectionLabel>WAITING FOR CONFIRMATION</SectionLabel>
+        <SvgIcon svg={CLOCK_ICON} size={20} color="currentColor" />
         <p className="font-numbers m-0 mt-3" style={{ fontSize: 15, lineHeight: '21px' }}>
           Alice is waiting for your payment of {formatSats(pending.amount_sats)} to
           confirm on the Bitcoin network. This can take a few minutes.
         </p>
-        <p className="font-numbers m-0 mt-2" style={{ fontSize: 14, opacity: 0.6 }}>
+        <p className="font-numbers m-0 mt-2" style={{ fontSize: 14, opacity: 1 }}>
           You can close Alice. Your plan activates on its own as soon as the
           payment settles, and nothing is lost if you leave this screen.
         </p>
         <button
           type="button"
-          className="font-pixel tracking-widest mt-4"
-          style={{ ...btnBase, backgroundColor: 'transparent', opacity: 0.7 }}
+          className="alice-control alice-control--quiet font-numbers mt-4"
           onClick={() => void account.dismissPendingCheckout()}
         >
-          STOP WAITING
+          Hide this notice
         </button>
         <SectionHint>
           This only hides the notice. It does not cancel the payment, and a
@@ -221,18 +223,13 @@ export function PlanCheckout() {
               type="button"
               onClick={() => setPlan(option.id)}
               aria-pressed={active}
-              className="text-left"
-              style={{
-                border: `2px solid ${active ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
-                borderRadius: 2,
-                backgroundColor: 'transparent',
-                cursor: 'pointer',
-                padding: 12,
-              }}
+              className="alice-control alice-control--option font-numbers text-left"
+              style={{ display: 'block' }}
             >
               <div className="flex items-baseline justify-between gap-3">
-                <span className="font-pixel tracking-widest" style={{ fontSize: 11 }}>
+                <span className="font-numbers flex items-center gap-2" style={{ fontSize: 13 }}>
                   {option.name}
+                  {active && <SvgIcon svg={CHECK_ICON} size={16} color="currentColor" />}
                 </span>
                 <span className="text-right">
                   <span className="font-numbers block" style={{ fontSize: 15 }}>
@@ -243,14 +240,14 @@ export function PlanCheckout() {
                   {quote && (
                     <span
                       className="font-numbers block"
-                      style={{ fontSize: 12, opacity: 0.5 }}
+                      style={{ fontSize: 12, opacity: 1 }}
                     >
                       {formatAnchor(quote.price_minor, anchor)}
                     </span>
                   )}
                 </span>
               </div>
-              <p className="font-numbers m-0 mt-1" style={{ fontSize: 13, opacity: 0.6 }}>
+              <p className="font-numbers m-0 mt-1" style={{ fontSize: 13, opacity: 1 }}>
                 {option.pitch}
               </p>
             </button>
@@ -272,15 +269,8 @@ export function PlanCheckout() {
                 type="button"
                 onClick={() => setMonths(choice)}
                 aria-pressed={active}
-                className="font-pixel tracking-widest"
-                style={{
-                  ...btnBase,
-                  flex: 1,
-                  padding: '8px 6px',
-                  backgroundColor: 'transparent',
-                  color: 'var(--alice-primary)',
-                  borderColor: active ? 'var(--alice-primary)' : 'var(--alice-border)',
-                }}
+                className="alice-control alice-control--choice font-numbers"
+                style={{ flex: 1 }}
               >
                 {choice} {choice === 1 ? 'MONTH' : 'MONTHS'}
               </button>
@@ -289,8 +279,10 @@ export function PlanCheckout() {
         </div>
       </div>
 
+      <p className="font-numbers mt-4 text-sm">{months} {months === 1 ? 'month' : 'months'} · {total === null ? 'Price unavailable' : `Total ${formatSats(total)}`}</p>
+
       {error && (
-        <p className="font-numbers m-0 mt-3" style={{ fontSize: 14, color: '#e06060' }}>
+        <p className="font-numbers m-0 mt-3" style={{ fontSize: 14, color: 'var(--alice-danger)' }}>
           {error}
         </p>
       )}
@@ -299,15 +291,7 @@ export function PlanCheckout() {
         type="button"
         disabled={busy || total === null}
         onClick={() => void handleBuy()}
-        className="font-pixel tracking-widest mt-4 w-full"
-        style={{
-          ...btnBase,
-          backgroundColor: 'var(--alice-primary)',
-          color: 'var(--alice-on-primary)',
-          borderColor: 'var(--alice-primary)',
-          opacity: busy || total === null ? 0.6 : 1,
-          cursor: busy || total === null ? 'default' : 'pointer',
-        }}
+        className="alice-control alice-control--primary font-numbers mt-4 w-full"
       >
         {busy
           ? 'OPENING...'
@@ -321,7 +305,7 @@ export function PlanCheckout() {
       {total !== null && totalAnchor !== null && (
         <p
           className="font-numbers m-0 mt-2 text-center"
-          style={{ fontSize: 12, opacity: 0.5 }}
+          style={{ fontSize: 12, opacity: 1 }}
         >
           {formatAnchor(totalAnchor, anchor)}
         </p>

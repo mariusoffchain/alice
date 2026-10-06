@@ -1,5 +1,7 @@
 'use client';
 
+import { MenuIcon, CloseIcon } from '@/components/icons';
+
 import { useEffect, useRef, useState } from 'react';
 import { NAV_LINKS } from '@/lib/site';
 import { DOWNLOAD_GROUPS, PlatformRow } from '@/components/AppCtas';
@@ -8,7 +10,7 @@ import { DOWNLOAD_GROUPS, PlatformRow } from '@/components/AppCtas';
  * The phone nav: one button, everything inside. On small screens the nav
  * links and both CTA dropdowns have no room, so instead of picking a survivor
  * the whole navigation folds into this panel: page links first, then the
- * Alice App and Alice Wallet platform lists that the desktop dropdowns show.
+ * Alice App platform list also used by the desktop dropdown.
  */
 export function MobileNavMenu() {
   const [open, setOpen] = useState(false);
@@ -40,11 +42,7 @@ export function MobileNavMenu() {
         onClick={() => setOpen(value => !value)}
         className="cta cta-mobile cursor-pointer px-3.5 py-1.5 text-sm"
       >
-        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
-          <rect x="1" y="2.5" width="14" height="2" fill="currentColor" />
-          <rect x="1" y="7" width="14" height="2" fill="currentColor" />
-          <rect x="1" y="11.5" width="14" height="2" fill="currentColor" />
-        </svg>
+        {open ? <CloseIcon size={16} /> : <MenuIcon size={16} />}
         Menu
       </button>
 
@@ -52,7 +50,7 @@ export function MobileNavMenu() {
         <div className="absolute inset-x-0 top-full z-[70] px-3 pt-2">
           <div
             role="menu"
-            className="max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-[6px] border-2 border-[var(--alice-border)] bg-[var(--alice-bg-soft)] p-2 shadow-xl"
+            className="max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-[4px] border border-[var(--alice-border)] bg-[var(--alice-bg-soft)] p-2 shadow-xl"
           >
             <nav aria-label="Pages" className="flex flex-col" onClick={() => setOpen(false)}>
               {NAV_LINKS.map((link) => (
@@ -66,10 +64,8 @@ export function MobileNavMenu() {
               ))}
             </nav>
 
-            {/* Same groups as the desktop Download menu, from one source, so
-                the two surfaces cannot drift apart, and in two columns here
-                too so the two products never read as one long list. */}
-            <div className="mt-2 grid grid-cols-2 gap-1 border-t border-[var(--alice-border)] pt-2">
+            {/* Same companion downloads as the desktop menu. */}
+            <div className="mt-2 grid grid-cols-1 gap-1 border-t border-[var(--alice-border)] pt-2">
               {DOWNLOAD_GROUPS.map((group, i) => (
                 <div key={group.label} className={i > 0 ? 'border-l border-[var(--alice-border)] pl-1' : ''}>
                   <div className="px-2 pb-1 pt-1">
@@ -83,7 +79,7 @@ export function MobileNavMenu() {
                     )}
                   </div>
                   {group.items.map((item) => (
-                    <PlatformRow key={`${group.label}:${item.label}`} {...item} compact />
+                    <PlatformRow key={`${group.label}:${item.label}`} {...item} />
                   ))}
                 </div>
               ))}

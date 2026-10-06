@@ -28,14 +28,14 @@ export function ExplorerQuantumCard({ exposure }: { exposure: QuantumExposure })
   return (
     <div
       className="flex flex-col gap-2 px-4 py-3"
-      style={{ border: '1px solid var(--alice-border)', borderLeft: `3px solid ${accent}`, borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+      style={{ borderTop: '1px solid var(--alice-border)', borderLeft: `3px solid ${accent}`, borderRadius: 3, backgroundColor: 'transparent' }}
     >
       <div className="flex items-center gap-2 flex-wrap">
         <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>QUANTUM EXPOSURE</span>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: `1px solid ${accent}`, borderRadius: 2, color: accent }}>
+        <span className="font-numbers" style={{ fontSize: 10, padding: '3px 6px', border: `1px solid ${accent}`, borderRadius: 3, color: accent }}>
           {exposure.exposed ? 'KEY EXPOSED' : 'KEY HIDDEN'}
         </span>
-        <span className="font-pixel tracking-widest" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 2, color: 'var(--alice-muted)' }}>
+        <span className="font-numbers" style={{ fontSize: 10, padding: '3px 6px', border: '1px solid var(--alice-muted)', borderRadius: 3, color: 'var(--alice-muted)' }}>
           {TYPE_LABEL[exposure.addressType]}
         </span>
       </div>

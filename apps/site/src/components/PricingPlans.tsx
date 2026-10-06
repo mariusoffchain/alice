@@ -10,8 +10,7 @@ import { externalLinkProps } from '@/lib/links';
  *
  * The satoshi figures are fetched from the same public endpoint the app quotes
  * from, so the site can never show a different price than checkout asks for.
- * While the rate is loading, or if the endpoint is unreachable, the sats show
- * as an ellipsis and the anchor stays: a wrong price is worse than a late one.
+ * While the rate is loading, or if the endpoint is unreachable, the status is explicit and the euro anchor stays: a wrong price is worse than a late one.
  */
 
 type PlanQuote = {
@@ -36,12 +35,12 @@ function formatAnchor(minor: number): string {
   return `≈ ${minor % 100 === 0 ? major : major.toFixed(2)} €`;
 }
 
-function PriceLine({ quote, plan }: { quote: PlanQuote | null; plan: 'cloud' }) {
+function PriceLine({ quote, plan, loading }: { quote: PlanQuote | null; plan: 'cloud'; loading: boolean }) {
   return (
     <div>
       <div className="text-3xl font-semibold text-[var(--alice-heading)]">
-        {quote?.price_sats != null ? formatSats(quote.price_sats) : '...'}
-        <span className="ml-2 text-base font-normal text-[var(--alice-muted)]">/ month</span>
+        {quote?.price_sats != null ? formatSats(quote.price_sats) : <span className="text-base font-normal text-[var(--alice-muted)]" role="status">{loading ? 'Loading satoshi quote…' : 'Satoshi quote unavailable'}</span>}
+        {quote?.price_sats != null && <span className="ml-2 text-base font-normal text-[var(--alice-muted)]">/ month</span>}
       </div>
       <div className="mt-1 text-sm text-[var(--alice-muted)]">
         {formatAnchor(quote?.price_minor ?? FALLBACK_ANCHOR[plan])}
@@ -52,6 +51,7 @@ function PriceLine({ quote, plan }: { quote: PlanQuote | null; plan: 'cloud' }) 
 
 export function PricingPlans() {
   const [quotes, setQuotes] = useState<PlanQuote[] | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,7 +60,8 @@ export function PricingPlans() {
       .then((body: { plans?: PlanQuote[] } | null) => {
         if (!cancelled && body?.plans) setQuotes(body.plans);
       })
-      .catch(() => { /* the anchor still renders; sats stay an ellipsis */ });
+      .catch(() => { /* Keep the euro reference when the live quote is unavailable. */ })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
@@ -102,7 +103,7 @@ export function PricingPlans() {
             Cloud
           </h3>
           <div className="mt-4">
-            <PriceLine quote={quoteFor('cloud')} plan="cloud" />
+            <PriceLine quote={quoteFor('cloud')} plan="cloud" loading={loading} />
           </div>
         </div>
         <ul className="flex flex-col gap-3 text-[15px] leading-relaxed text-[var(--alice-text)]">

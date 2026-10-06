@@ -8,12 +8,13 @@ export const metadata: Metadata = {
     'Alice is a Bitcoin education AI companion that helps you learn about Bitcoin, privacy, and self-sovereignty in a friendly, accessible way.',
   icons: {
     icon: [
+      { url: '/alice-symbol.svg', type: 'image/svg+xml' },
       { url: '/favicon.png', type: 'image/png' },
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: '/icons/apple-touch-icon.png',
-    shortcut: '/favicon.png',
+    shortcut: '/alice-symbol.svg',
   },
 };
 

@@ -21,15 +21,15 @@ const HERO_TITLE = 'Your Bitcoin questions are nobody’s business.';
 
 const SIZE = { width: 1200, height: 630 };
 const GRID = 78;
-const BG = '#0d1117';
-const GRID_LINE = '#1a2333';
+const BG = '#0b1016';
+const GRID_LINE = '#111922';
 const PRIMARY = '#8bb8ff';
 const HEADING = '#eaf1ff';
 
 const [pixelFont, bodyFont, logo] = await Promise.all([
   readFile(join(PUBLIC, 'fonts', 'PressStart2P-Regular.ttf')),
   readFile(join(PUBLIC, 'fonts', 'terminal-grotesque.ttf')),
-  readFile(join(PUBLIC, 'alice-logo.svg')),
+  readFile(join(PUBLIC, 'alice-symbol.svg')),
 ]);
 const logoSrc = `data:image/svg+xml;base64,${logo.toString('base64')}`;
 
@@ -110,3 +110,5 @@ const out = join(APP_DIR, 'src', 'app', 'opengraph-image.png');
 await writeFile(out, Buffer.from(await response.arrayBuffer()));
 await writeFile(join(APP_DIR, 'src', 'app', 'opengraph-image.alt.txt'), HERO_TITLE);
 console.log(`wrote ${out}`);
+
+// Favicons and touch icons are rebuilt by scripts/generate-brand-assets.mjs.

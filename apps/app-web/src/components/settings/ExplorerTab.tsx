@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SvgIcon } from '@/components/SvgIcon';
+import { CHECK_ICON } from '@/lib/atelier-icons';
 import { configurableNetworks, getNodeOverride, setNodeOverride } from '@/lib/explorer/node-config';
 import { getNetwork } from '@/lib/explorer/networks';
 import { getDefaultNetworkId, selectableNetworks, setDefaultNetworkId } from '@/lib/explorer/prefs';
 import { loadWallets, removeWallet, type SavedWallet } from '@/lib/explorer/wallet-store';
 import {
-  btnBase,
   ConfirmDialog,
-  DANGER,
   inputStyle,
   SectionHint,
   SectionLabel,
@@ -82,16 +82,11 @@ export function ExplorerTab() {
                 type="button"
                 aria-pressed={active}
                 onClick={() => { setDefaultNetworkId(net.id); setDefaultNetwork(getDefaultNetworkId()); }}
-                className="font-pixel tracking-widest flex items-center gap-2"
-                style={{
-                  ...btnBase,
-                  border: `2px solid ${active ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
-                  backgroundColor: active ? 'var(--alice-primary)' : 'transparent',
-                  color: active ? 'var(--alice-on-primary)' : 'var(--alice-primary)',
-                }}
+                className="alice-control alice-control--choice font-numbers flex items-center gap-2"
               >
                 <NetworkDot color={net.color} />
-                {net.label.toUpperCase()}
+                {net.label}
+                {active && <SvgIcon svg={CHECK_ICON} size={16} color="currentColor" />}
               </button>
             );
           })}
@@ -112,42 +107,37 @@ export function ExplorerTab() {
               <div key={net.id} className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <NetworkDot color={net.color} />
-                  <span className="font-pixel tracking-widest" style={{ fontSize: 10 }}>
-                    {net.label.toUpperCase()}
-                  </span>
+                  <label htmlFor={`node-${net.id}`} className="alice-field-label">
+                    {net.label} endpoint
+                  </label>
                   {getNodeOverride(net.id) && (
-                    <span className="font-pixel tracking-widest" style={{ fontSize: 10, opacity: 0.6 }}>
+                    <span className="font-numbers" style={{ fontSize: 13, opacity: 1 }}>
                       / CUSTOM
                     </span>
                   )}
                 </div>
                 <input
+                  id={`node-${net.id}`}
+                  aria-label={`${net.label} endpoint`}
                   type="url"
                   value={draft}
                   onChange={(e) => setNodeDrafts(prev => ({ ...prev, [net.id]: e.target.value }))}
                   placeholder={defaultUrl}
-                  className="font-numbers outline-none w-full"
+                  className="alice-field font-numbers outline-none w-full"
                   style={inputStyle}
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleSaveNode(net.id)}
-                    className="font-pixel tracking-widest"
+                    className="alice-control alice-control--primary font-numbers"
                     disabled={!dirty}
-                    style={{
-                      ...btnBase,
-                      backgroundColor: dirty ? 'var(--alice-primary)' : 'transparent',
-                      color: dirty ? 'var(--alice-on-primary)' : 'var(--alice-primary)',
-                      opacity: dirty ? 1 : 0.5,
-                    }}
                   >
                     SAVE
                   </button>
                   {getNodeOverride(net.id) && (
                     <button
                       onClick={() => handleResetNode(net.id)}
-                      className="font-pixel tracking-widest"
-                      style={{ ...btnBase, backgroundColor: 'transparent', color: 'var(--alice-primary)' }}
+                      className="alice-control alice-control--quiet font-numbers"
                     >
                       DEFAULT
                     </button>
@@ -158,7 +148,7 @@ export function ExplorerTab() {
           })}
         </div>
         {nodeNotice && (
-          <p className="font-numbers m-0 mt-3" style={{ fontSize: 13, opacity: 0.7 }}>
+          <p className="font-numbers m-0 mt-3" style={{ fontSize: 13, opacity: 1 }}>
             {nodeNotice}
           </p>
         )}
@@ -171,19 +161,12 @@ export function ExplorerTab() {
           Explorer scans when you open a wallet dashboard.
         </SectionHint>
         <div className="flex items-center justify-between gap-3">
-          <span className="font-pixel tracking-widest" style={{ fontSize: 10 }}>
+          <span className="font-numbers" style={{ fontSize: 13 }}>
             {walletCount} WALLET{walletCount === 1 ? '' : 'S'} / {addressCount} ADDRESS{addressCount === 1 ? '' : 'ES'}
           </span>
           <button
             onClick={() => setConfirmClearWallets(true)}
-            className="font-pixel tracking-widest"
-            style={{
-              ...btnBase,
-              backgroundColor: 'transparent',
-              color: DANGER,
-              borderColor: DANGER,
-              opacity: wallets.length === 0 ? 0.4 : 1,
-            }}
+            className="alice-control alice-control--danger font-numbers"
             disabled={wallets.length === 0}
           >
             FORGET ALL
@@ -194,7 +177,7 @@ export function ExplorerTab() {
       {confirmClearWallets && (
         <ConfirmDialog
           title="FORGET WATCHED WALLETS"
-          body={`Remove all ${wallets.length} saved item${wallets.length === 1 ? '' : 's'} from this device? Explorer keeps no copy, and this cannot be undone.`}
+          body={`Remove all ${wallets.length} saved item${wallets.length === 1 ? '' : 's'} from this device? Explorer keeps no copy, and this cannot be undone. This forgets watched addresses only; it does not move or delete funds.`}
           confirmLabel="FORGET"
           onCancel={() => setConfirmClearWallets(false)}
           onConfirm={handleClearWallets}

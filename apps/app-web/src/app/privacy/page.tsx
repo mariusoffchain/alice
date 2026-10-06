@@ -1,3 +1,5 @@
+import { SvgIcon } from '@/components/SvgIcon';
+import { BACK_ICON } from '@/lib/atelier-icons';
 export const metadata = {
   title: 'Alice Account Privacy Notice',
   description: 'What the optional Alice account stores and what stays outside it.',
@@ -22,10 +24,10 @@ export default function PrivacyPage() {
     >
       <a
         href="/"
-        className="font-pixel"
-        style={{ color: 'var(--alice-muted)', fontSize: 10, textDecoration: 'none' }}
+        className="alice-control alice-control--quiet"
+        style={{ textDecoration: 'none' }}
       >
-        BACK TO ALICE
+        <SvgIcon svg={BACK_ICON} size={20} /> Back to Alice
       </a>
 
       <h1
@@ -192,7 +194,7 @@ export default function PrivacyPage() {
         </p>
         <p style={{ fontSize: 17, lineHeight: '26px' }}>
           Privacy questions and deletion follow-up can be sent to{' '}
-          <a href="mailto:contact@alicebtc.com" style={{ color: 'var(--alice-primary)' }}>
+          <a href="mailto:contact@alicebtc.com" style={{ color: 'var(--alice-primary)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
             contact@alicebtc.com
           </a>.
         </p>

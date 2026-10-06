@@ -1,0 +1,535 @@
+{
+  "version": 1,
+  "frozenAt": "2026-10-06",
+  "description": "Retrieval reference for the 40-case acceptance set (generation-acceptance-40-2026-10-05.json): each case names the notes that answer it; the whole user message is the retrieval input, as in production. Written after the 2026-10-06 retrieval repair (premise clauses kept, modal openers, keywords of eight subjects, product documentation gated in the lexical path). Before the repair the lexical path reached an expected note in 25 of 40 cases on the local budget.",
+  "cases": [
+    {
+      "id": "en-a01",
+      "category": "utxo-change",
+      "language": "en",
+      "history": [],
+      "question": "When I send 0.3 BTC from a coin worth 1 BTC, what happens to the rest?",
+      "relevantConceptGroups": [
+        [
+          "utxo-model",
+          "utxo-introduction",
+          "transaction-fees",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a01",
+      "category": "utxo-change",
+      "language": "fr",
+      "history": [],
+      "question": "Si j'envoie 0,3 BTC depuis une pièce qui vaut 1 BTC, que devient le reste ?",
+      "relevantConceptGroups": [
+        [
+          "utxo-model",
+          "utxo-introduction",
+          "transaction-fees",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ]
+      ]
+    },
+    {
+      "id": "en-a02",
+      "category": "finality",
+      "language": "en",
+      "history": [],
+      "question": "Why do merchants wait for several confirmations before treating a payment as final?",
+      "relevantConceptGroups": [
+        [
+          "confirmations",
+          "transaction-finality",
+          "transaction-lifecycle"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a02",
+      "category": "finality",
+      "language": "fr",
+      "history": [],
+      "question": "Pourquoi les commerçants attendent-ils plusieurs confirmations avant de considérer un paiement comme définitif ?",
+      "relevantConceptGroups": [
+        [
+          "confirmations",
+          "transaction-finality",
+          "transaction-lifecycle"
+        ]
+      ]
+    },
+    {
+      "id": "en-a03",
+      "category": "mempool-concept",
+      "language": "en",
+      "history": [],
+      "question": "Where does my transaction wait before it gets into a block?",
+      "relevantConceptGroups": [
+        [
+          "transaction-lifecycle",
+          "obsidian-tx-model__mempool",
+          "transaction-fees"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a03",
+      "category": "mempool-concept",
+      "language": "fr",
+      "history": [],
+      "question": "Où attend ma transaction avant d'entrer dans un bloc ?",
+      "relevantConceptGroups": [
+        [
+          "transaction-lifecycle",
+          "obsidian-tx-model__mempool",
+          "transaction-fees"
+        ]
+      ]
+    },
+    {
+      "id": "en-a04",
+      "category": "pow-energy",
+      "language": "en",
+      "history": [],
+      "question": "Is Bitcoin mining just wasted electricity?",
+      "relevantConceptGroups": [
+        [
+          "energy-debate",
+          "proof-of-work-introduction",
+          "bitcoin-mining"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a04",
+      "category": "pow-energy",
+      "language": "fr",
+      "history": [],
+      "question": "Le minage de Bitcoin, c'est juste de l'électricité gaspillée ?",
+      "relevantConceptGroups": [
+        [
+          "energy-debate",
+          "proof-of-work-introduction",
+          "bitcoin-mining"
+        ]
+      ]
+    },
+    {
+      "id": "en-a05",
+      "category": "difficulty",
+      "language": "en",
+      "history": [],
+      "question": "What happens to block times if half the miners switch off overnight?",
+      "relevantConceptGroups": [
+        [
+          "difficulty-adjustment"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a05",
+      "category": "difficulty",
+      "language": "fr",
+      "history": [],
+      "question": "Que deviennent les temps de bloc si la moitié des mineurs s'arrêtent du jour au lendemain ?",
+      "relevantConceptGroups": [
+        [
+          "difficulty-adjustment"
+        ]
+      ]
+    },
+    {
+      "id": "en-a06",
+      "category": "pruned-node",
+      "language": "en",
+      "history": [],
+      "question": "I only have a laptop with 100 GB free. Can I still verify Bitcoin myself?",
+      "relevantConceptGroups": [
+        [
+          "node-types",
+          "bitcoin-node",
+          "obsidian-nodes__full-node"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a06",
+      "category": "pruned-node",
+      "language": "fr",
+      "history": [],
+      "question": "Je n'ai qu'un portable avec 100 Go de libre. Puis-je quand même vérifier Bitcoin moi-même ?",
+      "relevantConceptGroups": [
+        [
+          "node-types",
+          "bitcoin-node",
+          "obsidian-nodes__full-node"
+        ]
+      ]
+    },
+    {
+      "id": "en-a07",
+      "category": "spv-trust",
+      "language": "en",
+      "history": [],
+      "question": "What exactly does a light wallet trust that a full node does not?",
+      "relevantConceptGroups": [
+        [
+          "node-types",
+          "bitcoin-node",
+          "obsidian-nodes__full-node"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a07",
+      "category": "spv-trust",
+      "language": "fr",
+      "history": [],
+      "question": "Que doit croire exactement un portefeuille léger qu'un nœud complet n'a pas besoin de croire ?",
+      "relevantConceptGroups": [
+        [
+          "node-types",
+          "bitcoin-node",
+          "obsidian-nodes__full-node"
+        ]
+      ]
+    },
+    {
+      "id": "en-a08",
+      "category": "fee-size",
+      "language": "en",
+      "history": [],
+      "question": "Why did a tiny payment of mine cost almost the same fee as a large one?",
+      "relevantConceptGroups": [
+        [
+          "transaction-fees"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a08",
+      "category": "fee-size",
+      "language": "fr",
+      "history": [],
+      "question": "Pourquoi un tout petit paiement m'a-t-il coûté presque les mêmes frais qu'un gros ?",
+      "relevantConceptGroups": [
+        [
+          "transaction-fees"
+        ]
+      ]
+    },
+    {
+      "id": "en-a09",
+      "category": "rbf-cancel",
+      "language": "en",
+      "history": [],
+      "question": "Can I cancel a Bitcoin payment I sent by mistake?",
+      "relevantConceptGroups": [
+        [
+          "replace-by-fee",
+          "transaction-finality"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a09",
+      "category": "rbf-cancel",
+      "language": "fr",
+      "history": [],
+      "question": "Puis-je annuler un paiement Bitcoin envoyé par erreur ?",
+      "relevantConceptGroups": [
+        [
+          "replace-by-fee",
+          "transaction-finality"
+        ]
+      ]
+    },
+    {
+      "id": "en-a10",
+      "category": "rbf-signal",
+      "language": "en",
+      "history": [],
+      "question": "My wallet did not mark the transaction as replaceable. Does that mean nobody can replace it?",
+      "relevantConceptGroups": [
+        [
+          "replace-by-fee"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a10",
+      "category": "rbf-signal",
+      "language": "fr",
+      "history": [],
+      "question": "Mon portefeuille n'a pas marqué la transaction comme remplaçable. Personne ne peut donc la remplacer ?",
+      "relevantConceptGroups": [
+        [
+          "replace-by-fee"
+        ]
+      ]
+    },
+    {
+      "id": "en-a11",
+      "category": "dust",
+      "language": "en",
+      "history": [],
+      "question": "Someone sent me 300 sats. Why does my wallet say it may be uneconomic to spend?",
+      "relevantConceptGroups": [
+        [
+          "dust"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a11",
+      "category": "dust",
+      "language": "fr",
+      "history": [],
+      "question": "Quelqu'un m'a envoyé 300 sats. Pourquoi mon portefeuille dit-il que ce serait non rentable à dépenser ?",
+      "relevantConceptGroups": [
+        [
+          "dust"
+        ]
+      ]
+    },
+    {
+      "id": "en-a12",
+      "category": "subsidy-end",
+      "language": "en",
+      "history": [],
+      "question": "After the last halving, around 2140, who pays the miners?",
+      "relevantConceptGroups": [
+        [
+          "halving",
+          "obsidian-mining__bitcoin-halving"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a12",
+      "category": "subsidy-end",
+      "language": "fr",
+      "history": [],
+      "question": "Après le dernier halving, vers 2140, qui paie les mineurs ?",
+      "relevantConceptGroups": [
+        [
+          "halving",
+          "obsidian-mining__bitcoin-halving"
+        ]
+      ]
+    },
+    {
+      "id": "en-a13",
+      "category": "taproot-privacy",
+      "language": "en",
+      "history": [],
+      "question": "If I use a Taproot address, can observers still tell it is a multisig?",
+      "relevantConceptGroups": [
+        [
+          "segwit-taproot",
+          "obsidian-history__taproot"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a13",
+      "category": "taproot-privacy",
+      "language": "fr",
+      "history": [],
+      "question": "Si j'utilise une adresse Taproot, les observateurs peuvent-ils encore voir que c'est un multisig ?",
+      "relevantConceptGroups": [
+        [
+          "segwit-taproot",
+          "obsidian-history__taproot"
+        ]
+      ]
+    },
+    {
+      "id": "en-a14",
+      "category": "address-reuse",
+      "language": "en",
+      "history": [],
+      "question": "Is it fine to print one Bitcoin address on my business cards?",
+      "relevantConceptGroups": [
+        [
+          "address-reuse",
+          "obsidian-privacy__address-reuse"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a14",
+      "category": "address-reuse",
+      "language": "fr",
+      "history": [],
+      "question": "Puis-je imprimer une seule adresse Bitcoin sur mes cartes de visite ?",
+      "relevantConceptGroups": [
+        [
+          "address-reuse",
+          "obsidian-privacy__address-reuse"
+        ]
+      ]
+    },
+    {
+      "id": "en-a15",
+      "category": "coinjoin-limits",
+      "language": "en",
+      "history": [],
+      "question": "After a CoinJoin, am I invisible on the blockchain?",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a15",
+      "category": "coinjoin-limits",
+      "language": "fr",
+      "history": [],
+      "question": "Après un CoinJoin, suis-je invisible sur la blockchain ?",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction"
+        ]
+      ]
+    },
+    {
+      "id": "en-a16",
+      "category": "lightning-cost",
+      "language": "en",
+      "history": [],
+      "question": "Why is a Lightning payment sometimes not cheaper than an on-chain one?",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network",
+          "lightning-liquidity"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a16",
+      "category": "lightning-cost",
+      "language": "fr",
+      "history": [],
+      "question": "Pourquoi un paiement Lightning n'est-il parfois pas moins cher qu'un paiement on-chain ?",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network",
+          "lightning-liquidity"
+        ]
+      ]
+    },
+    {
+      "id": "en-a17",
+      "category": "ark-exit",
+      "language": "en",
+      "history": [],
+      "question": "If the Ark operator disappears tomorrow, are my funds gone?",
+      "relevantConceptGroups": [
+        [
+          "ark-rounds-exits",
+          "asp-operator",
+          "obsidian-arkade__ark-vtxos"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a17",
+      "category": "ark-exit",
+      "language": "fr",
+      "history": [],
+      "question": "Si l'opérateur Ark disparaît demain, mes fonds sont-ils perdus ?",
+      "relevantConceptGroups": [
+        [
+          "ark-rounds-exits",
+          "asp-operator",
+          "obsidian-arkade__ark-vtxos"
+        ]
+      ]
+    },
+    {
+      "id": "en-a18",
+      "category": "ark-operator",
+      "language": "en",
+      "history": [],
+      "question": "What can an Ark operator do with my money, and what can it not do?",
+      "relevantConceptGroups": [
+        [
+          "asp-operator",
+          "ark-rounds-exits"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a18",
+      "category": "ark-operator",
+      "language": "fr",
+      "history": [],
+      "question": "Que peut faire un opérateur Ark avec mon argent, et que ne peut-il pas faire ?",
+      "relevantConceptGroups": [
+        [
+          "asp-operator",
+          "ark-rounds-exits"
+        ]
+      ]
+    },
+    {
+      "id": "en-a19",
+      "category": "seed-photo",
+      "language": "en",
+      "history": [],
+      "question": "Can I keep a photo of my recovery phrase in my password manager as a backup?",
+      "relevantConceptGroups": [
+        [
+          "recovery-phrase",
+          "obsidian-self-custody__wallet-recovery-phrase"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a19",
+      "category": "seed-photo",
+      "language": "fr",
+      "history": [],
+      "question": "Puis-je garder une photo de ma phrase de récupération dans mon gestionnaire de mots de passe comme sauvegarde ?",
+      "relevantConceptGroups": [
+        [
+          "recovery-phrase",
+          "obsidian-self-custody__wallet-recovery-phrase"
+        ]
+      ]
+    },
+    {
+      "id": "en-a20",
+      "category": "multisig-recovery",
+      "language": "en",
+      "history": [],
+      "question": "I have 2 of my 3 multisig seeds. Is that enough to recover my coins?",
+      "relevantConceptGroups": [
+        [
+          "multisig"
+        ]
+      ]
+    },
+    {
+      "id": "fr-a20",
+      "category": "multisig-recovery",
+      "language": "fr",
+      "history": [],
+      "question": "J'ai 2 de mes 3 seeds multisig. Est-ce suffisant pour récupérer mes bitcoins ?",
+      "relevantConceptGroups": [
+        [
+          "multisig"
+        ]
+      ]
+    }
+  ]
+}

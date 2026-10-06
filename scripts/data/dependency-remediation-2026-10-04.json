@@ -1,0 +1,148 @@
+{
+  "date": "2026-10-04",
+  "baseRef": "82ad3de0c6203d8c71e45c3f58299ae3668afa17",
+  "scope": "Only 7 existing brace-expansion lock records updated within parent caret ranges. No manifest, override, exception, expiry or audit policy change.",
+  "changes": [
+    {
+      "path": "node_modules/@expo/fingerprint/node_modules/brace-expansion",
+      "before": "5.0.6",
+      "after": "5.0.12"
+    },
+    {
+      "path": "node_modules/@react-native/codegen/node_modules/brace-expansion",
+      "before": "1.1.15",
+      "after": "1.1.21"
+    },
+    {
+      "path": "node_modules/brace-expansion",
+      "before": "2.1.1",
+      "after": "2.1.7"
+    },
+    {
+      "path": "node_modules/glob/node_modules/brace-expansion",
+      "before": "5.0.6",
+      "after": "5.0.12"
+    },
+    {
+      "path": "node_modules/react-native/node_modules/brace-expansion",
+      "before": "1.1.15",
+      "after": "1.1.21"
+    },
+    {
+      "path": "node_modules/rimraf/node_modules/brace-expansion",
+      "before": "1.1.15",
+      "after": "1.1.21"
+    },
+    {
+      "path": "node_modules/test-exclude/node_modules/brace-expansion",
+      "before": "1.1.15",
+      "after": "1.1.21"
+    }
+  ],
+  "lockSha256": "cd9a545b33b527f6694f5508066b1f4186dd5dee08f11e27fdb059d2fc302bde",
+  "auditPolicySha256": "539d940349c80ffe8a1e71245d9ba7cd6401ef38d4c9908684663511bef0316e",
+  "auditAfter": {
+    "info": 0,
+    "low": 2,
+    "moderate": 18,
+    "high": 35,
+    "critical": 0,
+    "total": 55
+  },
+  "braceExpansionStillReported": false,
+  "remainingHigh": [
+    "@expo/cli",
+    "@expo/code-signing-certificates",
+    "@expo/metro",
+    "@expo/metro-config",
+    "@huggingface/transformers",
+    "@jest/environment",
+    "@jest/fake-timers",
+    "@jest/transform",
+    "@lendasat/lendaswap-sdk-pure",
+    "@react-native/community-cli-plugin",
+    "@satora/swap",
+    "adm-zip",
+    "babel-jest",
+    "braces",
+    "expo",
+    "image-size",
+    "jest-environment-node",
+    "jest-haste-map",
+    "jest-message-util",
+    "metro",
+    "metro-config",
+    "metro-file-map",
+    "metro-transform-worker",
+    "micromatch",
+    "miniflare",
+    "nanoid",
+    "node-forge",
+    "onnxruntime-node",
+    "postcss",
+    "react-native",
+    "sharp",
+    "shell-quote",
+    "undici",
+    "viem",
+    "ws"
+  ],
+  "cleanInstall": "passed: npm ci --ignore-scripts --no-audit --no-fund, isolated copy; all 7 installed versions verified",
+  "workspaceTypes": "passed in isolated clean install",
+  "fullTests": {
+    "result": "passed, exit 0",
+    "files": 148,
+    "tests": 1197,
+    "pass": 1197,
+    "fail": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "auditGate": "failed as expected, exit 1: 35 high and zero critical; remaining new packages/advisories not suppressed",
+  "delegation": {
+    "mode": "read-only dependency review",
+    "is_error": false,
+    "permission_denials": [],
+    "verificationCaveat": "the main session verified each applied version against registry and actual installed tree. Advisory count is not package count. Some review conclusions were hypotheses only."
+  },
+  "nextVerifiedCandidate": {
+    "package": "shell-quote",
+    "installed": "1.8.4",
+    "parentRange": "^1.6.1",
+    "patchedVersion": "1.9.0",
+    "latestPublished": "1.12.0",
+    "source": "https://github.com/advisories/GHSA-395f-4hp3-45gv",
+    "state": "not changed; verify compatibility and apply separately. The earlier read-only reviewer incorrectly inferred no patch from the audit range."
+  },
+  "braceExpansionCommit": "f976ea62",
+  "shellQuoteFollowUp": {
+    "before": "1.8.4",
+    "after": "1.12.0",
+    "parentRange": "^1.6.1",
+    "changedLockRecords": [
+      "node_modules/shell-quote"
+    ],
+    "lockSha256": "93e4ef0266aba407ece1add713dd2a8946d4f339875ad19d0bccb53829e5ad4e",
+    "cleanInstall": "passed in isolated copy, npm ci --ignore-scripts",
+    "workspaceTypes": "passed on isolated installation",
+    "compatibility": {
+      "checks": 20,
+      "result": "passed",
+      "installed": "1.12.0",
+      "largeInputTokens": 16000,
+      "largeInputMs": 5.1660840000000015,
+      "scope": "CLI argument quoting/parsing compatibility; strings only, no shell execution. Large-input timing is a local observation, not a universal complexity proof."
+    },
+    "auditAfter": {
+      "info": 0,
+      "low": 2,
+      "moderate": 18,
+      "high": 34,
+      "critical": 0,
+      "total": 54
+    },
+    "auditGate": "failed unchanged, exit 1, remaining high packages/advisories",
+    "fullSuite": "1197 tests passed before this one-package follow-up; matching-head CI still required. No repeat full-suite pass claimed.",
+    "reproduce": "node scripts/check-shell-quote-compatibility.cjs <old shell-quote package dir> <new package dir> [report.json]"
+  }
+}

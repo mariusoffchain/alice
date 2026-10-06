@@ -1,4 +1,6 @@
-import { BITCOIN_SYSTEM_PROMPTS } from '@alice-wallet/alice-content';
+import { BITCOIN_SYSTEM_PROMPTS, ALICE_MEMORY_PROFILE_RULES, ALICE_PAYMENT_AUTHORITY_RULES } from '@alice-wallet/alice-content';
+import { liveValueCaveatIn } from './live-value-caveat';
+import { answerRuleCorrectionsIn } from './answer-rules';
 import type { Message } from './llm';
 import { languageName, type SupportedLanguage } from './language-policy';
 
@@ -41,13 +43,16 @@ ${BITCOIN_SYSTEM_PROMPTS[language]}`;
 
 export function buildAliceLocalSystemPrompt(instructions: string, language: SupportedLanguage = 'en'): string {
   const custom = instructions.trim();
-  if (!custom) return LOCAL_BITCOIN_SYSTEM_PROMPTS[language];
+  // Keep the original native instructions and append the exact canonical
+  // memory/profile and payment rules used by desktop/cloud.
+  const base = `${LOCAL_BITCOIN_SYSTEM_PROMPTS[language]}\n\n${ALICE_MEMORY_PROFILE_RULES}\n${ALICE_PAYMENT_AUTHORITY_RULES}`;
+  if (!custom) return base;
 
   return `Mandatory output language: ${languageName(language)}.
 Priority user instruction for response style and format: ${custom}
 Follow it unless it conflicts with the mandatory output language, wallet safety, privacy, or financial-advice limits.
 
-${LOCAL_BITCOIN_SYSTEM_PROMPTS[language]}`;
+${base}`;
 }
 
 function buildAliceInstructionReminder(
@@ -85,7 +90,14 @@ export function requiresBufferedAliceResponse(instructions: string): boolean {
 
 export function applyAliceResponseConstraints(instructions: string, response: string): string {
   if (!hasSingleSentenceInstruction(instructions)) return response;
-  return keepFirstSentence(response);
+  const first = keepFirstSentence(response);
+  // A caveat appended after generation because the answer asserted a live
+  // network figure, or a correction appended because it made a claim the
+  // retrieved note rules out, is a safety statement, not prose: the
+  // one-sentence rule keeps it next to the sentence it qualifies.
+  const kept = [liveValueCaveatIn(response), ...answerRuleCorrectionsIn(response)]
+    .filter((statement): statement is string => Boolean(statement) && !first.includes(statement!));
+  return kept.length > 0 ? `${first} ${kept.join(' ')}` : first;
 }
 
 function hasSingleSentenceInstruction(instructions: string): boolean {

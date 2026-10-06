@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isTauriDesktop, recordCourseCompletionSignal, recordCourseStudySignal } from '@alice-wallet/alice-ai';
+import { recordCourseCompletionSignal, recordCourseStudySignal } from '@alice-wallet/alice-ai';
 import { AskAliceFab } from '@/components/AskAliceFab';
-import { Sidebar, SIDEBAR_ICON_SVG } from '@/components/Sidebar';
+import { WorkspaceShell } from '@/components/WorkspaceShell';
 import { SvgIcon } from '@/components/SvgIcon';
+import { BACK_ICON, LEARN_ICON } from '@/lib/atelier-icons';
 import { LearnAskAlice } from '@/components/learn/LearnAskAlice';
 import { LearnChapter } from '@/components/learn/LearnChapter';
 import { LearnCourse } from '@/components/learn/LearnCourse';
@@ -36,20 +37,6 @@ import { LEARN_ASK_EVENT } from '@/lib/learn/ask';
 import { LEARN_RESET_EVENT, learnViewToSearch, parseLearnView, type LearnView } from '@/lib/learn/route';
 
 const ASK_OPEN_KEY = 'alice.learn.ask-open';
-
-// A speech-bubble/globe hybrid in the pixel grammar: rounded world with a
-// horizontal band, reads as "language" next to the reading controls.
-const LANG_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
-  <rect x="5" y="1" width="6" height="2" fill="{{COLOR}}"/>
-  <rect x="3" y="3" width="2" height="2" fill="{{COLOR}}"/>
-  <rect x="11" y="3" width="2" height="2" fill="{{COLOR}}"/>
-  <rect x="1" y="5" width="2" height="6" fill="{{COLOR}}"/>
-  <rect x="13" y="5" width="2" height="6" fill="{{COLOR}}"/>
-  <rect x="4" y="7" width="8" height="2" fill="{{COLOR}}" fill-opacity="0.55"/>
-  <rect x="3" y="11" width="2" height="2" fill="{{COLOR}}"/>
-  <rect x="11" y="11" width="2" height="2" fill="{{COLOR}}"/>
-  <rect x="5" y="13" width="6" height="2" fill="{{COLOR}}"/>
-</svg>`;
 
 function LearnWorkspace() {
   // Start on home so server and first client render agree; the deep-linked
@@ -217,16 +204,16 @@ function LearnWorkspace() {
               if (view.kind === 'chapter' || view.kind === 'quiz') navigate({ kind: 'course', code: view.code });
               else navigate({ kind: 'home' });
             }}
-            className="font-pixel cursor-pointer"
-            style={{ fontSize: 8, color: 'var(--alice-muted)', background: 'none', border: 0, padding: 0 }}
+            className="alice-control alice-control--quiet"
+            style={{ padding: 0 }}
           >
-            {view.kind === 'chapter' || view.kind === 'quiz' ? '← COURSE' : '← BACK'}
+            <SvgIcon svg={BACK_ICON} size={16} /> {view.kind === 'chapter' || view.kind === 'quiz' ? (lang === 'fr' ? 'Cours' : 'Course') : (lang === 'fr' ? 'Retour' : 'Back')}
           </button>
         )}
         {view.kind === 'chapter' && chapterMeta && (
           <div className="flex items-center gap-4 min-w-0 flex-1" style={{ minWidth: 220 }}>
             <div className="min-w-0">
-              <div className="font-pixel truncate" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+              <div className="font-numbers truncate" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
                 {chapterMeta.courseName.toUpperCase()}
               </div>
               <div className="font-numbers truncate" style={{ fontSize: 13, color: 'var(--alice-text)' }}>
@@ -249,7 +236,7 @@ function LearnWorkspace() {
                   />
                 ))}
               </div>
-              <span className="font-pixel" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>
+              <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
                 {chapterMeta.index}/{chapterMeta.total}
               </span>
             </div>
@@ -260,21 +247,15 @@ function LearnWorkspace() {
             role="group"
             aria-label="Reading language"
             className="flex"
-            style={{ border: '2px solid var(--alice-border)', borderRadius: 2 }}
+            style={{ gap: 4 }}
           >
             {installed.map((code) => (
               <button
                 key={code}
                 aria-pressed={lang === code}
                 onClick={() => changeLang(code)}
-                className="font-pixel cursor-pointer"
-                style={{
-                  fontSize: 8,
-                  padding: '8px 12px',
-                  border: 0,
-                  background: lang === code ? 'var(--alice-primary)' : 'transparent',
-                  color: lang === code ? 'var(--alice-on-primary)' : 'var(--alice-muted)',
-                }}
+                className="alice-control alice-control--choice"
+                style={{ padding: '8px 12px' }}
               >
                 {code.toUpperCase()}
               </button>
@@ -283,10 +264,10 @@ function LearnWorkspace() {
           <button
             onClick={() => setLangModalOpen(true)}
             aria-label="All course languages"
-            className="flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
-            style={{ width: 34, height: 32, border: '2px solid var(--alice-border)', borderRadius: 2, background: 'transparent' }}
+            className="alice-control alice-control--quiet flex items-center justify-center"
+            style={{ minHeight: 40 }}
           >
-            <SvgIcon svg={LANG_ICON_SVG} size={16} color="var(--alice-primary)" />
+            <SvgIcon svg={LEARN_ICON} size={20} /> <span>{lang === 'fr' ? 'Langues' : 'Languages'}</span>
           </button>
         </div>
       </header>
@@ -350,48 +331,5 @@ function LearnWorkspace() {
 }
 
 export function LearnPanel() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
-
-  return (
-    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--alice-bg)' }}>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((v) => !v)}
-        mobileOpen={sidebarMobileOpen}
-        onMobileClose={() => setSidebarMobileOpen(false)}
-      />
-
-      <div className="flex flex-col flex-1 min-w-0 min-h-0">
-        {isTauriDesktop() && (
-          <div data-tauri-drag-region className="shrink-0" style={{ height: 28 }} />
-        )}
-        <div
-          className="grid shrink-0 grid-cols-[108px_minmax(0,1fr)_108px] items-center px-3 md:hidden"
-          style={{
-            height: 'calc(52px + env(safe-area-inset-top))',
-            paddingTop: 'env(safe-area-inset-top)',
-          }}
-        >
-          <div className="flex items-center">
-            <button
-              onClick={() => setSidebarMobileOpen(true)}
-              className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-              aria-label="Open menu"
-            >
-              <SvgIcon svg={SIDEBAR_ICON_SVG} size={18} color="var(--alice-text)" />
-            </button>
-          </div>
-          <div className="flex min-w-0 items-center justify-center">
-            <span className="font-pixel" style={{ fontSize: 11, color: 'var(--alice-text)' }}>
-              Learn
-            </span>
-          </div>
-          <div />
-        </div>
-
-        <LearnWorkspace />
-      </div>
-    </div>
-  );
+  return <WorkspaceShell title="Learn"><LearnWorkspace /></WorkspaceShell>;
 }

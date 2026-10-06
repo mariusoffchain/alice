@@ -51,19 +51,23 @@ export function ChatProviderWrapper({
   return (
     <AccountProvider>
       <ChatProvider storageCipher={storageCipher}>
-        <MenuCommands />
-        <ModelDownloadToasts />
-        <AppUpdateNotices />
-        {children}
-        {/* useSearchParams needs a boundary so the rest of the tree can still
-            be prerendered. */}
-        <Suspense fallback={null}>
-          <SettingsDialog />
-        </Suspense>
-        <AccountPasswordDialog />
-        {/* Above the account dialog: a settled payment can land at any moment,
-            wherever the user happens to be. */}
-        <PaymentConfirmedDialog />
+        <div className="alice-app-frame">
+          <MenuCommands />
+          <div className="alice-app-viewport">
+            <ModelDownloadToasts />
+            {children}
+          </div>
+          {/* useSearchParams needs a boundary so the rest of the tree can still
+              be prerendered. */}
+          <Suspense fallback={null}>
+            <SettingsDialog />
+          </Suspense>
+          <AccountPasswordDialog />
+          {/* Above the account dialog: a settled payment can land at any moment,
+              wherever the user happens to be. */}
+          <PaymentConfirmedDialog />
+          <AppUpdateNotices />
+        </div>
       </ChatProvider>
     </AccountProvider>
   );

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SvgIcon } from '@/components/SvgIcon';
+import { CHEVRON_LEFT_ICON } from '@/lib/atelier-icons';
 import { useRouter } from 'next/navigation';
 import { isTauriDesktop } from '@alice-wallet/alice-ai';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
@@ -24,7 +26,7 @@ export default function SettingsPage() {
 
   return (
     <div
-      className="h-screen flex flex-col"
+      className="h-full flex flex-col"
       style={{ backgroundColor: 'var(--alice-bg)', color: 'var(--alice-text)' }}
     >
       {isTauriDesktop() && (
@@ -34,11 +36,11 @@ export default function SettingsPage() {
       <header className="flex items-center px-5 h-12 shrink-0">
         <button
           onClick={() => router.push('/')}
-          className="font-pixel text-base bg-transparent border-none cursor-pointer p-0"
+          className="alice-control alice-control--tool"
           style={{ color: 'var(--alice-text)', fontSize: 20 }}
           aria-label="Back"
         >
-          &larr;
+          <SvgIcon svg={CHEVRON_LEFT_ICON} size={20} color="currentColor" />
         </button>
         <h1
           className="font-pixel tracking-widest flex-1 text-center m-0"

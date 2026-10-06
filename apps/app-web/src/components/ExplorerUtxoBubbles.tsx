@@ -32,6 +32,7 @@ export function ExplorerUtxoBubbles({ utxos, confidential = false, title = 'UNSP
   );
   const layout = useMemo(() => packUtxos(packInput), [packInput]);
   const [hover, setHover] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
 
   if (layout.circles.length === 0) return null;
 
@@ -41,7 +42,7 @@ export function ExplorerUtxoBubbles({ utxos, confidential = false, title = 'UNSP
   return (
     <div
       className="flex flex-col gap-2 px-4 py-3"
-      style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+      style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}
     >
       <div className="flex items-center justify-between">
         <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
@@ -60,19 +61,26 @@ export function ExplorerUtxoBubbles({ utxos, confidential = false, title = 'UNSP
         width={layout.width}
         height={layout.height}
         style={{ display: 'block', maxWidth: '100%', height: 'auto', maxHeight: 340, margin: '4px auto' }}
-        role="img"
+        role="group"
         aria-label={`${utxos.length} unspent outputs, packed by value`}
       >
         {layout.circles.map((c, i) => {
           const ratio = c.r / layout.maxR;
           const labelled = !confidential && c.r >= layout.maxR * 0.5;
-          const isHover = hover === i;
+          const isHover = hover === i || selected === i;
           return (
             <g
               key={i}
+              role="button"
+              tabIndex={0}
+              aria-label={`Output ${i + 1}, ${confidential ? 'amount hidden' : formatAmount(c.valueSats, unit)}`}
+              aria-pressed={selected === i}
+              onClick={() => setSelected(i)}
+              onFocus={() => setSelected(i)}
+              onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(i); } }}
               onPointerEnter={() => setHover(i)}
               onPointerLeave={() => setHover(h => (h === i ? null : h))}
-              style={{ cursor: 'default' }}
+              style={{ cursor: 'pointer', outline: 'none' }}
             >
               <circle
                 cx={c.x}
@@ -102,6 +110,19 @@ export function ExplorerUtxoBubbles({ utxos, confidential = false, title = 'UNSP
         })}
       </svg>
 
+      <details className="font-numbers text-sm">
+        <summary className="alice-control alice-control--quiet cursor-pointer">Inspect outputs as a list</summary>
+        <div className="flex flex-col max-h-64 overflow-auto">
+          {layout.circles.map((coin, i) => (
+            <button key={i} type="button" className="alice-control alice-control--option w-full"
+              aria-pressed={selected === i}
+              onFocus={() => setSelected(i)} onClick={() => setSelected(i)}>
+              <span>{selected === i ? 'Selected · ' : ''}Output {i + 1}</span>
+              <span>{confidential ? 'Amount hidden' : formatAmount(coin.valueSats, unit)}</span>
+            </button>
+          ))}
+        </div>
+      </details>
       <p className="font-numbers m-0" style={{ fontSize: 11, color: 'var(--alice-muted)', opacity: 0.7 }}>
         {confidential
           ? 'Each circle is one unspent output; amounts are confidential on Liquid, so sizes are equal.'

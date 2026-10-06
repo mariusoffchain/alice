@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { EXTERNAL_ICON } from '@/lib/atelier-icons';
+
 import { useEffect, useState } from 'react';
 import type { LearnTutorialPack } from '@alice-wallet/alice-content/src/learn-types';
 import { TUTORIAL_CATEGORY_LABELS } from '@/lib/learn/catalog';
@@ -44,14 +47,14 @@ export function LearnTutorial({
   if (!pack) {
     return (
       <div style={{ width: 'min(100% - 32px, 760px)', margin: '0 auto', padding: '48px 0' }}>
-        <p className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-muted)' }}>LOADING…</p>
+        <p className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }} role="status">{lang === 'fr' ? 'Chargement…' : 'Loading…'}</p>
       </div>
     );
   }
 
   return (
     <div style={{ width: 'min(100% - 32px, 760px)', margin: '0 auto', padding: '24px 0 72px', color: 'var(--alice-text)' }}>
-      <div className="font-pixel" style={{ fontSize: 8, color: 'var(--alice-muted)' }}>
+      <div className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
         {(TUTORIAL_CATEGORY_LABELS[category]?.[ui(lang)] ?? category).toUpperCase()}
       </div>
       <h1 className="font-pixel" style={{ fontSize: 14, lineHeight: '24px', margin: '12px 0 4px' }}>{pack.name}</h1>
@@ -64,7 +67,7 @@ export function LearnTutorial({
       <p className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)', marginTop: 32 }}>
         {lang === 'fr' ? 'Contenu ' : 'Content by '}
         <a href="https://planb.network" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); void openExternalUrl('https://planb.network'); }} style={{ color: 'var(--alice-muted)', textDecoration: 'underline' }}>
-          Plan ₿ Network
+          Plan ₿ Network <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><SvgIcon svg={EXTERNAL_ICON} size={16} /></span>
         </a>
         {' · CC BY-SA 4.0'}
       </p>

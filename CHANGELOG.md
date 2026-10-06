@@ -3,11 +3,77 @@
 Alice ships as four surfaces from one repository, and they are versioned
 together: a single number means a tester and a log line refer to the same code.
 
-- `0.2.1`, current release
+- `0.2.2`, current release
+- `0.2.1`, previous release
 - `0.2.0`, previous release
 - `0.1.0`, previous closed beta
 - `0.0.1`, first public baseline
 - `1.0.0`, public launch, planned
+
+## 0.2.2
+
+Desktop installers for macOS, Windows and Linux ship with this release. The
+Android build is unchanged and stays on `0.2.0`.
+
+### Application and website
+
+- A pixel rabbit, restrained controls, theme-aware assets and clearer chat,
+  Explorer, Learn and settings layouts.
+- Distinct model and reasoning labels in the application and website preview.
+- Refreshed product screenshots and pixel icons, with the original scrolling
+  website tour, dark grid and display typography preserved.
+- A separate experimental section for Alice Wallet, outside the main download
+  menus and product tour. The mobile wallet interface is unchanged.
+- The app learns from the proxy which version is current and shows a
+  notice, with the release details, when a newer one exists.
+
+### Chat: the right note reaches the model, and the answer keeps to it
+
+- The statement that precedes a question now reaches retrieval, so "I have a
+  2-of-3 setup, can I lose a key?" is searched with the setup and not only
+  with the question. More question openings are recognised in French and
+  English, seven notes gained the keywords readers actually use, and product
+  documentation no longer crowds out a note on a shared common word. On the
+  acceptance set, the expected note is in the model's context for 40 of 40
+  questions, against 25 before.
+- For the Ark, multisig and replace-by-fee notes, the model receives the
+  points an answer must state and the claims it must not make, and the
+  answer is checked afterwards. On the acceptance set with the local 9B
+  model, critical errors go from 6 to 0.
+- Questions about present network values (fees, height, prices) receive a
+  deterministic reply that says Alice has no live data and points to the
+  wallet's own estimate, instead of a figure the model would invent.
+- The local model catalog is reduced to Qwen3.5 2B, 4B and 9B, with an import
+  from Hugging Face; the earlier models remain usable from a legacy list.
+- Method, sets and figures: [docs/RAG_EVALUATION.md](docs/RAG_EVALUATION.md).
+
+### What Alice remembers about you
+
+- Memory is laid out in fields by category, with Setup and Experience added
+  and a category for notes you ask Alice to keep. Each fact can be edited or
+  deleted on its own, a whole category can be cleared or paused, and one
+  action forgets everything.
+- Amounts, balances and exchange account names are refused on capture, in
+  addition to addresses, keys and recovery words. There is no longer a cap on
+  the number of facts; on the phone, memory beyond what the keychain holds
+  moves to an encrypted file.
+- "Remember that ..." keeps the sentence as you wrote it, only on an explicit
+  request.
+- The website gains a page that explains what is kept, where, and how to
+  remove it, and the repository carries the same account in
+  [docs/ALICE_USER_MEMORY.md](docs/ALICE_USER_MEMORY.md).
+
+### Private Cloud billing
+
+- The proxy counted the bytes of the encrypted stream as output, about a
+  hundred times the text, so a paid month ran out after a few dozen answers.
+  Output now has its own ratio and plan budgets follow the catalog.
+
+### Dependencies
+
+- The audit baseline is renewed and the advisories published on 2026-10-06
+  are moved past; web client boundary checks carried over from the validated
+  application work.
 
 ## 0.2.1
 

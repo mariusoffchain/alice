@@ -5,14 +5,14 @@ import { useAccount, type AliceBilling, type AliceCloudUsage } from '@alice-wall
 import { isBillingPreview, PREVIEW_ACCOUNT_NAME } from './billing-preview';
 import { PlanCheckout } from './PlanCheckout';
 import { RenewalReminders } from './RenewalReminders';
-import { btnBase, SectionHint, SectionLabel, sectionStyle } from './ui';
+import { SectionHint, SectionLabel, sectionStyle } from './ui';
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 
 /** Matches the server's reminder window, so the app and the emails agree. */
 const EXPIRY_WARNING_MS = 3 * DAY_MS;
 
-const AMBER = '#d99a2b';
+const AMBER = 'var(--alice-warning)';
 
 function formatDate(ms: number): string {
   return new Date(ms).toLocaleDateString('en-US', {
@@ -46,7 +46,7 @@ function UsageBar({ percent, label }: { percent: number; label: string }) {
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="font-pixel tracking-widest" style={{ fontSize: 10, opacity: 0.7 }}>
+        <span className="font-numbers" style={{ fontSize: 13, opacity: 1 }}>
           {label}
         </span>
         <span className="font-numbers" style={{ fontSize: 15 }}>{clamped}%</span>
@@ -59,8 +59,8 @@ function UsageBar({ percent, label }: { percent: number; label: string }) {
         aria-valuemax={100}
         style={{
           height: 12,
-          border: '2px solid var(--alice-border)',
-          borderRadius: 2,
+          border: '1px solid var(--alice-border)',
+          borderRadius: 'var(--alice-radius-control)',
           backgroundColor: 'var(--alice-bg)',
         }}
       >
@@ -172,11 +172,11 @@ export function AccountTab() {
       <section style={sectionStyle}>
         <SectionLabel>PLAN</SectionLabel>
         <div className="mt-3 flex items-baseline justify-between">
-          <span className="font-pixel tracking-widest" style={{ fontSize: 14 }}>
+          <span className="font-numbers" style={{ fontSize: 14 }}>
             {PLAN_LABELS[paid ? paid.plan : 'free']}
           </span>
           {paid && (
-            <span className="font-numbers" style={{ fontSize: 14, opacity: 0.6 }}>
+            <span className="font-numbers" style={{ fontSize: 14, opacity: 1 }}>
               until {formatDate(paid.expiresAt)}
             </span>
           )}
@@ -193,7 +193,7 @@ export function AccountTab() {
         )}
 
         {lapsed && (
-          <p className="font-numbers m-0 mt-3" style={{ fontSize: 14, opacity: 0.7 }}>
+          <p className="font-numbers m-0 mt-3" style={{ fontSize: 14, opacity: 1 }}>
             Your {PLAN_NAMES[billing.purchased_plan] ?? ''} plan ended
             {billing.plan_expires_at ? ` on ${formatDate(billing.plan_expires_at)}` : ''}.
             Your wallet, your local AI and your data are not affected. You are
@@ -217,11 +217,11 @@ export function AccountTab() {
             <>
               <UsageBar percent={paid.percentUsed} label="THIS MONTH" />
               {paid.periodEndsAt !== null && (
-                <p className="font-numbers m-0 mt-2" style={{ fontSize: 13, opacity: 0.6 }}>
+                <p className="font-numbers m-0 mt-2" style={{ fontSize: 13, opacity: 1 }}>
                   Allowance resets on {formatDate(paid.periodEndsAt)}.
                 </p>
               )}
-              <p className="font-numbers m-0 mt-4" style={{ fontSize: 13, opacity: 0.5 }}>
+              <p className="font-numbers m-0 mt-4" style={{ fontSize: 13, opacity: 1 }}>
                 Usage is estimated from the volume of data exchanged. Your
                 messages are end-to-end encrypted, Alice cannot read them, so
                 the exact token count is not accessible to her.
@@ -230,7 +230,7 @@ export function AccountTab() {
           ) : free ? (
             <>
               <div className="flex items-baseline justify-between">
-                <span className="font-pixel tracking-widest" style={{ fontSize: 10, opacity: 0.7 }}>
+                <span className="font-numbers" style={{ fontSize: 13, opacity: 1 }}>
                   PRIVATE CLOUD REQUESTS
                 </span>
                 <span className="font-numbers" style={{ fontSize: 15 }}>
@@ -265,19 +265,14 @@ export function AccountTab() {
           </span>
           <button
             type="button"
-            className="font-pixel"
-            style={{
-              ...btnBase,
-              backgroundColor: 'var(--alice-bg)',
-              color: 'var(--alice-primary-dark)',
-            }}
+            className="alice-control alice-control--quiet font-numbers"
             onClick={() => account.requestSignIn()}
           >
             {signedInAs ? 'MANAGE' : 'SIGN IN'}
           </button>
         </div>
         {account.account?.email_masked && (
-          <p className="font-numbers m-0 mt-2" style={{ fontSize: 13, opacity: 0.6 }}>
+          <p className="font-numbers m-0 mt-2" style={{ fontSize: 13, opacity: 1 }}>
             {account.account.email_masked}
           </p>
         )}

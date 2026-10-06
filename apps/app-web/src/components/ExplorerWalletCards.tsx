@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { PLUS_ICON, CLOSE_ICON, DELETE_ICON, QR_ICON, DOWNLOAD_ICON, WALLET_ICON } from '@/lib/atelier-icons';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChainDataProvider } from '@/lib/explorer/provider';
 import { ChainDataError, type RequestOptions } from '@/lib/explorer/provider';
@@ -90,10 +93,10 @@ function WalletCard({
       role="button"
       tabIndex={0}
       onClick={onOpen}
-      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(); } }}
+      onKeyDown={event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onOpen(); } }}
       aria-label={`Open ${wallet.label}`}
-      className="rh-card flex flex-col gap-2 px-4 py-4 cursor-pointer"
-      style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)', minHeight: 200 }}
+      className="rh-card focus-visible:outline-2 focus-visible:outline-offset-2 flex flex-col gap-2 px-4 py-4 cursor-pointer"
+      style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)', backgroundColor: 'transparent', minHeight: 200 }}
     >
       <div className="flex items-center justify-between gap-2">
         <span
@@ -119,11 +122,11 @@ function WalletCard({
             type="button"
             onClick={event => { event.stopPropagation(); onRemove(); }}
             aria-label={`Remove ${wallet.label}`}
-            className="rh-touch font-pixel tracking-widest cursor-pointer bg-transparent inline-flex items-center justify-center"
-            style={{ fontSize: 10, padding: '4px 8px', border: '1px solid var(--alice-border)', borderRadius: 2, color: 'var(--alice-muted)' }}
+            className="alice-control alice-control--tool alice-control--danger rh-touch font-numbers cursor-pointer bg-transparent inline-flex items-center justify-center"
+            style={{ fontSize: 13, padding: '4px 8px', color: 'var(--alice-muted)' }}
             title="Remove"
           >
-            ×
+            <SvgIcon svg={DELETE_ICON} size={16} />
           </button>
         </div>
       </div>
@@ -412,22 +415,27 @@ export function ExplorerWalletCards({
           type="button"
           onClick={() => { setAdding(a => !a); setError(''); }}
           aria-expanded={adding}
-          className="rh-touch font-pixel tracking-widest cursor-pointer bg-transparent inline-flex items-center"
-          style={{ fontSize: 10, padding: '6px 12px', border: '2px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)' }}
+          className="alice-control alice-control--quiet rh-touch font-numbers cursor-pointer bg-transparent inline-flex items-center"
+          style={{ fontSize: 13, padding: '6px 12px', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-primary)' }}
         >
-          {adding ? 'CANCEL' : '+ ADD'}
+          <SvgIcon svg={adding ? CLOSE_ICON : PLUS_ICON} size={16} />
+          {adding ? 'Cancel' : 'Add a watch'}
         </button>
       </div>
 
       {adding && (
-        <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
+        <div className="flex flex-col gap-2 px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)' }}>
+          <label htmlFor="explorer-watch-input" className="font-numbers text-sm">Address, extended key or descriptor</label>
           <input
+            id="explorer-watch-input"
+            aria-describedby="explorer-watch-privacy explorer-watch-error"
+            aria-invalid={!!error}
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder="Address, xpub / ypub / zpub, or a descriptor like wpkh(xpub.../<0;1>/*)"
-            className="font-numbers outline-none w-full"
-            style={{ fontSize: 13, padding: '8px 12px', backgroundColor: 'var(--alice-bg)', border: '2px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary-dark)', boxSizing: 'border-box' }}
+            className="alice-field font-numbers w-full"
+            style={{ fontSize: 13, padding: '8px 12px', backgroundColor: 'var(--alice-bg)', border: '1px solid var(--alice-control-border)', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-text)', boxSizing: 'border-box' }}
           />
           {/* Import helpers: from a file (text/JSON/image) or a scanned QR. */}
           <div className="flex flex-wrap gap-2">
@@ -441,49 +449,51 @@ export function ExplorerWalletCards({
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="font-pixel tracking-widest cursor-pointer bg-transparent"
-              style={{ fontSize: 10, padding: '7px 12px', border: '2px solid var(--alice-border)', borderRadius: 2, color: 'var(--alice-primary)' }}
+              className="alice-control alice-control--quiet font-numbers cursor-pointer bg-transparent"
+              style={{ fontSize: 13, padding: '7px 12px', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-primary)' }}
             >
-              IMPORT FILE
+              <SvgIcon svg={DOWNLOAD_ICON} size={20} /> Import a file
             </button>
             <button
               type="button"
               onClick={() => { setError(''); setScanningQr(true); }}
               disabled={!qrDecodingSupported()}
-              className="font-pixel tracking-widest cursor-pointer bg-transparent disabled:cursor-not-allowed"
-              style={{ fontSize: 10, padding: '7px 12px', border: '2px solid var(--alice-border)', borderRadius: 2, color: 'var(--alice-primary)', opacity: qrDecodingSupported() ? 1 : 0.4 }}
+              className="alice-control alice-control--quiet font-numbers cursor-pointer bg-transparent disabled:cursor-not-allowed"
+              style={{ fontSize: 13, padding: '7px 12px', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-primary)', opacity: qrDecodingSupported() ? 1 : 0.4 }}
               title={qrDecodingSupported() ? 'Scan a QR with the camera' : 'QR scanning is not supported by this browser'}
             >
-              SCAN QR
+              <SvgIcon svg={QR_ICON} size={20} /> Scan a QR
             </button>
           </div>
+          <label htmlFor="explorer-watch-label" className="font-numbers text-sm">Watch name <span style={{ color: 'var(--alice-muted)' }}>(optional)</span></label>
           <input
+            id="explorer-watch-label"
             type="text"
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="Label (optional)"
-            className="font-numbers outline-none w-full"
-            style={{ fontSize: 13, padding: '8px 12px', backgroundColor: 'var(--alice-bg)', border: '2px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary-dark)', boxSizing: 'border-box' }}
+            className="alice-field font-numbers w-full"
+            style={{ fontSize: 13, padding: '8px 12px', backgroundColor: 'var(--alice-bg)', border: '1px solid var(--alice-control-border)', borderRadius: 'var(--alice-radius-control)', color: 'var(--alice-text)', boxSizing: 'border-box' }}
           />
-          {error && <p className="font-numbers m-0" style={{ fontSize: 12, color: 'var(--alice-danger)' }}>{error}</p>}
+          {error && <p id="explorer-watch-error" role="alert" className="font-numbers m-0" style={{ fontSize: 12, color: 'var(--alice-danger)' }}>{error}</p>}
           <button
             type="button"
             onClick={() => void handleAdd()}
-            className="font-pixel tracking-widest self-start cursor-pointer"
-            style={{ fontSize: 10, padding: '8px 16px', borderRadius: 2, border: '2px solid var(--alice-primary)', backgroundColor: 'var(--alice-primary)', color: 'var(--alice-on-primary)' }}
+            className="alice-control alice-control--primary font-numbers self-start cursor-pointer"
+            style={{ fontSize: 10, padding: '8px 16px', borderRadius: 'var(--alice-radius-control)',  }}
           >
-            ADD
+            <SvgIcon svg={PLUS_ICON} size={20} /> Add the watch
           </button>
-          <p className="font-numbers m-0" style={{ fontSize: 11, color: 'var(--alice-muted)', opacity: 0.8 }}>
+          <p id="explorer-watch-privacy" className="font-numbers m-0" style={{ fontSize: 11, color: 'var(--alice-muted)', opacity: 0.8 }}>
             Public keys and addresses only, stored on this device. An xpub reveals every address of the wallet, keep it private.
           </p>
         </div>
       )}
 
       {wallets.length === 0 && !adding && (
-        <div style={{ border: '1px dashed var(--alice-border)', borderRadius: 2 }}>
+        <div style={{ border: '1px dashed var(--alice-border)', borderRadius: 'var(--alice-radius-control)' }}>
           <EmptyState
-            glyph="◇"
+            icon={WALLET_ICON}
             title="No wallets yet"
             hint="Add an address, xpub or descriptor to watch it at a glance."
           />

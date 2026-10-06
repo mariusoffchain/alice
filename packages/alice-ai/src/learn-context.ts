@@ -15,7 +15,9 @@ export type LearnTurnContext = {
   excerpt: string;
 };
 
-export type LearnContextProvider = (query: string) => Promise<LearnTurnContext | null>;
+export type LearnContextOptions = { targetLanguage?: 'fr' | 'en' };
+
+export type LearnContextProvider = (query: string, options?: LearnContextOptions) => Promise<LearnTurnContext | null>;
 
 const PROVIDER_TIMEOUT_MS = 1_500;
 const MAX_EXCERPT_CHARS = 2_000;
@@ -26,21 +28,30 @@ export function registerLearnContextProvider(next: LearnContextProvider): void {
   provider = next;
 }
 
-export async function learnContextFor(query: string): Promise<LearnTurnContext | null> {
+export async function learnContextFor(query: string, options?: LearnContextOptions): Promise<LearnTurnContext | null> {
   if (!provider) return null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const result = await Promise.race([
-      provider(query),
-      new Promise<null>(resolve => setTimeout(() => resolve(null), PROVIDER_TIMEOUT_MS)),
+      provider(query, options),
+      new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), PROVIDER_TIMEOUT_MS); }),
     ]);
-    if (!result || !result.excerpt.trim()) return null;
+    if (!result) return null;
+    // Keep a complete prefix. A character cut can remove a safety qualifier at
+    // the end of the same paragraph. Scan only the bounded head of a pack.
+    const head = result.excerpt.slice(0, MAX_EXCERPT_CHARS + 2);
+    const boundary = head.lastIndexOf('\n\n');
+    const excerpt = (result.excerpt.length <= MAX_EXCERPT_CHARS
+      ? result.excerpt
+      : boundary >= 0 ? head.slice(0, boundary) : '').trim();
+    if (!excerpt) return null;
     return {
       label: result.label,
-      excerpt: result.excerpt.length > MAX_EXCERPT_CHARS
-        ? `${result.excerpt.slice(0, MAX_EXCERPT_CHARS)}…`
-        : result.excerpt,
+      excerpt,
     };
   } catch {
     return null;
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
 }

@@ -42,6 +42,13 @@ export type KnowledgePack = {
   source: 'bundled' | 'downloaded';
   /** Disabled packs stay installed but never participate in retrieval. */
   enabledByDefault?: boolean;
+  /**
+   * True for the packs whose chunks are embedded in the shipped semantic index
+   * (built by scripts/build-embeddings.js). Any other pack, bundled or not, is
+   * retrieved lexically only, so registering one at runtime (the Explorer pack)
+   * cannot change the corpus the index is validated against.
+   */
+  semanticIndex?: boolean;
   chunks: KnowledgeChunk[];
 };
 
@@ -85,6 +92,13 @@ export function getKnowledgePackRevision(): number {
 export function getAllChunks(options: { includeDisabled?: boolean } = {}): KnowledgeChunk[] {
   return getRegisteredPacks()
     .filter(pack => options.includeDisabled || enabledPacks.has(pack.id))
+    .flatMap(pack => pack.chunks);
+}
+
+/** Stable shipped semantic corpus; every other pack uses lexical retrieval. */
+export function getBundledKnowledgeChunks(): KnowledgeChunk[] {
+  return getRegisteredPacks()
+    .filter(pack => pack.source === 'bundled' && pack.semanticIndex === true && pack.enabledByDefault !== false)
     .flatMap(pack => pack.chunks);
 }
 

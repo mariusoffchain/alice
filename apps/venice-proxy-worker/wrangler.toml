@@ -102,6 +102,12 @@ PLAN_OUTPUT_TOKENS = "2000000"
 # total metered bytes against Venice's invoice and adjust this value. Both are
 # global totals: no per-user measurement is involved.
 BYTES_PER_TOKEN = "3.7"
+# Bytes of relayed stream per output token. A response is not text on the wire:
+# Venice streams one encrypted event per token, each in its JSON envelope, so a
+# token weighs a few hundred bytes there (247 KB measured per paid answer and
+# 111 KB per free one over September and October 2026, for one to two KB of
+# text). Calibrated like BYTES_PER_TOKEN, from the ledger against the invoice.
+OUTPUT_BYTES_PER_TOKEN = "200"
 
 # Prices are quoted in satoshis and never in euros. The plans stay anchored to
 # a fiat amount so they keep covering what Venice charges, but that anchor is

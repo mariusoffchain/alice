@@ -12,6 +12,15 @@ export const RELEASE_NOTES_URL = 'https://github.com/mariusoffchain/alice/releas
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: '0.2.2',
+    highlights: [
+      'A refreshed interface with a pixel rabbit, calmer controls and colors that follow your theme.',
+      'Cleaner navigation across Chat, Explorer, Learn and settings.',
+      'The model name and reasoning level are easier to tell apart.',
+      'Update details are now available from Settings → General, and appear after an upgrade.',
+    ],
+  },
+  {
     version: '0.2.1',
     highlights: [
       'The Explorer works in the installed desktop app: it could not reach the chain at all before.',

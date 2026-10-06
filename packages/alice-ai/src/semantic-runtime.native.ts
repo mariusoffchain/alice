@@ -2,7 +2,8 @@
 // only on Wi-Fi; until it is ready, rag.ts keeps using its lexical fallback.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DeviceEventEmitter, Platform } from 'react-native';
-import { getRegisteredPacks } from './knowledge-packs';
+import { getBundledKnowledgeChunks } from './knowledge-packs';
+import { validateSemanticIndexMetadata } from './semantic-index';
 import {
   NATIVE_SEMANTIC_MODEL_DOWNLOAD_BYTES,
   SEMANTIC_SEARCH_PREFERENCE_KEY,
@@ -15,17 +16,27 @@ import type { ChunkEmbeddingIndex, SemanticMatch } from './semantic-search';
 import { rankBySimilarity, toQueryText } from './semantic-search';
 
 const EMBEDDING_MODEL = {
-  id: 'keisuke-miyako/multilingual-e5-small-gguf-q8_0',
-  filename: 'multilingual-e5-small-Q8_0.gguf',
+  id: 'TwinSunsLLC/multilingual-e5-small-gguf@b6cac9615d4ecce28d7f22539b7322d695fc2886',
+  filename: 'multilingual-e5-small-spm-q8_0.gguf',
   sizeBytes: NATIVE_SEMANTIC_MODEL_DOWNLOAD_BYTES,
-  url: 'https://huggingface.co/keisuke-miyako/multilingual-e5-small-gguf-q8_0/resolve/main/multilingual-e5-small-Q8_0.gguf',
+  url: 'https://huggingface.co/TwinSunsLLC/multilingual-e5-small-gguf/resolve/b6cac9615d4ecce28d7f22539b7322d695fc2886/multilingual-e5-small-q8_0.gguf',
 };
-const LEGACY_MODEL_FILENAMES = ['multilingual-e5-small-q8_0.gguf'];
+// The 0.2.0 and 0.2.1 releases shipped the previous pin under an uppercase
+// suffix; phones are case-sensitive, so both spellings are cleaned up.
+const LEGACY_MODEL_FILENAMES = ['multilingual-e5-small-q8_0.gguf', 'multilingual-e5-small-Q8_0.gguf'];
 const BUNDLED_INDEX_DIR = 'core-embeddings';
 const IDLE_RELEASE_MS = 30_000;
 
+// Reference probe for the XLM-RoBERTa SPM tokenizer this GGUF ships with.
+// llama.rn's tokenize() calls common_tokenize with add_special=false, so no
+// BOS/EOS should appear; a BERT-vocab tokenizer (the prior cache's defect)
+// produces a different sequence for the same string.
+const TOKENIZER_PROBE_TEXT = 'query: What is Bitcoin?';
+const TOKENIZER_PROBE_TOKENS = [41, 1294, 12, 4865, 83, 26999, 32];
+
 type EmbeddingContext = {
   embedding(text: string): Promise<{ embedding: number[] }>;
+  tokenize(text: string): Promise<{ tokens: number[] }>;
   release(): Promise<void>;
 };
 
@@ -125,6 +136,10 @@ async function copyBundledAsset(filename: string, destination: string): Promise<
 
 async function loadBundledIndex(): Promise<ChunkEmbeddingIndex | null> {
   try {
+    // Preloading may precede the first question. Validate against the complete
+    // shipped corpus, including Alice docs, after lazy corpus registration.
+    const { loadRagCorpus } = await import('./rag');
+    await loadRagCorpus();
     const { FileSystem, directory, vectors } = await nativePaths();
     await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
 
@@ -139,17 +154,10 @@ async function loadBundledIndex(): Promise<ChunkEmbeddingIndex | null> {
     }
     if (!metadataText) return null;
 
-    const metadata = JSON.parse(metadataText) as {
-      model?: string;
-      dim: number;
-      ids: string[];
-      corpusHash?: string;
-    };
-    if (metadata.model !== EMBEDDING_MODEL.id) return null;
-    const coreIds = getRegisteredPacks().find(pack => pack.id === 'core')?.chunks.map(chunk => chunk.id) ?? [];
-    if (coreIds.length !== metadata.ids.length || coreIds.some((id, index) => metadata.ids[index] !== id)) {
-      return null;
-    }
+    const metadata = validateSemanticIndexMetadata(
+      JSON.parse(metadataText), EMBEDDING_MODEL.id, getBundledKnowledgeChunks(),
+    );
+    if (!metadata) return null;
     const expectedBytes = metadata.dim * metadata.ids.length * Float32Array.BYTES_PER_ELEMENT;
     // The corpus can change without changing the row count or vector size.
     // Refresh this small bundled matrix on every process start so an app
@@ -238,7 +246,21 @@ export async function releaseSemanticSearchContext(): Promise<void> {
   await context?.release().catch(() => {});
 }
 
+async function hasExpectedTokenizer(context: EmbeddingContext): Promise<boolean> {
+  try {
+    const { tokens } = await context.tokenize(TOKENIZER_PROBE_TEXT);
+    return (
+      Array.isArray(tokens)
+      && tokens.length === TOKENIZER_PROBE_TOKENS.length
+      && tokens.every((token, index) => token === TOKENIZER_PROBE_TOKENS[index])
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function loadEmbeddingContext(): Promise<EmbeddingContext | null> {
+  const startedGeneration = generation;
   const { model } = await nativePaths();
   try {
     const llama = await import('llama.rn');
@@ -250,6 +272,19 @@ async function loadEmbeddingContext(): Promise<EmbeddingContext | null> {
       embedding: true,
       embd_normalize: 2,
     }) as EmbeddingContext;
+    if (!(await hasExpectedTokenizer(context))) {
+      await context.release().catch(() => {});
+      if (startedGeneration === generation) {
+        modelReady = false;
+        modelReadyPromise = null;
+        setState({ status: 'failed', progress: null });
+      }
+      if (!didLogContextFailure) {
+        didLogContextFailure = true;
+        console.warn('[alice-semantic] native embedding context rejected: unexpected tokenizer output');
+      }
+      return null;
+    }
     if (!didLogContextReady) {
       didLogContextReady = true;
       console.info('[alice-semantic] native embedding context ready');
@@ -374,16 +409,21 @@ export async function disableSemanticSearch(): Promise<void> {
 }
 
 export async function getSemanticMatches(query: string, topK: number): Promise<SemanticMatch[] | null> {
+  const startedGeneration = generation;
   if (state.status !== 'ready' || !indexPromise || !modelReadyPromise) {
     if (state.status === 'idle') preloadSemanticSearch();
     return null;
   }
   const [index, modelReady] = await Promise.all([indexPromise, modelReadyPromise]);
-  if (!index || !modelReady) return null;
+  if (!index || !modelReady || startedGeneration !== generation) return null;
 
   embeddingContextPromise ??= loadEmbeddingContext();
   const context = await embeddingContextPromise;
-  if (!context) return null;
+  if (startedGeneration !== generation) return null;
+  if (!context) {
+    embeddingContextPromise = null;
+    return null;
+  }
 
   try {
     const result = await context.embedding(toQueryText(query));

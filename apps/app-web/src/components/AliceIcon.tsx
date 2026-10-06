@@ -1,26 +1,8 @@
 'use client';
 
-import { ALICE_ICON_SVG } from '@alice-wallet/alice-ui/components/alice-icon-svg';
+import { rabbitPaths } from '@/lib/rabbit-motion';
 
-interface AliceIconProps {
-  size?: number;
-  color?: string;
-}
-
-export function AliceIcon({
-  size = 48,
-  color = 'var(--alice-primary)',
-}: AliceIconProps) {
-  const svg = ALICE_ICON_SVG.replaceAll('{{COLOR}}', color);
-
-  const sized = svg
-    .replace(/width="[^"]*"/, `width="${size}"`)
-    .replace(/height="[^"]*"/, `height="${size}"`);
-
-  return (
-    <div
-      style={{ width: size, height: size, flexShrink: 0 }}
-      dangerouslySetInnerHTML={{ __html: sized }}
-    />
-  );
+/** Static version of the shared mascot, used outside the active conversation. */
+export function AliceIcon({ size = 48, color = 'var(--alice-primary)' }: { size?: number; color?: string }) {
+  return <svg role="img" aria-label="Alice" width={size} height={size} viewBox="0 0 40 40" fill="currentColor" style={{ color, shapeRendering: 'crispEdges', flexShrink: 0 }}><path d={rabbitPaths.repos} /></svg>;
 }

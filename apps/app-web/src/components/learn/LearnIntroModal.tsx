@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { CLOSE_ICON, CHECK_ICON } from '@/lib/atelier-icons';
+
 import { useState } from 'react';
 
 // First-open welcome for the Learn section, the twin of ExplorerIntroModal:
@@ -52,35 +55,45 @@ export function LearnIntroModal({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="learn-intro-title"
+        onKeyDown={(event) => { if (event.key === 'Escape') onClose(); }}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
           maxWidth: 480,
-          padding: 18,
+          padding: 20,
+          maxHeight: 'calc(100dvh - 48px)',
+          overflowY: 'auto',
           backgroundColor: 'var(--alice-bg)',
-          border: '2px solid var(--alice-border)',
-          borderRadius: 2,
+          border: '1px solid var(--alice-border)',
+          borderRadius: 'var(--alice-radius-control)',
           color: 'var(--alice-text)',
         }}
       >
+        <div className="flex items-start justify-between gap-3">
         <h3
+          id="learn-intro-title"
           className="font-pixel tracking-widest m-0"
-          style={{ fontSize: 13, color: 'var(--alice-primary-dark)' }}
+          style={{ fontSize: 12, lineHeight: 1.8, color: 'var(--alice-text)' }}
         >
           {fr ? 'BIENVENUE DANS LEARN' : 'WELCOME TO LEARN'}
         </h3>
-        <p className="font-numbers m-0 mt-3" style={{ fontSize: 15, lineHeight: '21px', opacity: 0.85 }}>
+        <button type="button" autoFocus className="alice-control alice-control--tool" aria-label={fr ? 'Fermer' : 'Close'} onClick={onClose}><SvgIcon svg={CLOSE_ICON} size={16} /></button>
+        </div>
+        <p className="font-numbers m-0 mt-3" style={{ fontSize: 15, lineHeight: '21px', color: 'var(--alice-muted)' }}>
           {fr
             ? 'Une bibliothèque de cours et de tutoriels sur Bitcoin, du premier pas à la vie privée, au minage et au réseau Lightning. Chaque cours se lit chapitre par chapitre, avec des quiz et des liens vers la chaîne réelle dans l’Explorer.'
             : 'A library of Bitcoin courses and tutorials, from the first steps to privacy, mining and the Lightning Network. Every course reads chapter by chapter, with quizzes and links into the real chain in the Explorer.'}
         </p>
-        <p className="font-numbers m-0 mt-2" style={{ fontSize: 15, lineHeight: '21px', opacity: 0.85 }}>
+        <p className="font-numbers m-0 mt-2" style={{ fontSize: 15, lineHeight: '21px', color: 'var(--alice-muted)' }}>
           {fr
             ? 'Le contenu est celui de Plan ₿ Academy, sous licence CC BY-SA 4.0. Alice ne le réécrit pas : elle l’explique quand tu bloques.'
             : 'The content is Plan ₿ Academy’s, licensed CC BY-SA 4.0. Alice never rewrites it: she explains it when you get stuck.'}
         </p>
 
-        <div className="flex items-center justify-between gap-3 mt-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-5">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -96,32 +109,18 @@ export function LearnIntroModal({
             <button
               type="button"
               onClick={() => { confirm(); onPickLanguage(); }}
-              className="font-pixel tracking-widest cursor-pointer"
-              style={{
-                fontSize: 10,
-                padding: '10px 14px',
-                border: '2px solid var(--alice-border)',
-                borderRadius: 2,
-                backgroundColor: 'transparent',
-                color: 'var(--alice-muted)',
-              }}
+              className="alice-control alice-control--quiet"
+              style={{ padding: '10px 14px' }}
             >
-              {fr ? 'CHOISIR LA LANGUE' : 'PICK A LANGUAGE'}
+              {fr ? 'Choisir la langue' : 'Pick a language'}
             </button>
             <button
               type="button"
               onClick={confirm}
-              className="font-pixel tracking-widest cursor-pointer"
-              style={{
-                fontSize: 10,
-                padding: '10px 22px',
-                border: '2px solid var(--alice-primary)',
-                borderRadius: 2,
-                backgroundColor: 'var(--alice-primary)',
-                color: 'var(--alice-on-primary)',
-              }}
+              className="alice-control alice-control--primary"
+              style={{ padding: '10px 22px' }}
             >
-              OK
+              <SvgIcon svg={CHECK_ICON} size={20} /> {fr ? 'Découvrir les cours' : 'Explore courses'}
             </button>
           </div>
         </div>

@@ -1,6 +1,16 @@
+import { fitLocalModelRoles, usesAnswerOnlyLocalMode } from './local-model-message-policy';
 import type { AIBackend, AIBackendStatus, AIResponse, SendMessageOptions } from './ai-backend';
 import type { Message } from './llm';
-import { getPreset, PRESETS, getActiveModelId, getModelPath as resolveModelPath, getAliceInstructions, getModelStatus } from './ai-preferences';
+import {
+  findInstalledLocalModelId,
+  getActiveModelId,
+  getAliceInstructions,
+  getModelPath as resolveModelPath,
+  getModelStatus,
+  getPreset,
+  PRESETS,
+  setActiveModelId,
+} from './ai-preferences';
 import {
   applyAliceResponseConstraints,
   buildAliceLocalSystemPrompt,
@@ -9,59 +19,38 @@ import {
 } from './ai-system-prompt';
 import {
   LOCAL_CONTEXT_TOKENS,
-  LOCAL_CONTEXT_SAFETY_TOKENS,
-  LOCAL_MIN_RESPONSE_TOKENS,
+  fitMessagesToContextWithAsyncCounting,
+  type LocalContextFit,
 } from './local-context-budget';
 
 let llamaContext: any = null;
 let loadedModelId: string | null = null;
 
+// Keeps the mandatory system/application context and the current user turn,
+// discarding only the oldest conversation turns first. The exact chat
+// template is model-specific, so each candidate is measured with the real
+// tokenizer instead of an estimate.
 async function fitMessagesToContext(
   context: any,
-  systemMessage: Message,
   messages: Message[],
   requestedResponseTokens: number,
   enableThinking: boolean,
-): Promise<{ messages: Message[]; promptTokens: number; responseTokens: number }> {
-  // Keep the current user turn and discard only the oldest conversation turns.
-  // The exact chat template is model-specific, so count its real tokens instead
-  // of estimating from characters.
-  let recentMessages = [...messages];
-
-  while (recentMessages.length > 1) {
-    const formatted = await context.getFormattedChat(
-      [systemMessage, ...recentMessages],
-      undefined,
-      { enable_thinking: enableThinking },
-    );
-    const promptTokens = (await context.tokenize(formatted.prompt)).tokens.length;
-    const responseTokens = Math.min(
-      requestedResponseTokens,
-      LOCAL_CONTEXT_TOKENS - promptTokens - LOCAL_CONTEXT_SAFETY_TOKENS,
-    );
-    if (responseTokens >= LOCAL_MIN_RESPONSE_TOKENS) {
-      return { messages: [systemMessage, ...recentMessages], promptTokens, responseTokens };
-    }
-    const dropsCompleteTurn = recentMessages[0]?.role === 'user'
-      && recentMessages[1]?.role === 'assistant';
-    recentMessages = recentMessages.slice(dropsCompleteTurn ? 2 : 1);
-  }
-
-  const fittedMessages = [systemMessage, ...recentMessages];
-  const formatted = await context.getFormattedChat(
-    fittedMessages,
-    undefined,
-    { enable_thinking: enableThinking },
-  );
-  const promptTokens = (await context.tokenize(formatted.prompt)).tokens.length;
-  const responseTokens = Math.min(
+  modelId: string,
+): Promise<LocalContextFit> {
+  return fitMessagesToContextWithAsyncCounting(
+    messages,
     requestedResponseTokens,
-    LOCAL_CONTEXT_TOKENS - promptTokens - LOCAL_CONTEXT_SAFETY_TOKENS,
+    LOCAL_CONTEXT_TOKENS,
+    async candidate => {
+      const formatted = await context.getFormattedChat(
+        candidate,
+        undefined,
+        { enable_thinking: enableThinking },
+      );
+      return (await context.tokenize(formatted.prompt)).tokens.length;
+    },
+    candidate => fitLocalModelRoles(candidate, modelId),
   );
-  if (responseTokens < LOCAL_MIN_RESPONSE_TOKENS) {
-    throw new Error('Local prompt is too long for the model context.');
-  }
-  return { messages: fittedMessages, promptTokens, responseTokens };
 }
 
 export class LocalAIBackend implements AIBackend {
@@ -85,10 +74,17 @@ export class LocalAIBackend implements AIBackend {
     this._status = { state: 'loading', progress: 0 };
 
     try {
-      if ((await getModelStatus(activeId)) !== 'installed') {
-        throw new Error('No local model installed. Download one to use local AI.');
+      let modelId = activeId;
+      if ((await getModelStatus(modelId)) !== 'installed') {
+        // The stored or default id can point at a file that is not there (an
+        // update moved the default, a file was removed): use any complete
+        // known file instead of failing while a model sits on disk.
+        const installed = await findInstalledLocalModelId();
+        if (!installed) throw new Error('No local model installed. Download one to use local AI.');
+        modelId = installed;
+        await setActiveModelId(modelId);
       }
-      const modelPath = await resolveModelPath(activeId);
+      const modelPath = await resolveModelPath(modelId);
       this._status = { state: 'loading', progress: 0.5 };
 
       const llama = await import('llama.rn');
@@ -100,7 +96,7 @@ export class LocalAIBackend implements AIBackend {
         ctx_shift: true,
       });
 
-      loadedModelId = activeId;
+      loadedModelId = modelId;
       this._status = { state: 'ready' };
     } catch (err) {
       this._status = { state: 'error', message: err instanceof Error ? err.message : 'Model load failed.' };
@@ -127,12 +123,11 @@ export class LocalAIBackend implements AIBackend {
     ]);
     const params = PRESETS[preset];
     const shouldBuffer = requiresBufferedAliceResponse(instructions);
-    // Qwen3 exposes its chain of thought in some llama.cpp runtimes unless
-    // explicitly disabled. Alice keeps the answer-focused mode for every Qwen3.
-    const enableThinking = !activeModelId.startsWith('qwen3-');
+    // Keep reasoning from consuming the bounded visible-answer budget.
+    const enableThinking = !usesAnswerOnlyLocalMode(activeModelId);
 
     const responseLanguage = options?.responseLanguage ?? 'en';
-    const systemMessage = { role: 'system' as const, content: buildAliceLocalSystemPrompt(instructions, responseLanguage) };
+    const systemMessage = { role: 'system' as const, content: buildAliceLocalSystemPrompt(instructions, responseLanguage) + (activeModelId === 'smollm3-3b' ? ' /no_think' : '') };
     const remindedMessages = withAliceInstructionReminder(messages, instructions, responseLanguage, options?.strictLanguageRetry);
 
     // completion() already receives the complete selected history. Keeping the
@@ -141,10 +136,10 @@ export class LocalAIBackend implements AIBackend {
     await llamaContext.clearCache(false);
     const fitted = await fitMessagesToContext(
       llamaContext,
-      systemMessage,
-      remindedMessages,
+      [systemMessage, ...remindedMessages],
       params.maxTokens,
       enableThinking,
+      activeModelId,
     );
 
     const t0 = Date.now();

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { SvgIcon } from './SvgIcon';
+import { CLOSE_ICON, WALLET_ICON, CHECK_ICON } from '@/lib/atelier-icons';
 
 // First-open welcome for the Playground, same shell and dismissal mechanics
 // as ExplorerIntroModal. This is the one place that says, calmly and once,
@@ -59,26 +61,33 @@ export function PlaygroundIntroModal({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Welcome to the Playground"
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
           maxWidth: 480,
-          padding: 18,
+          padding: 20,
+          maxHeight: 'calc(100dvh - 48px)',
+          overflowY: 'auto',
           backgroundColor: 'var(--alice-bg)',
-          border: '2px solid var(--alice-border)',
-          borderRadius: 2,
+          border: '1px solid var(--alice-border)',
+          borderRadius: 'var(--alice-radius-control)',
           color: 'var(--alice-text)',
         }}
       >
+        <button type="button" onClick={onClose} aria-label="Close introduction"
+          className="alice-control alice-control--tool float-right"><SvgIcon svg={CLOSE_ICON} size={16} /></button>
         <h3
           className="font-pixel tracking-widest m-0"
-          style={{ fontSize: 13, color: 'var(--alice-primary-dark)' }}
+          style={{ fontSize: 12, lineHeight: 1.8, color: 'var(--alice-text)' }}
         >
           WELCOME TO THE PLAYGROUND
         </h3>
         <p
           className="font-numbers m-0 mt-3"
-          style={{ fontSize: 15, lineHeight: '21px', opacity: 0.85 }}
+          style={{ fontSize: 15, lineHeight: '21px', color: 'var(--alice-muted)' }}
         >
           A real Bitcoin wallet, on a network where coins are free and
           worthless. Send, receive, back up: make every mistake here, and
@@ -86,13 +95,13 @@ export function PlaygroundIntroModal({
         </p>
         <p
           className="font-numbers m-0 mt-2"
-          style={{ fontSize: 15, lineHeight: '21px', opacity: 0.85 }}
+          style={{ fontSize: 15, lineHeight: '21px', color: 'var(--alice-muted)' }}
         >
           This is not your real wallet. Nothing here has value, so nothing
           here can be lost.
         </p>
 
-        <div className="flex items-center justify-between gap-3 mt-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-5">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -107,17 +116,10 @@ export function PlaygroundIntroModal({
           <button
             type="button"
             onClick={confirm}
-            className="font-pixel tracking-widest cursor-pointer"
-            style={{
-              fontSize: 10,
-              padding: '10px 22px',
-              border: '2px solid var(--alice-primary)',
-              borderRadius: 2,
-              backgroundColor: 'var(--alice-primary)',
-              color: 'var(--alice-on-primary)',
-            }}
+            className="alice-control alice-control--primary"
           >
-            {hasWallet ? 'OK' : 'CREATE MY PRACTICE WALLET'}
+            <SvgIcon svg={hasWallet ? CHECK_ICON : WALLET_ICON} size={20} />
+            {hasWallet ? 'OK' : 'Create my practice wallet'}
           </button>
         </div>
       </div>

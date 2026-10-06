@@ -3,26 +3,20 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { DownloadNotice, type DownloadPlatform } from '@/components/DownloadNotice';
 import {
-  ANDROID_APK_URL,
   ANDROID_RELEASE_URL,
-  ANDROID_VERSION,
   APP_URL,
   DESKTOP_LINUX_APPIMAGE_URL,
   DESKTOP_LINUX_DEB_URL,
   DESKTOP_MAC_URL,
   DESKTOP_RELEASE_URL,
   DESKTOP_WINDOWS_URL,
-  WALLET_BETA_NOTE,
-  WALLET_URL,
 } from '@/lib/site';
 import {
-  DesktopIcon,
   GlobeIcon,
   DownloadIcon,
   AppleGlyph,
   WindowsGlyph,
   LinuxGlyph,
-  AndroidGlyph,
   ChevronDownIcon,
   ShieldCheckIcon,
 } from '@/components/icons';
@@ -43,9 +37,7 @@ export type PlatformItem = {
   notice?: DownloadPlatform;
 };
 
-// The two platform lists, shared between the CTA dropdowns and the mobile
-// nav menu so no surface can drift out of sync with what is actually
-// distributed. Items with no href render as "Coming soon".
+// Companion platforms shared by the desktop and mobile download menus.
 export const APP_PLATFORM_ITEMS: PlatformItem[] = [
   { icon: <GlobeIcon size={18} />, label: 'Web app', href: APP_URL },
   { icon: <AppleGlyph size={18} />, label: 'Mac', href: DESKTOP_MAC_URL, notice: 'macos' },
@@ -59,41 +51,19 @@ export const APP_PLATFORM_ITEMS: PlatformItem[] = [
   { icon: <DownloadIcon size={18} />, label: 'Release & checksum', href: DESKTOP_RELEASE_URL },
 ];
 
-export const WALLET_PLATFORM_ITEMS: PlatformItem[] = [
-  { icon: <AppleGlyph size={18} />, label: 'iOS' },
-  { icon: <AndroidGlyph size={18} />, label: 'Android' },
-  {
-    icon: <DownloadIcon size={18} />,
-    label: `Beta APK ${ANDROID_VERSION}`,
-    href: ANDROID_APK_URL,
-    notice: 'android',
-  },
-  // "Web wallet", not "Web app": the App group has a row of that exact name,
-  // and two identical labels in one menu is a coin toss for the reader.
-  { icon: <GlobeIcon size={18} />, label: 'Web wallet', href: WALLET_URL },
-  { icon: <DownloadIcon size={18} />, label: 'Release & checksum', href: ANDROID_RELEASE_URL },
-];
-
 // `note` is a one-line caveat under the group title, for what the reader
 // should know before clicking any row in it, not just one.
 export type PlatformGroup = { label: string; items: PlatformItem[]; note?: string };
 
-// Everything Alice ships, in one list. Two products, so the menu names them
-// rather than pretending there is only one; the nav's other button is the
-// one that just opens the companion.
+// Experimental wallet access is intentionally outside the primary downloads.
 export const DOWNLOAD_GROUPS: PlatformGroup[] = [
   { label: 'Alice App', items: APP_PLATFORM_ITEMS },
-  // The wallet is a beta holding real bitcoin: the warning belongs where the
-  // download is chosen, not only in the release notes.
-  { label: 'Alice Wallet', items: WALLET_PLATFORM_ITEMS, note: WALLET_BETA_NOTE },
 ];
 
 // Available items get a real link; items with no href (not yet distributed)
 // render as plain, non-interactive rows labelled "Coming soon", the same
 // honesty pattern used on /trust rather than a dead or invented link.
-// `compact` is for the phone menu, where two columns share 375px. The icon
-// stays, because a platform list without its glyphs is a wall of words: only
-// the "Coming soon" note moves to a second line to buy the width back.
+// Compact rows remain available for constrained placements.
 export function PlatformRow({ icon, label, href, notice, compact }: PlatformItem & { compact?: boolean }) {
   // An unsigned build is about to scare this person. Say it first: the dialog
   // takes the click, explains the exact screen coming, and only then hands
@@ -177,11 +147,10 @@ function PlatformMenu({
       className="platform-menu absolute top-full z-[70] pt-2"
       style={{ width: placement.width, left: placement.left }}
     >
-      {/* Two products, two columns: stacking them made one long list where
-          the reader had to hunt for the boundary. */}
+      {/* One compact list for companion downloads. */}
       <div
         role="menu"
-        className="grid grid-cols-2 gap-1.5 rounded-[6px] border-2 border-[var(--alice-border)] bg-[var(--alice-bg-soft)] p-1.5 shadow-xl"
+        className="grid grid-cols-1 gap-1.5 rounded-[4px] border border-[var(--alice-border)] bg-[var(--alice-bg-soft)] p-1.5 shadow-xl"
       >
         {groups.map((group, i) => (
           <div
@@ -233,7 +202,7 @@ function PlatformSelector({
   // panel used to be cropped by the screen edges. Measured on mount and
   // resize (not on open), so the CSS hover-open path finds it ready too;
   // narrow placements switch the rows to their compact shape.
-  const [placement, setPlacement] = useState({ width: 480, left: 0, compact: false });
+  const [placement, setPlacement] = useState({ width: 300, left: 0, compact: false });
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -241,10 +210,10 @@ function PlatformSelector({
       const rect = rootRef.current?.getBoundingClientRect();
       if (!rect) return;
       const vw = window.innerWidth;
-      const width = Math.min(480, vw - 24);
+      const width = Math.min(300, vw - 24);
       const centre = rect.left + rect.width / 2;
       const inViewport = Math.min(Math.max(centre - width / 2, 12), vw - 12 - width);
-      setPlacement({ width, left: inViewport - rect.left, compact: width < 460 });
+      setPlacement({ width, left: inViewport - rect.left, compact: false });
     };
     update();
     window.addEventListener('resize', update);
@@ -291,7 +260,7 @@ function PlatformSelector({
 // The primary action, and the only one that needs no decision from the
 // visitor: open the companion, which runs in any browser, phone included.
 // Alice App is the main product and the whole page says so; the wallet is
-// where practice becomes real, and it has its own step in the tour.
+// presented separately as an experimental project below the main content.
 export function OpenAliceButton({ size = 'md' }: { size?: Size }) {
   return (
     <a href={APP_URL} {...externalLinkProps(APP_URL)} className={`cta cta-solid ${sizes[size]}`}>
@@ -300,8 +269,7 @@ export function OpenAliceButton({ size = 'md' }: { size?: Size }) {
   );
 }
 
-// Everything installable, behind one button: both products, each platform
-// named, nothing invented (undistributed platforms say "Coming soon").
+// Main downloads are for Alice App; the experimental wallet has its own section.
 export function DownloadButton({ size = 'md' }: { size?: Size }) {
   return (
     <PlatformSelector
@@ -321,7 +289,7 @@ export function ReleaseLinks() {
   return (
     <div className="mt-3 flex items-center text-sm">
       <a
-        href={ANDROID_RELEASE_URL}
+        href={DESKTOP_RELEASE_URL}
         target="_blank"
         rel="noreferrer"
         className="inline-flex items-center gap-2 text-[var(--alice-muted)] hover:text-[var(--alice-primary)] hover:underline"

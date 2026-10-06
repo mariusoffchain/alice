@@ -22,7 +22,7 @@ const FONTS = [
     home: 'https://velvetyne.fr/fonts/terminal-grotesque/',
     homeLabel: 'velvetyne.fr',
     license: '/licenses/OFL-TerminalGrotesque.txt',
-    role: 'Body text and numbers across the site and the apps.',
+    role: 'Display headings on this website.',
   },
   {
     name: 'Press Start 2P',
@@ -30,7 +30,7 @@ const FONTS = [
     home: 'https://fonts.google.com/specimen/Press+Start+2P',
     homeLabel: 'fonts.google.com',
     license: '/licenses/OFL-PressStart2P.txt',
-    role: 'Pixel display type: labels, eyebrows and small caps.',
+    role: 'Wordmark and short pixel labels.',
   },
 ];
 
@@ -48,7 +48,7 @@ export default function CreditsPage() {
         <p className="mt-5 text-lg leading-relaxed text-[var(--alice-text)]">
           Alice’s look comes from two libre typefaces, released by their
           designers under a license that lets anyone use them. Naming them is
-          the least we can do, and the license asks for it.
+          the least we can do, and the license asks for it. Reading text and forms use your device’s system font, which is not redistributed by this site.
         </p>
 
         <h2 className="mt-12 text-2xl font-semibold sm:text-3xl">Typefaces</h2>

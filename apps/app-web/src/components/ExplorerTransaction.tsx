@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import { ExplorerCopy } from '@/components/ExplorerUI';
+
 import { ExplorerTxGraph } from '@/components/ExplorerTxGraph';
 import { Amount } from '@/components/AmountDisplay';
 import { formatDateTime } from '@/lib/explorer/blocks';
@@ -29,7 +32,7 @@ function Chip({ label, tone = 'muted' }: { label: string; tone?: 'muted' | 'warn
         fontSize: 10,
         padding: '4px 7px',
         border: `1px solid ${color}`,
-        borderRadius: 2,
+        borderRadius: 3,
         color,
       }}
     >
@@ -38,7 +41,7 @@ function Chip({ label, tone = 'muted' }: { label: string; tone?: 'muted' | 'warn
   );
 }
 
-function IoRow({ io, onOpenAddress }: { io: NormalizedInput | NormalizedOutput; onOpenAddress?: (a: string) => void }) {
+function IoRow({ io, onOpenAddress, selectedAddress, onSelectAddress }: { io: NormalizedInput | NormalizedOutput; onOpenAddress?: (a: string) => void; selectedAddress: string | null; onSelectAddress: (address: string) => void }) {
   const isInput = 'prevTxid' in io;
   const coinbase = isInput && (io as NormalizedInput).isCoinbase;
   const addr = io.address;
@@ -61,14 +64,16 @@ function IoRow({ io, onOpenAddress }: { io: NormalizedInput | NormalizedOutput; 
   return (
     <div
       className="flex items-start justify-between gap-3 px-3 py-2"
-      style={{ borderTop: '1px solid var(--alice-border)' }}
+      onPointerEnter={() => { if (addr) onSelectAddress(addr); }}
+      onFocus={() => { if (addr) onSelectAddress(addr); }}
+      style={{ borderTop: '1px solid var(--alice-border)', borderLeft: `2px solid ${addr && addr === selectedAddress ? 'var(--alice-selected)' : 'transparent'}` }}
     >
       <div className="flex flex-col gap-0.5 min-w-0">
         {clickable ? (
           <button
             type="button"
             onClick={() => onOpenAddress?.(addr as string)}
-            className="font-numbers truncate text-left cursor-pointer bg-transparent border-none p-0"
+            className="alice-control alice-control--quiet font-numbers truncate text-left cursor-pointer bg-transparent border-none p-0"
             style={{ fontSize: 13, color: 'var(--alice-primary)' }}
             title={`Open address ${addr}`}
           >
@@ -89,6 +94,7 @@ function IoRow({ io, onOpenAddress }: { io: NormalizedInput | NormalizedOutput; 
           </span>
         )}
       </div>
+      {addr && <ExplorerCopy value={addr} label="address" />}
       <div className="flex flex-col items-end shrink-0">
         {typeof value === 'number' ? (
           <Amount sats={value} style={{ fontSize: 13, color: 'var(--alice-text)' }} />
@@ -102,8 +108,8 @@ function IoRow({ io, onOpenAddress }: { io: NormalizedInput | NormalizedOutput; 
 
 function IoColumn({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
-    <div className="flex-1 min-w-0" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
-      <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
+    <div className="flex-1 min-w-0" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
+      <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'transparent' }}>
         <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
           {title}
         </span>
@@ -129,6 +135,7 @@ export function ExplorerTransaction({
   onOpenTx?: (txid: string) => void;
   onOpenAddress?: (address: string) => void;
 }) {
+  const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const status = tx.status.confirmed
     ? `Confirmed - block ${tx.status.blockHeight?.toLocaleString('en-US')}${tx.status.blockTime ? ` - ${formatDateTime(tx.status.blockTime)}` : ''}`
     : 'In mempool - unconfirmed';
@@ -136,16 +143,16 @@ export function ExplorerTransaction({
   return (
     <div className="flex flex-col gap-4">
       {/* Flow diagram: the visual centrepiece. */}
-      <ExplorerTxGraph tx={tx} flaggedAddresses={flaggedAddresses} outspends={outspends} onOpenTx={onOpenTx} onOpenAddress={onOpenAddress} />
+      <ExplorerTxGraph tx={tx} selectedAddress={selectedAddress} onSelectAddress={setSelectedAddress} flaggedAddresses={flaggedAddresses} outspends={outspends} onOpenTx={onOpenTx} onOpenAddress={onOpenAddress} />
 
       {/* Summary */}
       <div
         className="flex flex-col gap-3 px-4 py-3"
-        style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+        style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}
       >
-        <p className="font-numbers m-0 break-all" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
+        <div className="flex items-start gap-2"><p className="font-numbers m-0 break-all min-w-0 flex-1" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
           {tx.txid}
-        </p>
+        </p><ExplorerCopy value={tx.txid} label="transaction ID" /></div>
         <div className="flex flex-wrap items-center gap-2">
           <Chip label={tx.status.confirmed ? 'CONFIRMED' : 'UNCONFIRMED'} tone={tx.status.confirmed ? 'ok' : 'warn'} />
           {tx.isCoinbase && <Chip label="COINBASE" />}
@@ -164,10 +171,10 @@ export function ExplorerTransaction({
       {/* Inputs and outputs */}
       <div className="flex flex-col md:flex-row gap-3">
         <IoColumn title="INPUTS" count={tx.inputs.length}>
-          {tx.inputs.map((input, i) => <IoRow key={`${input.prevTxid}:${input.prevVout}:${i}`} io={input} onOpenAddress={onOpenAddress} />)}
+          {tx.inputs.map((input, i) => <IoRow key={`${input.prevTxid}:${input.prevVout}:${i}`} io={input} selectedAddress={selectedAddress} onSelectAddress={setSelectedAddress} onOpenAddress={onOpenAddress} />)}
         </IoColumn>
         <IoColumn title="OUTPUTS" count={tx.outputs.length}>
-          {tx.outputs.map((output) => <IoRow key={output.index} io={output} onOpenAddress={onOpenAddress} />)}
+          {tx.outputs.map((output) => <IoRow key={output.index} io={output} selectedAddress={selectedAddress} onSelectAddress={setSelectedAddress} onOpenAddress={onOpenAddress} />)}
         </IoColumn>
       </div>
 

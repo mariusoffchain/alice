@@ -9,7 +9,7 @@ interface SvgIconProps {
 export function SvgIcon({
   svg,
   size = 24,
-  color = 'var(--alice-chat-ink)',
+  color = 'currentColor',
 }: SvgIconProps) {
   const colored = svg.replaceAll('{{COLOR}}', color);
   const sized = colored
@@ -17,8 +17,9 @@ export function SvgIcon({
     .replace(/height="[^"]*"/, `height="${size}"`);
 
   return (
-    <div
-      style={{ width: size, height: size, flexShrink: 0 }}
+    <span
+      aria-hidden="true"
+      style={{ display: 'inline-flex', verticalAlign: 'middle', width: size, height: size, flexShrink: 0 }}
       dangerouslySetInnerHTML={{ __html: sized }}
     />
   );

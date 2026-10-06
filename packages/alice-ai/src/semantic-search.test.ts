@@ -74,3 +74,12 @@ test('reciprocalRankFusion ranks a top-of-one-list chunk above one absent everyw
   const fused = reciprocalRankFusion([['top'], []]);
   assert.equal(fused[0].id, 'top');
 });
+
+
+test('short-list fusion preserves strong ranks without discarding consensus', () => {
+  const lexical = ['subject', 'incidental', 'tail'];
+  const semantic = ['neighbor', 'incidental', 'other', 'subject'];
+  assert.equal(reciprocalRankFusion([lexical, semantic], 60)[0].id, 'incidental');
+  assert.equal(reciprocalRankFusion([lexical, semantic], 1)[0].id, 'subject');
+  assert.equal(reciprocalRankFusion([['a', 'shared'], ['shared', 'b']], 1)[0].id, 'shared');
+});

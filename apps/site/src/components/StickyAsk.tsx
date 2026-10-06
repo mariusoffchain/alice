@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { APP_URL, appQuestionUrl } from '@/lib/site';
-import { AliceMark } from '@/components/icons';
+import { AliceMascot, NextIcon } from '@/components/icons';
 
 // Persistent "ask Alice" bar, docked to the bottom of the viewport on every page.
 // Submitting hands off to the app with the question attached (and autosend), so
@@ -36,7 +36,7 @@ export function StickyAsk() {
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-40 border-t-2 border-[var(--alice-border)] bg-[var(--alice-bg-soft)] ${isHome ? 'lg:hidden' : ''}`}
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-[var(--alice-border)] bg-[var(--alice-bg-soft)] ${isHome ? 'lg:hidden' : ''}`}
     >
       <form
         onSubmit={(e) => {
@@ -48,7 +48,7 @@ export function StickyAsk() {
         className="mx-auto flex max-w-3xl items-center gap-2.5 px-4 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))]"
       >
         <span className="hidden shrink-0 items-center gap-2 pr-1 sm:flex">
-          <AliceMark size={26} showWordmark={false} />
+          <AliceMascot size={26} />
           <span className="text-[15px] font-semibold text-[var(--alice-heading)]">Ask Alice</span>
         </span>
         <input
@@ -58,14 +58,14 @@ export function StickyAsk() {
           disabled={submitting}
           placeholder={EXAMPLES[phIdx]}
           aria-label="Ask Alice a question"
-          className="min-w-0 flex-1 rounded-[3px] border-2 border-[var(--alice-border)] bg-[var(--alice-bg)] px-4 py-2.5 text-base text-[var(--alice-heading)] placeholder:text-[var(--alice-muted)] focus:border-[var(--alice-primary)] focus:outline-none"
+          className="min-w-0 flex-1 rounded-[3px] border border-[var(--alice-border)] bg-[var(--alice-bg)] px-4 py-2.5 text-base text-[var(--alice-heading)] placeholder:text-[var(--alice-muted)] focus:border-[var(--alice-primary)] focus:outline-none"
         />
         <button
           type="submit"
           disabled={submitting}
           aria-label={submitting ? 'Opening Alice' : 'Ask Alice'}
           aria-live="polite"
-          className="ask-glow raise flex min-w-[88px] shrink-0 items-center justify-center rounded-[3px] border-2 border-[var(--alice-primary)] bg-[var(--alice-primary)] px-5 py-2.5 text-[15px] font-semibold text-[var(--alice-on-primary)] disabled:cursor-wait"
+          className="cta-solid raise flex min-w-[88px] shrink-0 items-center justify-center gap-2 rounded-[4px] border border-[var(--alice-primary)] bg-[var(--alice-primary)] px-5 py-2.5 text-[15px] font-semibold text-[var(--alice-on-primary)] disabled:cursor-wait"
         >
           {submitting ? (
             <span className="flex h-[22px] items-center gap-1" aria-hidden="true">
@@ -78,7 +78,7 @@ export function StickyAsk() {
               ))}
             </span>
           ) : (
-            'Ask →'
+            <>Ask <NextIcon size={16} /></>
           )}
         </button>
       </form>

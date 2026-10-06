@@ -1,3 +1,4 @@
+import { fitLocalModelRoles, usesAnswerOnlyLocalMode } from './local-model-message-policy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AIBackend, AIBackendStatus, AIResponse, SendMessageOptions, TokenUsage } from './ai-backend';
 import type { Message } from './llm';
@@ -8,7 +9,8 @@ import {
   getAliceInstructions,
   getActiveModelId,
   getModelEntry,
-  MODEL_CATALOG,
+  listKnownLocalModels,
+  removeCustomModel,
   type LocalModelId,
   type ModelStatus,
 } from './ai-preferences';
@@ -112,10 +114,11 @@ export async function deleteDesktopModel(id: LocalModelId): Promise<void> {
   await tauriInvoke('local_ai_delete_model', {
     filename: entry.filename,
   });
+  if (entry.source === 'custom') await removeCustomModel(id);
 }
 
 export async function deleteAllDesktopModels(): Promise<void> {
-  for (const model of MODEL_CATALOG) {
+  for (const model of await listKnownLocalModels()) {
     await deleteDesktopModel(model.id);
   }
 }
@@ -217,11 +220,11 @@ export class LocalDesktopAIBackend implements AIBackend {
     const shouldBuffer = requiresBufferedAliceResponse(instructions);
     const streamFn = shouldBuffer ? undefined : onChunk;
 
-    // Qwen3 models reason by default and the <think> block eats the whole
+    // Qwen3 and SmolLM3 models reason by default and the <think> block eats the whole
     // max_tokens budget, truncating the visible answer mid-sentence. Disable
     // thinking through both channels: the official /no_think soft switch (any
     // llama-server) and the chat-template kwarg (recent builds).
-    const disableThinking = activeModelId.startsWith('qwen3');
+    const disableThinking = usesAnswerOnlyLocalMode(activeModelId);
     const systemPrompt =
       buildAliceSystemPrompt(instructions, options?.responseLanguage ?? 'en') +
       (disableThinking ? ' /no_think' : '');
@@ -231,7 +234,12 @@ export class LocalDesktopAIBackend implements AIBackend {
       ...withAliceInstructionReminder(messages, instructions, options?.responseLanguage ?? 'en', options?.strictLanguageRetry),
     ];
 
-    const fitted = fitMessagesToEstimatedLocalContext(fullMessages, params.maxTokens, DESKTOP_CONTEXT_TOKENS);
+    const fitted = fitMessagesToEstimatedLocalContext(
+      fullMessages,
+      params.maxTokens,
+      DESKTOP_CONTEXT_TOKENS,
+      candidate => fitLocalModelRoles(candidate, activeModelId),
+    );
     const streaming = Boolean(streamFn);
     const payload: Record<string, unknown> = {
       model: 'local',

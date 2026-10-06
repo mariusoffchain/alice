@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import QRCode from 'react-qr-code';
 import { PRACTICE_LESSONS, type PracticeLesson } from '@alice-wallet/alice-content';
-import { isTauriDesktop, useChat } from '@alice-wallet/alice-ai';
+import { useChat } from '@alice-wallet/alice-ai';
 import {
   PRACTICE_DUST_SATS,
   PRACTICE_FAUCET_URL,
@@ -26,13 +26,13 @@ import {
 import { formatWalletAmount, type BalanceFormat } from '@alice-wallet/alice-ui/balance-format';
 import { CORNER_SVG } from '@alice-wallet/alice-ui/components/corner-svg';
 import { BITCOIN_ICON_SVG } from '@alice-wallet/alice-ui/components/bitcoin-icon-svg';
-import { SETTINGS_SVG } from '@alice-wallet/alice-ui/components/settings-icon-svg';
+import { SETTINGS_ICON, BACK_ICON, NEXT_ICON, REFRESH_ICON, QR_ICON, UP_ICON, RECEIVE_ICON, COPY_ICON, CHECK_ICON, KEY_ICON, DELETE_ICON, WALLET_ICON } from '@/lib/atelier-icons';
 import { EmptyState, FieldLabel } from '@/components/ExplorerUI';
 import { PlaygroundIntroModal, wasPlaygroundIntroDismissed } from '@/components/PlaygroundIntroModal';
 import { AskAliceDock } from '@/components/AskAliceDock';
 import { AskAliceFab } from '@/components/AskAliceFab';
 import { ExplorerQrScanner } from '@/components/ExplorerQrScanner';
-import { Sidebar, SIDEBAR_ICON_SVG } from '@/components/Sidebar';
+import { WorkspaceShell } from '@/components/WorkspaceShell';
 import { SvgIcon } from '@/components/SvgIcon';
 import { ExplorerBalanceChart } from '@/components/ExplorerBalanceChart';
 import { setAmountFormat, useAmountState, type AmountState } from '@/components/AmountDisplay';
@@ -68,8 +68,8 @@ import {
   type PlaygroundSnapshot,
 } from '@/lib/playground';
 
-const BADGE_BG = '#E03131';
-const BADGE_TEXT = '#FFFFFF';
+const BADGE_BG = 'var(--alice-danger)';
+const BADGE_TEXT = 'var(--alice-on-danger)';
 
 // The mobile wallet's own settings cog, same asset as the app's other icons.
 
@@ -131,22 +131,21 @@ function TestAmount({
 function MutinynetBadge() {
   return (
     <span
-      className="font-pixel tracking-widest inline-flex items-center px-2 py-1"
-      style={{ fontSize: 9, backgroundColor: BADGE_BG, color: BADGE_TEXT, borderRadius: 2 }}
+      className="font-numbers inline-flex items-center px-2 py-1"
+      style={{ fontSize: 12, color: 'var(--alice-muted)' }}
     >
       MUTINYNET · TEST FUNDS
     </span>
   );
 }
 
-/** Mobile-wallet card: 2px pixel border on the soft card background. */
+/** Training card on the shared Atelier surface. */
 function PixelCard({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        border: '2px solid var(--alice-border)',
-        borderRadius: 2,
-        backgroundColor: 'var(--alice-card-bg)',
+        borderTop: '1px solid var(--alice-border)',
+        backgroundColor: 'transparent',
       }}
     >
       {children}
@@ -183,8 +182,8 @@ function CornerButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="relative cursor-pointer disabled:opacity-40 disabled:cursor-default bg-transparent"
-      style={{ width: 140, height: 70, color: 'var(--alice-primary-dark)' }}
+      className="alice-control playground-corner relative"
+      style={{ width: 140, height: 70, color: 'var(--alice-primary)' }}
     >
       <span aria-hidden style={cornerStyle(90, { top: 0, left: 0 })} dangerouslySetInnerHTML={{ __html: corner }} />
       <span aria-hidden style={cornerStyle(180, { top: 0, right: 0 })} dangerouslySetInnerHTML={{ __html: corner }} />
@@ -202,7 +201,7 @@ function CornerButton({
 function Lesson({ lesson, learnCourse }: { lesson: PracticeLesson; learnCourse?: string }) {
   const router = useRouter();
   return (
-    <div className="px-3 py-3" style={{ border: `1px dashed ${BADGE_BG}` }}>
+    <div className="px-3 py-3" style={{ borderLeft: '2px solid var(--alice-border)' }}>
       <div className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-primary-dark)' }}>
         {lesson.title}
       </div>
@@ -212,11 +211,11 @@ function Lesson({ lesson, learnCourse }: { lesson: PracticeLesson; learnCourse?:
       {learnCourse && (
         <button
           type="button"
-          className="font-pixel tracking-widest cursor-pointer mt-2"
-          style={{ fontSize: 8, color: 'var(--alice-primary)', background: 'transparent', border: 0, padding: 0 }}
+          className="alice-control alice-control--link mt-2"
+
           onClick={() => router.push(`/learn/?course=${learnCourse}`)}
         >
-          LEARN WHY →
+          Learn why <SvgIcon svg={NEXT_ICON} size={16} />
         </button>
       )}
     </div>
@@ -229,24 +228,21 @@ function PrimaryButton({
   onClick,
   disabled,
   danger,
+  icon = NEXT_ICON,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
   danger?: boolean;
+  icon?: string;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className="font-pixel tracking-widest w-full py-3 cursor-pointer disabled:opacity-50 disabled:cursor-default"
-      style={{
-        fontSize: 10,
-        backgroundColor: danger ? BADGE_BG : 'var(--alice-primary)',
-        color: danger ? BADGE_TEXT : 'var(--alice-on-primary)',
-        borderRadius: 2,
-      }}
+      className={`alice-control w-full ${danger ? 'alice-control--danger-solid' : 'alice-control--primary'}`}
     >
+      <SvgIcon svg={danger ? DELETE_ICON : icon} size={20} />
       {label}
     </button>
   );
@@ -258,8 +254,8 @@ function Row({ label, value }: { label: string; value: string }) {
       className="flex items-center justify-between py-2"
       style={{ borderBottom: '1px dotted var(--alice-border)' }}
     >
-      <span className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-muted)' }}>{label}</span>
-      <span className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-text)' }}>{value}</span>
+      <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>{label}</span>
+      <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-text)' }}>{value}</span>
     </div>
   );
 }
@@ -287,20 +283,20 @@ function SettingsRow({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
-      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); } : undefined}
-      className="flex w-full items-center justify-between px-4 py-4 text-left"
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      className="playground-settings-row flex w-full items-center justify-between px-4 py-4 text-left"
       style={{
         borderBottom: last ? 'none' : '1px dotted var(--alice-border)',
         cursor: onClick ? 'pointer' : 'default',
       }}
     >
       <span
-        className="font-pixel tracking-wider"
-        style={{ fontSize: 11, color: danger ? BADGE_BG : 'var(--alice-primary-dark)' }}
+        className="font-numbers"
+        style={{ fontSize: 14, color: danger ? BADGE_BG : 'var(--alice-text)' }}
       >
         {label}
       </span>
-      <span className="font-pixel flex items-center gap-2" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>
+      <span className="font-numbers flex items-center gap-2" style={{ fontSize: 13, color: 'var(--alice-muted)' }}>
         {right}
       </span>
     </div>
@@ -311,23 +307,16 @@ function SettingsRow({
 function UnitSwitcher({ state }: { state: AmountState }) {
   const active = coerceTestUnit(state).format;
   return (
-    <span className="inline-flex overflow-hidden" style={{ border: '2px solid var(--alice-border)', borderRadius: 2 }}>
-      {TEST_UNITS.map((unit, index) => {
+    <span className="inline-flex flex-wrap" role="group" aria-label="Balance unit">
+      {TEST_UNITS.map((unit) => {
         const isActive = unit === active;
         return (
           <button
             key={unit}
             onClick={() => setAmountFormat(unit)}
-            className="font-pixel cursor-pointer flex items-center justify-center"
-            style={{
-              fontSize: 9,
-              minWidth: 44,
-              padding: '7px 8px',
-              borderLeft: index > 0 ? '2px solid var(--alice-border)' : 'none',
-              backgroundColor: isActive ? 'var(--alice-primary)' : 'transparent',
-              color: isActive ? 'var(--alice-on-primary)' : 'var(--alice-muted)',
-            }}
-          >
+            className="alice-control alice-control--choice"
+
+           aria-pressed={isActive}>
             {unit === 'symbol' ? <BitcoinGlyph /> : unit === 'sats' ? 'sats' : 'BTC'}
           </button>
         );
@@ -402,7 +391,7 @@ function TxPartRow({
     <div className="flex items-center gap-3 py-2" style={{ borderBottom: '1px dotted var(--alice-border)' }}>
       <span aria-hidden style={{ width: 4, alignSelf: 'stretch', backgroundColor: color, borderRadius: 1 }} />
       <span className="flex flex-col flex-1 min-w-0">
-        <span className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-primary-dark)' }}>{label}</span>
+        <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-primary-dark)' }}>{label}</span>
         {detail && (
           <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>{detail}</span>
         )}
@@ -536,9 +525,9 @@ function SendFlow({
   const inputStyle: React.CSSProperties = {
     fontSize: 14,
     color: 'var(--alice-text)',
-    backgroundColor: 'var(--alice-bg-soft)',
-    border: '2px solid var(--alice-border)',
-    borderRadius: 2,
+    backgroundColor: 'transparent',
+    border: '1px solid var(--alice-control-border)',
+    borderRadius: 'var(--alice-radius-control)',
   };
 
   if (phase === 'sent' && txid && plan) {
@@ -546,18 +535,18 @@ function SendFlow({
       <PixelCard>
         <div
           className="flex flex-col items-center gap-3 p-6"
-          style={{ backgroundColor: 'var(--alice-primary)', borderRadius: 2 }}
+          style={{ backgroundColor: 'transparent', borderRadius: 'var(--alice-radius-control)' }}
         >
-          <span className="font-pixel tracking-widest pt-2" style={{ fontSize: 12, color: 'var(--alice-on-primary)' }}>
+          <span className="font-pixel tracking-widest pt-2" style={{ fontSize: 12, color: 'var(--alice-text)' }}>
             PAYMENT SUBMITTED
           </span>
-          <span className="font-numbers" style={{ fontSize: 48, lineHeight: '54px', color: 'var(--alice-on-primary)' }}>
+          <span className="font-numbers" style={{ fontSize: 48, lineHeight: '54px', color: 'var(--alice-text)' }}>
             -{formatTestSats(plan.amountSats)}
           </span>
-          <span aria-hidden className="my-4" style={{ width: 44, height: 3, backgroundColor: 'var(--alice-on-primary)' }} />
-          <span className="font-pixel tracking-widest" style={{ fontSize: 11, color: 'var(--alice-on-primary)' }}>TO</span>
+          <span aria-hidden className="my-4" style={{ width: 44, height: 3, backgroundColor: 'var(--alice-border)' }} />
+          <span className="font-pixel tracking-widest" style={{ fontSize: 11, color: 'var(--alice-text)' }}>TO</span>
           <button
-            className="flex flex-col items-center gap-1 cursor-pointer bg-transparent"
+            className="alice-control alice-control--quiet flex-col"
             onClick={() => {
               void navigator.clipboard.writeText(plan.recipientAddress).then(() => {
                 setReceiptCopied(true);
@@ -565,31 +554,31 @@ function SendFlow({
               });
             }}
           >
-            <span className="font-numbers break-all text-center" style={{ fontSize: 14, lineHeight: '19px', color: 'var(--alice-on-primary)', maxWidth: 460 }}>
+            <span className="font-numbers break-all text-center" style={{ fontSize: 14, lineHeight: '19px', color: 'var(--alice-text)', maxWidth: 460 }}>
               {plan.recipientAddress}
             </span>
-            <span className="font-pixel tracking-wider" style={{ fontSize: 9, color: 'var(--alice-on-primary)' }}>
+            <span className="font-numbers tracking-wider" style={{ fontSize: 12, color: 'var(--alice-text)' }}>
               {receiptCopied ? 'COPIED' : 'TAP TO COPY'}
             </span>
           </button>
-          <span className="font-pixel tracking-widest mt-4" style={{ fontSize: 11, color: 'var(--alice-on-primary)' }}>
+          <span className="font-pixel tracking-widest mt-4" style={{ fontSize: 11, color: 'var(--alice-text)' }}>
             TRANSACTION
           </span>
           <button
             onClick={() => openPlaygroundTxInExplorer(txid, (path) => router.push(path), 'Test sats sent')}
-            className="flex flex-col items-center gap-1 cursor-pointer bg-transparent"
+            className="alice-control alice-control--link flex-col"
           >
-            <span className="font-numbers break-all text-center" style={{ fontSize: 13, lineHeight: '18px', color: 'var(--alice-on-primary)', maxWidth: 460 }}>
+            <span className="font-numbers break-all text-center" style={{ fontSize: 13, lineHeight: '18px', color: 'var(--alice-text)', maxWidth: 460 }}>
               {txid}
             </span>
-            <span className="font-pixel tracking-wider" style={{ fontSize: 9, color: 'var(--alice-on-primary)' }}>
+            <span className="font-numbers tracking-wider" style={{ fontSize: 12, color: 'var(--alice-text)' }}>
               OPEN IN THE EXPLORER
             </span>
           </button>
           <button
             onClick={onDone}
-            className="font-pixel tracking-widest w-full py-3 mt-4 cursor-pointer"
-            style={{ fontSize: 11, backgroundColor: 'var(--alice-on-primary)', color: 'var(--alice-primary)', borderRadius: 2 }}
+            className="alice-control alice-control--primary w-full mt-4"
+
           >
             BACK TO WALLET
           </button>
@@ -606,9 +595,9 @@ function SendFlow({
         {/* What to send, and to whom. */}
         <div className="flex flex-col gap-3">
           <div>
-            <FieldLabel>SEND ON BITCOIN</FieldLabel>
+            <label htmlFor="playground-recipient" className="alice-field-label">Recipient address</label>
             <input
-              className="font-numbers w-full mt-1 px-3 outline-none"
+              id="playground-recipient" className="alice-field w-full mt-1"
               style={{ ...inputStyle, height: 54 }}
               value={address}
               onChange={(e) => { setAddress(e.target.value); setError(null); }}
@@ -618,28 +607,28 @@ function SendFlow({
               spellCheck={false}
             />
             <button
-              className="font-pixel tracking-widest cursor-pointer mt-2 opacity-80 hover:opacity-100"
-              style={{ fontSize: 9, color: 'var(--alice-primary)' }}
+              className="alice-control alice-control--link mt-2"
+
               onClick={() => setScanOpen(true)}
             >
-              SCAN QR →
+              <SvgIcon svg={QR_ICON} size={20} /> Scan QR
             </button>
           </div>
           {scanOpen && (
             <ExplorerQrScanner onResult={applyScannedPayment} onClose={() => setScanOpen(false)} />
           )}
           <div>
-            <FieldLabel>AMOUNT (SATS)</FieldLabel>
+            <label htmlFor="playground-send-amount" className="alice-field-label">Amount (sats)</label>
             {/* The amount field is the one row with three rigid parts. Without
                 min-w-0 the input refuses to shrink below the width of what is
                 typed in it, so on a narrow screen it pushes SATS and MAX past
                 the border instead of giving up space. */}
             <div
               className="flex items-stretch mt-1 overflow-hidden"
-              style={{ minHeight: 62, border: '2px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+              style={{ minHeight: 62, border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)', backgroundColor: 'transparent' }}
             >
               <input
-                className="font-numbers flex-1 min-w-0 bg-transparent px-3 outline-none"
+                id="playground-send-amount" className="font-numbers flex-1 min-w-0 bg-transparent px-3 outline-none"
                 style={{ fontSize: 26, color: 'var(--alice-primary-dark)' }}
                 value={amountText}
                 onChange={(e) => { setAmountText(e.target.value.replace(/\D/g, '')); setError(null); }}
@@ -653,8 +642,8 @@ function SendFlow({
                 SATS
               </span>
               <button
-                className="font-pixel tracking-wider shrink-0 cursor-pointer"
-                style={{ minWidth: 76, fontSize: 10, backgroundColor: 'var(--alice-primary)', color: 'var(--alice-on-primary)' }}
+                className="alice-control alice-control--quiet shrink-0"
+                style={{ minWidth: 64 }}
                 onClick={() => {
                   if (!sweep || sweep.amountSats < PRACTICE_DUST_SATS) {
                     setError(
@@ -672,7 +661,7 @@ function SendFlow({
                 MAX
               </button>
             </div>
-            <div className="font-pixel text-right mt-1" style={{ fontSize: 9, color: 'var(--alice-muted)' }}>
+            <div className="font-numbers text-right mt-1" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
               {sweep && amountText === String(sweep.amountSats) ? (
                 // The lesson MAX teaches: a wallet is emptied by the coins it
                 // holds minus what the miners take, never by its balance.
@@ -690,7 +679,7 @@ function SendFlow({
         </div>
 
         {/* The transaction, laid bare. */}
-        <div style={{ borderTop: '2px solid var(--alice-border)', paddingTop: 12 }}>
+        <div style={{ borderTop: '1px solid var(--alice-border)', paddingTop: 12 }}>
           <div className="flex items-center justify-between">
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
               THE TRANSACTION
@@ -712,7 +701,7 @@ function SendFlow({
 
           {plan && (
             <div className="flex flex-col mt-2">
-              <span className="font-pixel mt-2 mb-1" style={{ fontSize: 9, color: TX_COLORS.input }}>
+              <span className="font-numbers mt-2 mb-1" style={{ fontSize: 12, color: TX_COLORS.input }}>
                 COINS SPENT · {plan.inputs.length} INPUT{plan.inputs.length === 1 ? '' : 'S'}
               </span>
               {plan.inputs.map((input) => (
@@ -731,7 +720,7 @@ function SendFlow({
                 strong
               />
 
-              <span className="font-pixel mt-4 mb-1" style={{ fontSize: 9, color: TX_COLORS.recipient }}>
+              <span className="font-numbers mt-4 mb-1" style={{ fontSize: 12, color: TX_COLORS.recipient }}>
                 WHERE IT GOES
               </span>
               <TxPartRow
@@ -788,17 +777,17 @@ function SendFlow({
           </div>
 
           <button
-            className="font-pixel tracking-wider cursor-pointer bg-transparent mt-3 text-left"
-            style={{ fontSize: 9, color: 'var(--alice-primary)' }}
+            className="alice-control alice-control--link mt-3 text-left"
+
             onClick={() => onAskAlice(draftQuestion(plan))}
           >
-            ASK ALICE ABOUT THIS TRANSACTION →
+            Ask Alice about this transaction <SvgIcon svg={NEXT_ICON} size={16} />
           </button>
         </div>
 
         {/* Signing, then broadcasting: two deliberate acts, not five screens. */}
         {signed && (
-          <div className="flex flex-col gap-1" style={{ borderTop: '2px solid var(--alice-border)', paddingTop: 12 }}>
+          <div className="flex flex-col gap-1" style={{ borderTop: '1px solid var(--alice-border)', paddingTop: 12 }}>
             <FieldLabel>ALICE RE-READ THE SIGNED BYTES</FieldLabel>
             {[
               'Spends exactly the coins listed above',
@@ -810,7 +799,7 @@ function SendFlow({
               </span>
             ))}
             {!signed.review.matchesPlan && (
-              <p className="font-pixel" style={{ fontSize: 9, color: BADGE_BG }}>{signed.review.issues.join(' ')}</p>
+              <p className="font-numbers" style={{ fontSize: 12, color: BADGE_BG }}>{signed.review.issues.join(' ')}</p>
             )}
             <span className="font-numbers break-all mt-1" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
               txid {signed.txid}
@@ -842,8 +831,8 @@ function SendFlow({
             />
           )}
           <button
-            className="font-pixel tracking-widest cursor-pointer opacity-60 hover:opacity-100"
-            style={{ fontSize: 9, color: 'var(--alice-muted)' }}
+            className="alice-control alice-control--quiet"
+
             onClick={onExit}
           >
             BACK TO THE PLAYGROUND
@@ -958,7 +947,7 @@ function BackupFlow({
           {title}
         </div>
 
-        {error && <p className="font-pixel" style={{ fontSize: 9, color: BADGE_BG }}>{error}</p>}
+        {error && <p className="font-numbers" style={{ fontSize: 12, color: BADGE_BG }}>{error}</p>}
 
         {step === 'intro' && (
           <>
@@ -972,7 +961,7 @@ function BackupFlow({
               NEVER SHARE THESE WORDS
             </p>
             <div className="w-full max-w-xs">
-              <PrimaryButton label={backedUp ? 'REVEAL PHRASE' : 'START BACKUP'} onClick={() => void reveal()} />
+              <PrimaryButton label={backedUp ? 'REVEAL PHRASE' : 'START BACKUP'} icon={KEY_ICON} onClick={() => void reveal()} />
             </div>
           </>
         )}
@@ -990,14 +979,9 @@ function BackupFlow({
                     key={`${index}-${word}`}
                     onClick={() => toggleWord(index)}
                     aria-label={`Recovery word ${index + 1}. ${revealed ? 'Hide' : 'Reveal'}`}
-                    className="flex items-center gap-2 px-3 cursor-pointer text-left"
-                    style={{
-                      minHeight: 48,
-                      border: '2px solid var(--alice-border)',
-                      borderRadius: 2,
-                      backgroundColor: revealed ? 'var(--alice-bg)' : 'var(--alice-card-bg)',
-                    }}
-                  >
+                    className="alice-control alice-control--row"
+                    style={{ minHeight: 48, borderBottom: '1px solid var(--alice-border)' }}
+                   aria-pressed={revealed}>
                     <span className="font-numbers" style={{ width: 24, fontSize: 13, color: 'var(--alice-muted)' }}>
                       {index + 1}
                     </span>
@@ -1010,7 +994,7 @@ function BackupFlow({
                         style={{ width: 92, height: 16, borderRadius: 3, backgroundColor: 'var(--alice-border)', opacity: 0.75 }}
                       >
                         <span className="absolute" style={{ top: 0, bottom: 0, left: 5, right: 5, backgroundColor: 'var(--alice-muted)', opacity: 0.32 }} />
-                        <span className="absolute" style={{ top: 4, bottom: 4, left: 0, right: 0, backgroundColor: 'var(--alice-card-bg)', opacity: 0.38 }} />
+                        <span className="absolute" style={{ top: 4, bottom: 4, left: 0, right: 0, backgroundColor: 'transparent', opacity: 0.38 }} />
                       </span>
                     )}
                   </button>
@@ -1022,7 +1006,7 @@ function BackupFlow({
             </p>
             <div className="w-full max-w-xs">
               {backedUp ? (
-                <PrimaryButton label="DONE" onClick={onExit} />
+                <PrimaryButton label="DONE" icon={CHECK_ICON} onClick={onExit} />
               ) : (
                 <PrimaryButton label="I WROTE THEM DOWN" onClick={startVerification} />
               )}
@@ -1048,15 +1032,9 @@ function BackupFlow({
                       <button
                         key={word}
                         onClick={() => selectWord(questionIndex, word)}
-                        className="font-numbers cursor-pointer px-4 py-2"
-                        style={{
-                          fontSize: 14,
-                          border: `2px solid ${wrong ? '#c04040' : selected ? 'var(--alice-primary-dark)' : 'var(--alice-border)'}`,
-                          borderRadius: 2,
-                          backgroundColor: wrong ? '#e06060' : selected ? 'var(--alice-primary)' : 'var(--alice-card-bg)',
-                          color: selected || wrong ? 'var(--alice-on-primary)' : 'var(--alice-primary-dark)',
-                        }}
-                      >
+                        className="alice-control alice-control--choice"
+                        style={{ color: wrong ? 'var(--alice-danger)' : selected ? 'var(--alice-selected)' : 'var(--alice-text)' }}
+                       aria-pressed={selected} aria-invalid={wrong || undefined}>
                         {word}
                       </button>
                     );
@@ -1065,13 +1043,13 @@ function BackupFlow({
               </div>
             ))}
             {verifyError && (
-              <p className="font-numbers" style={{ fontSize: 14, color: '#e06060' }}>
+              <p className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-danger)' }}>
                 Some words are wrong. Try again.
               </p>
             )}
             <div className="w-full max-w-xs">
               <PrimaryButton
-                label="CONFIRM BACKUP"
+                label="CONFIRM BACKUP" icon={KEY_ICON}
                 disabled={verifyAnswers.includes(null)}
                 onClick={() => void confirmVerification()}
               />
@@ -1101,12 +1079,12 @@ function ErrorCard({ message }: { message: string }) {
     <div
       role="alert"
       className="flex flex-col gap-2 p-3"
-      style={{ border: '2px solid #c23838', borderRadius: 2, backgroundColor: '#c2383815' }}
+      style={{ border: '2px solid var(--alice-danger)', borderRadius: 'var(--alice-radius-control)', backgroundColor: 'var(--alice-danger-soft)' }}
     >
-      <span className="font-pixel tracking-wider" style={{ fontSize: 11, color: '#c23838' }}>
+      <span className="font-pixel tracking-wider" style={{ fontSize: 11, color: 'var(--alice-danger)' }}>
         PAYMENT ERROR
       </span>
-      <span className="font-pixel" style={{ fontSize: 9, lineHeight: '13px', color: '#c23838' }}>
+      <span className="font-numbers" style={{ fontSize: 12, lineHeight: '13px', color: 'var(--alice-danger)' }}>
         {message.toUpperCase()}
       </span>
     </div>
@@ -1200,38 +1178,38 @@ function ReceiveView({
     return (
       <div
         className="flex flex-col items-center justify-between gap-4 p-6"
-        style={{ backgroundColor: 'var(--alice-primary)', borderRadius: 2, minHeight: 480 }}
+        style={{ backgroundColor: 'transparent', borderRadius: 'var(--alice-radius-control)', minHeight: 480 }}
       >
         <div className="flex flex-col items-center gap-2 pt-6">
-          <span className="font-pixel tracking-widest" style={{ fontSize: 12, color: 'var(--alice-on-primary)' }}>
+          <span className="font-pixel tracking-widest" style={{ fontSize: 12, color: 'var(--alice-text)' }}>
             PAYMENT RECEIVED
           </span>
-          <span className="font-numbers mt-4" style={{ fontSize: 48, lineHeight: '54px', color: 'var(--alice-on-primary)' }}>
+          <span className="font-numbers mt-4" style={{ fontSize: 48, lineHeight: '54px', color: 'var(--alice-text)' }}>
             +{formatWalletAmount(received.amountSats, coerceTestUnit(amountState).format, amountState.price)}
           </span>
-          <span aria-hidden className="my-6" style={{ width: 44, height: 3, backgroundColor: 'var(--alice-on-primary)' }} />
-          <span className="font-pixel tracking-widest" style={{ fontSize: 11, color: 'var(--alice-on-primary)' }}>
+          <span aria-hidden className="my-6" style={{ width: 44, height: 3, backgroundColor: 'var(--alice-border)' }} />
+          <span className="font-pixel tracking-widest" style={{ fontSize: 11, color: 'var(--alice-text)' }}>
             CONFIRMATIONS
           </span>
           <span
             className="font-numbers mt-1"
-            style={{ fontSize: 18, color: received.confirmed ? '#3fb950' : '#e0b34b' }}
+            style={{ fontSize: 18, color: received.confirmed ? 'var(--alice-success)' : 'var(--alice-warning)' }}
           >
             {received.confirmed ? 'Confirmed' : 'Unconfirmed'}
           </span>
           {received.txid && (
             <>
-              <span className="font-pixel tracking-widest mt-6" style={{ fontSize: 11, color: 'var(--alice-on-primary)' }}>
+              <span className="font-pixel tracking-widest mt-6" style={{ fontSize: 11, color: 'var(--alice-text)' }}>
                 TRANSACTION
               </span>
               <button
                 onClick={() => openPlaygroundTxInExplorer(received.txid!, (path) => router.push(path), 'Test sats received')}
-                className="flex flex-col items-center gap-1 cursor-pointer bg-transparent"
+                className="alice-control alice-control--link flex-col"
               >
-                <span className="font-numbers break-all text-center" style={{ fontSize: 13, lineHeight: '18px', color: 'var(--alice-on-primary)', maxWidth: 460 }}>
+                <span className="font-numbers break-all text-center" style={{ fontSize: 13, lineHeight: '18px', color: 'var(--alice-text)', maxWidth: 460 }}>
                   {received.txid}
                 </span>
-                <span className="font-pixel tracking-wider" style={{ fontSize: 9, color: 'var(--alice-on-primary)' }}>
+                <span className="font-numbers tracking-wider" style={{ fontSize: 12, color: 'var(--alice-text)' }}>
                   OPEN IN THE EXPLORER
                 </span>
               </button>
@@ -1240,8 +1218,8 @@ function ReceiveView({
         </div>
         <button
           onClick={onExit}
-          className="font-pixel tracking-widest w-full py-3 cursor-pointer"
-          style={{ fontSize: 11, backgroundColor: 'var(--alice-on-primary)', color: 'var(--alice-primary)', borderRadius: 2 }}
+          className="alice-control alice-control--primary w-full"
+
         >
           BACK TO WALLET
         </button>
@@ -1256,13 +1234,13 @@ function ReceiveView({
 
         {/* Amount request, optional: folds into the BIP21 URI. */}
         <div className="w-full" style={{ maxWidth: 320 }}>
-          <FieldLabel>AMOUNT OPTIONAL (SATS)</FieldLabel>
+          <label htmlFor="playground-receive-amount" className="alice-field-label">Amount, optional (sats)</label>
           <div
             className="flex items-center mt-1 px-3"
-            style={{ minHeight: 56, border: '2px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-card-bg)' }}
+            style={{ minHeight: 56, border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)', backgroundColor: 'transparent' }}
           >
             <input
-              className="font-numbers flex-1 bg-transparent outline-none"
+              id="playground-receive-amount" className="font-numbers flex-1 min-w-0 bg-transparent outline-none"
               style={{ fontSize: 26, color: 'var(--alice-primary-dark)' }}
               value={amountText}
               onChange={(e) => setAmountText(e.target.value.replace(/\D/g, '').slice(0, 12))}
@@ -1289,7 +1267,7 @@ function ReceiveView({
         <button
           onClick={() => copy('qr', payload)}
           className="cursor-pointer"
-          style={{ border: '2px solid var(--alice-border)', borderRadius: 2, backgroundColor: '#ffffff', padding: 8 }}
+          style={{ border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)', backgroundColor: '#ffffff', padding: 8 }}
           aria-label="Copy the payment request"
         >
           <QRCode value={payload} size={220} bgColor="#ffffff" fgColor="#1c2533" />
@@ -1301,7 +1279,7 @@ function ReceiveView({
         {/* Payment method row, mobile anatomy. */}
         <button
           onClick={() => copy('row', snapshot.receiveAddress)}
-          className="flex w-full items-center gap-3 py-2 cursor-pointer text-left"
+          className="alice-control alice-control--row"
           style={{ maxWidth: 420, minHeight: 54 }}
         >
           <span className="flex flex-col flex-1 min-w-0 gap-1">
@@ -1485,7 +1463,7 @@ function PlaygroundWorkspace({
     : 'home';
 
   return (
-    <div className="mx-auto w-full max-w-2xl flex flex-col gap-4 px-4 py-6">
+    <div className="mx-auto w-full max-w-3xl flex flex-col gap-5 px-5 py-8">
       {showIntro && (
         <PlaygroundIntroModal
           hasWallet={exists === true}
@@ -1496,7 +1474,7 @@ function PlaygroundWorkspace({
           }}
         />
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           {exists && (
             <button
@@ -1505,28 +1483,28 @@ function PlaygroundWorkspace({
                 setView(inSubView ? backTarget : 'settings');
               }}
               aria-label={inSubView ? 'Back' : 'Playground settings'}
-              className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-              style={{ border: '2px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-card-bg)' }}
+              className="alice-control alice-control--tool"
+
             >
               {inSubView
-                ? <span className="font-pixel" style={{ fontSize: 12, color: 'var(--alice-primary)' }}>←</span>
-                : <SvgIcon svg={SETTINGS_SVG} size={16} color="var(--alice-primary)" />}
+                ? <SvgIcon svg={BACK_ICON} size={16} />
+                : <SvgIcon svg={SETTINGS_ICON} size={20} />}
             </button>
           )}
-          <h1 className="font-pixel tracking-widest" style={{ fontSize: 13, color: 'var(--alice-primary-dark)' }}>
+          <h1 className="font-pixel tracking-widest" style={{ fontSize: 16, color: 'var(--alice-text)', lineHeight: 1.7 }}>
             {VIEW_TITLES[view]}
           </h1>
         </div>
         <MutinynetBadge />
       </div>
       <p
-        className="font-pixel tracking-widest text-center px-3 py-2"
-        style={{ fontSize: 8, color: 'var(--alice-muted)', border: `1px dashed ${BADGE_BG}` }}
+        className="font-numbers"
+        style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--alice-muted)' }}
       >
-        A PLACE TO LEARN AND EXPERIMENT. THESE SATS HAVE NO REAL VALUE.
+        Learn by experimenting. These sats have no real value.
       </p>
 
-      {error && <p className="font-pixel" style={{ fontSize: 9, lineHeight: '14px', color: BADGE_BG }}>{error}</p>}
+      {error && <p className="font-numbers" style={{ fontSize: 12, lineHeight: '14px', color: BADGE_BG }}>{error}</p>}
 
       {exists === false && (
         <PixelCard>
@@ -1534,6 +1512,7 @@ function PlaygroundWorkspace({
             <Lesson lesson={PRACTICE_LESSONS.intro} />
             <PrimaryButton
               label={creating ? 'CREATING…' : 'CREATE PRACTICE WALLET'}
+              icon={WALLET_ICON}
               disabled={creating}
               onClick={startCreate}
             />
@@ -1546,22 +1525,22 @@ function PlaygroundWorkspace({
           <SettingsRow label="BALANCE" right={<UnitSwitcher state={amountState} />} />
           <SettingsRow
             label="COIN CONTROL"
-            right={<>{snapshot ? String(snapshot.utxos.length) : '…'} ›</>}
+            right={<>{snapshot ? String(snapshot.utxos.length) : '…'} <SvgIcon svg={NEXT_ICON} size={16} /></>}
             onClick={() => setView('coins')}
           />
           <SettingsRow
             label="ADDRESSES"
-            right={<>{snapshot ? String(snapshot.addresses.length) : '…'} ›</>}
+            right={<>{snapshot ? String(snapshot.addresses.length) : '…'} <SvgIcon svg={NEXT_ICON} size={16} /></>}
             onClick={() => setView('addresses')}
           />
           <SettingsRow
             label="FREE TEST SATS"
-            right={<>{faucetClaimed ? 'CLAIMED' : 'AVAILABLE'} ›</>}
+            right={<>{faucetClaimed ? 'CLAIMED' : 'AVAILABLE'} <SvgIcon svg={NEXT_ICON} size={16} /></>}
             onClick={() => setView('faucet')}
           />
           <SettingsRow
             label="RECOVERY PHRASE"
-            right={<>›</>}
+            right={<SvgIcon svg={KEY_ICON} size={20} />}
             onClick={() => setView('backup')}
           />
           <SettingsRow
@@ -1658,7 +1637,7 @@ function PlaygroundWorkspace({
                 <span className="font-numbers" style={{ fontSize: 24, color: 'var(--alice-primary-dark)' }}>
                   {formatTestSats(snapshot.balanceSats + snapshot.pendingSats)}
                 </span>
-                <span className="font-pixel tracking-wider" style={{ fontSize: 9, color: 'var(--alice-muted)' }}>
+                <span className="font-numbers tracking-wider" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
                   {snapshot.utxos.length} COIN{snapshot.utxos.length === 1 ? '' : 'S'}
                   {' · '}
                   {snapshot.utxos.filter((u) => !u.confirmed).length} PENDING
@@ -1672,7 +1651,7 @@ function PlaygroundWorkspace({
                 <div
                   key={`${utxo.txid}:${utxo.vout}`}
                   className="flex items-center justify-between gap-3 py-3 px-3"
-                  style={{ border: '2px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-card-bg)' }}
+                  style={{ border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)', backgroundColor: 'transparent' }}
                 >
                   <span className="flex flex-col min-w-0 gap-1">
                     <span className="font-numbers" style={{ fontSize: 16, color: 'var(--alice-primary-dark)' }}>
@@ -1685,7 +1664,7 @@ function PlaygroundWorkspace({
                   </span>
                   <span
                     className="font-pixel text-right"
-                    style={{ fontSize: 10, color: utxo.confirmed ? '#2ea043' : '#e0b34b' }}
+                    style={{ fontSize: 10, color: utxo.confirmed ? 'var(--alice-success)' : 'var(--alice-warning)' }}
                   >
                     {utxo.confirmed ? 'CONFIRMED' : 'PENDING'}
                   </span>
@@ -1712,11 +1691,11 @@ function PlaygroundWorkspace({
                 {/* Current-address card, mobile anatomy. */}
                 <div
                   className="flex flex-col gap-2 p-3"
-                  style={{ border: '2px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-card-bg)' }}
+                  style={{ border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)', backgroundColor: 'transparent' }}
                 >
                   <span className="flex items-center justify-between">
                     <span className="font-pixel tracking-wider" style={{ fontSize: 11, color: 'var(--alice-primary-dark)' }}>BITCOIN</span>
-                    <span className="font-pixel tracking-wider" style={{ fontSize: 11, color: '#2ea043' }}>CURRENT</span>
+                    <span className="font-pixel tracking-wider" style={{ fontSize: 11, color: 'var(--alice-success)' }}>CURRENT</span>
                   </span>
                   <span className="font-numbers select-all" style={{ fontSize: 14, color: 'var(--alice-primary-dark)' }}>
                     {truncateMiddle(snapshot.receiveAddress, 18, 12, 34)}
@@ -1739,7 +1718,7 @@ function PlaygroundWorkspace({
                     style={{ borderBottom: '1px dotted var(--alice-border)' }}
                   >
                     <span className="flex items-center justify-between">
-                      <span className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-primary-dark)' }}>
+                      <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-primary-dark)' }}>
                         {info.change ? 'CHANGE' : 'RECEIVE'} #{info.index}
                         {info.used ? '' : ' · FRESH'}
                       </span>
@@ -1776,7 +1755,7 @@ function PlaygroundWorkspace({
           {/* Balance, mobile-wallet style: big pixel amount, click to change unit. */}
           <div className="flex flex-col items-center gap-1 py-2">
             <button
-              className="cursor-pointer bg-transparent"
+              className="alice-control alice-control--quiet"
               title="Click to change the unit"
               onClick={() => cycleTestUnit(amountState)}
             >
@@ -1788,17 +1767,17 @@ function PlaygroundWorkspace({
               />
             </button>
             {snapshot !== null && snapshot.pendingSats > 0 && (
-              <span className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-muted)' }}>
+              <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
                 +{formatTestSats(snapshot.pendingSats)} INCOMING
               </span>
             )}
             <button
-              className="font-pixel tracking-widest cursor-pointer mt-1 opacity-60 hover:opacity-100"
-              style={{ fontSize: 8, color: 'var(--alice-muted)' }}
+              className="alice-control alice-control--quiet mt-1"
+
               onClick={() => void refresh()}
               disabled={loading}
             >
-              {loading ? 'CHECKING MUTINYNET…' : 'REFRESH'}
+              <SvgIcon svg={REFRESH_ICON} size={20} /> {loading ? 'Checking Mutinynet…' : 'Refresh'}
             </button>
           </div>
 
@@ -1823,18 +1802,14 @@ function PlaygroundWorkspace({
           {!backedUp && (
             <button
               onClick={() => setView('backup')}
-              className="flex items-center justify-between gap-3 px-3 py-3 cursor-pointer text-left"
-              style={{
-                backgroundColor: '#ff000012',
-                border: '1px solid #ff0000',
-                borderRadius: 2,
-              }}
+              className="alice-control alice-control--row alice-control--danger"
+              style={{ borderLeft: '2px solid var(--alice-danger)' }}
             >
-              <span className="font-numbers" style={{ fontSize: 13, lineHeight: '17px', color: '#ff0000' }}>
+              <span className="font-numbers" style={{ fontSize: 13, lineHeight: '17px', color: 'var(--alice-danger)' }}>
                 Protect your test sats with your 12 recovery words.
               </span>
-              <span className="font-pixel shrink-0" style={{ fontSize: 6, letterSpacing: 1, color: '#ff0000' }}>
-                BACK UP YOUR WALLET NOW →
+              <span className="font-numbers shrink-0 inline-flex items-center gap-2" style={{ fontSize: 12, color: 'var(--alice-danger)' }}>
+                Back up <SvgIcon svg={KEY_ICON} size={20} />
               </span>
             </button>
           )}
@@ -1844,7 +1819,7 @@ function PlaygroundWorkspace({
                translucent navy backdrop, dismissed by the backdrop or CANCEL. */
             <div
               className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              style={{ backgroundColor: 'rgba(48, 74, 112, 0.48)' }}
+              style={{ backgroundColor: 'rgba(0, 0, 0, 0.48)' }}
               onClick={() => { if (faucet.stage !== 'busy') setFaucet(null); }}
               role="dialog"
               aria-modal="true"
@@ -1854,8 +1829,8 @@ function PlaygroundWorkspace({
                 className="flex flex-col gap-4 w-full p-5"
                 style={{
                   maxWidth: 420,
-                  border: '2px solid var(--alice-border)',
-                  borderRadius: 2,
+                  border: '1px solid var(--alice-border)',
+                  borderRadius: 'var(--alice-radius-control)',
                   backgroundColor: 'var(--alice-bg)',
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -1923,13 +1898,13 @@ function PlaygroundWorkspace({
                       They land with the next block, within about 30 seconds.
                     </p>
                     <button
-                      className="font-pixel tracking-wider text-center cursor-pointer bg-transparent"
-                      style={{ fontSize: 9, color: 'var(--alice-primary)' }}
+                      className="alice-control alice-control--link"
+
                       onClick={() => openPlaygroundTxInExplorer(faucet.txid, (path) => router.push(path), 'Free test sats')}
                     >
-                      OPEN IN THE EXPLORER →
+                      Open in Explorer <SvgIcon svg={NEXT_ICON} size={16} />
                     </button>
-                    <PrimaryButton label="DONE" onClick={() => { setFaucet(null); void refresh(); }} />
+                    <PrimaryButton label="DONE" icon={CHECK_ICON} onClick={() => { setFaucet(null); void refresh(); }} />
                   </>
                 )}
 
@@ -1986,17 +1961,17 @@ function PlaygroundWorkspace({
                     (path) => router.push(path),
                     entry.direction === 'incoming' ? 'Test sats received' : 'Test sats sent',
                   )}
-                  className="flex w-full items-center gap-3 py-3 text-left cursor-pointer hover:opacity-80"
-                  style={{ borderTop: '1px dotted var(--alice-border)' }}
+                  className="alice-control alice-control--row"
+                  style={{ borderTop: '1px solid var(--alice-border)', padding: '12px 8px' }}
                 >
                   <span
                     className="font-pixel"
                     style={{ width: 20, fontSize: 12, textAlign: 'center', color: 'var(--alice-primary)' }}
                   >
-                    {entry.direction === 'incoming' ? '↓' : '↑'}
+                    <SvgIcon svg={entry.direction === 'incoming' ? RECEIVE_ICON : UP_ICON} size={20} />
                   </span>
                   <span className="flex flex-col flex-1 min-w-0">
-                    <span className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-primary-dark)' }}>
+                    <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-primary-dark)' }}>
                       {entry.direction === 'incoming' ? 'RECEIVED' : 'SENT'}
                       {entry.confirmed ? '' : ' · PENDING'}
                     </span>
@@ -2037,8 +2012,6 @@ const ASK_OPEN_KEY = 'alice.playground.ask-open';
 const LEGACY_ASK_OPEN_KEY = 'alice.test-wallet.ask-open';
 
 export function PlaygroundPanel() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [askWidth, setAskWidth] = useState(ASK_WIDTH_DEFAULT);
   const [walletState, setWalletState] = useState<PlaygroundAskState>({
@@ -2101,51 +2074,8 @@ export function PlaygroundPanel() {
   );
 
   return (
-    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--alice-bg)' }}>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((v) => !v)}
-        mobileOpen={sidebarMobileOpen}
-        onMobileClose={() => setSidebarMobileOpen(false)}
-      />
-
-      <div className="flex flex-col flex-1 min-w-0 min-h-0">
-        {isTauriDesktop() && (
-          <div data-tauri-drag-region className="shrink-0" style={{ height: 28 }} />
-        )}
-        <div
-          className="grid shrink-0 grid-cols-[108px_minmax(0,1fr)_108px] items-center px-3 md:hidden"
-          style={{
-            height: 'calc(52px + env(safe-area-inset-top))',
-            paddingTop: 'env(safe-area-inset-top)',
-          }}
-        >
-          <div className="flex items-center">
-            <button
-              onClick={() => setSidebarMobileOpen(true)}
-              className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-              aria-label="Open menu"
-            >
-              <SvgIcon svg={SIDEBAR_ICON_SVG} size={18} color="var(--alice-primary)" />
-            </button>
-          </div>
-          <div className="flex min-w-0 items-center justify-center">
-            <span className="font-pixel" style={{ fontSize: 11, color: 'var(--alice-text)' }}>
-              Playground
-            </span>
-          </div>
-          <div />
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <PlaygroundWorkspace onStateChange={onStateChange} onAskAlice={askAliceWith} />
-        </div>
-      </div>
-
-      {/* Alice, docked exactly like in the Explorer: a real layout column on
-          md and up (the wallet shrinks to the remaining space), an overlay
-          below md, and the bubble reopens it when closed. */}
-      {walletState.exists && (askOpen ? (
+    <WorkspaceShell title="Playground" aside={
+      walletState.exists && (askOpen ? (
         <>
           <div
             className="fixed inset-0 z-40 md:hidden"
@@ -2191,7 +2121,11 @@ export function PlaygroundPanel() {
         </>
       ) : (
         <AskAliceFab onOpen={() => setAskOpen(true)} />
-      ))}
-    </div>
+      ))
+    }>
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <PlaygroundWorkspace onStateChange={onStateChange} onAskAlice={askAliceWith} />
+      </div>
+    </WorkspaceShell>
   );
 }

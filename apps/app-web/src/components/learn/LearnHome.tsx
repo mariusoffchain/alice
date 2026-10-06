@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { BACK_ICON, NEXT_ICON, SEARCH_ICON, EXTERNAL_ICON } from '@/lib/atelier-icons';
+
 import { useEffect, useRef, useState } from 'react';
 import { getPedagogicalProfile } from '@alice-wallet/alice-ai';
 import type { LearnCatalogCourse, LearnCatalogTutorial } from '@alice-wallet/alice-content/src/learn-types';
@@ -27,7 +30,7 @@ import { useOnline } from './LearnMarkdown';
 
 const ui = (lang: string): 'fr' | 'en' => (lang === 'fr' ? 'fr' : 'en');
 
-const cardBorder: React.CSSProperties = { border: '2px solid var(--alice-border)', borderRadius: 2 };
+const cardBorder: React.CSSProperties = { border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)' };
 
 // The pixel header with the course code doubles as the offline/error
 // placeholder. Two rendering families, decided at ingestion (thumbKind):
@@ -119,30 +122,26 @@ function CarouselRow({ children }: { children: React.ReactNode }) {
   const scrollBy = (direction: -1 | 1) => {
     const rail = railRef.current;
     if (!rail) return;
-    rail.scrollBy({ left: direction * rail.clientWidth * 0.8, behavior: 'smooth' });
+    rail.scrollBy({ left: direction * rail.clientWidth * 0.8, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   };
   const arrow: React.CSSProperties = {
     position: 'absolute',
     top: '50%',
     transform: 'translateY(-50%)',
     zIndex: 1,
-    width: 28,
-    height: 28,
-    border: '2px solid var(--alice-border)',
-    borderRadius: 2,
-    background: 'var(--alice-bg)',
-    color: 'var(--alice-text)',
-    fontSize: 8,
+    width: 32,
+    height: 32,
+
   };
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', padding: '0 28px' }}>
       <button
         aria-label="Scroll left"
-        className="font-pixel cursor-pointer opacity-70 hover:opacity-100 transition-opacity hidden md:block"
-        style={{ ...arrow, left: -12 }}
+        className="alice-control alice-control--tool hidden md:flex"
+        style={{ ...arrow, left: -4 }}
         onClick={() => scrollBy(-1)}
       >
-        ←
+        <SvgIcon svg={BACK_ICON} size={16} />
       </button>
       <div
         ref={railRef}
@@ -153,11 +152,11 @@ function CarouselRow({ children }: { children: React.ReactNode }) {
       </div>
       <button
         aria-label="Scroll right"
-        className="font-pixel cursor-pointer opacity-70 hover:opacity-100 transition-opacity hidden md:block"
-        style={{ ...arrow, right: -12 }}
+        className="alice-control alice-control--tool hidden md:flex"
+        style={{ ...arrow, right: -4 }}
         onClick={() => scrollBy(1)}
       >
-        →
+        <SvgIcon svg={NEXT_ICON} size={16} />
       </button>
     </div>
   );
@@ -185,26 +184,8 @@ function CourseCard({
   return (
     <button
       onClick={onOpen}
-      className="text-left cursor-pointer transition-colors hover:bg-white/5 shrink-0"
-      style={{
-        ...cardBorder,
-        background: 'transparent',
-        color: 'var(--alice-text)',
-        padding: 0,
-        width: fixedWidth ? 220 : '100%',
-        scrollSnapAlign: 'start',
-        overflow: 'hidden',
-        // The row stretches every card to the tallest, and a <button> centres
-        // its own content when it has room to spare. On a card whose title
-        // fits one line that spare height split in two, dropping the artwork
-        // by half of it and breaking the alignment of a whole row of images.
-        // Stacking the content explicitly puts the slack back at the bottom,
-        // where nothing lines up against anything.
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'stretch',
-        justifyContent: 'flex-start',
-      }}
+      className="alice-control alice-control--row text-left shrink-0"
+      style={{ ...cardBorder, padding: 0, gap: 0, width: fixedWidth ? 220 : '100%', scrollSnapAlign: 'start', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}
     >
       <CardThumb
         src={courseThumbnailUrl(course.code)}
@@ -212,8 +193,8 @@ function CourseCard({
         kind={course.thumbKind ?? 'art'}
       />
       <div
-        className="font-pixel flex items-center justify-between"
-        style={{ borderTop: '2px solid var(--alice-border)', padding: '8px 12px', fontSize: 7, color: 'var(--alice-primary)' }}
+        className="font-numbers flex items-center justify-between"
+        style={{ borderTop: '1px solid var(--alice-border)', padding: '8px 12px', fontSize: 12, color: 'var(--alice-primary)' }}
       >
         <span>{course.code.toUpperCase()}</span>
         {read > 0 && (
@@ -256,28 +237,15 @@ function TutorialCard({
   return (
     <button
       onClick={onOpen}
-      className="text-left cursor-pointer transition-colors hover:bg-white/5 shrink-0"
-      style={{
-        ...cardBorder,
-        background: 'transparent',
-        color: 'var(--alice-text)',
-        padding: 0,
-        width: fixedWidth ? 190 : '100%',
-        scrollSnapAlign: 'start',
-        overflow: 'hidden',
-        // Same stretching row, same button centring, same fix as CourseCard.
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'stretch',
-        justifyContent: 'flex-start',
-      }}
+      className="alice-control alice-control--row text-left shrink-0"
+      style={{ ...cardBorder, padding: 0, gap: 0, width: fixedWidth ? 190 : '100%', scrollSnapAlign: 'start', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}
     >
       <CardThumb
         src={tutorialCoverUrl(tutorial.category, tutorial.slug)}
         fallbackLabel={(TUTORIAL_CATEGORY_LABELS[tutorial.category]?.[ui(lang)] ?? tutorial.category).toUpperCase()}
         kind={tutorial.thumbKind ?? 'photo'}
       />
-      <div style={{ padding: '8px 12px 10px', borderTop: '2px solid var(--alice-border)' }}>
+      <div style={{ padding: '8px 12px 10px', borderTop: '1px solid var(--alice-border)' }}>
         <div className="font-numbers" style={{ fontSize: 14, lineHeight: '20px' }}>{meta?.name ?? tutorial.slug}</div>
         {meta?.description && (
           <div
@@ -341,28 +309,37 @@ export function LearnHome({
 
   return (
     <div style={{ width: 'min(100% - 32px, 1100px)', margin: '0 auto', padding: '24px 0 72px' }}>
+      <header className="workspace-heading">
+        <h1 className="font-pixel">Learn</h1>
+        <p>{lang === 'fr' ? 'Des cours et des tutoriels pour avancer à votre rythme.' : 'Courses and tutorials to explore at your own pace.'}</p>
+      </header>
+      <label htmlFor="learn-search" className="alice-field-label">{lang === 'fr' ? 'Rechercher un cours ou un tutoriel' : 'Search courses and tutorials'}</label>
       <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: 20 }}>
+        <SvgIcon svg={SEARCH_ICON} size={16} />
         <input
+          id="learn-search"
+          type="search"
+          aria-label={lang === 'fr' ? 'Chercher dans Learn' : 'Search Learn'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={lang === 'fr' ? 'Chercher un cours, un tutoriel…' : 'Search courses and tutorials…'}
-          className="font-numbers flex-1"
+          className="alice-field flex-1"
           style={{
             ...cardBorder,
-            minWidth: 220,
+            borderColor: 'var(--alice-control-border)',
+            minWidth: 180,
             background: 'transparent',
             color: 'var(--alice-text)',
             padding: '10px 12px',
             fontSize: 14,
-            outline: 'none',
           }}
         />
       </div>
 
       {searching ? (
-        <section>
-          <h2 className="font-pixel" style={{ fontSize: 9, margin: '0 0 10px' }}>
-            {results.courses.length + results.tutorials.length > 0 ? 'RESULTS' : 'NO RESULTS'}
+        <section aria-live="polite">
+          <h2 className="font-pixel" style={{ fontSize: 10, margin: '0 0 10px' }}>
+            {results.courses.length + results.tutorials.length > 0 ? (lang === 'fr' ? 'RÉSULTATS' : 'RESULTS') : (lang === 'fr' ? 'AUCUN RÉSULTAT' : 'NO RESULTS')}
           </h2>
           <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
             {results.courses.map((course) => (
@@ -390,22 +367,16 @@ export function LearnHome({
         <>
           {forYou.length > 0 && (
             <section style={{ marginBottom: 24 }}>
-              <h2 className="font-pixel" style={{ fontSize: 9, margin: '0 0 10px' }}>FOR YOU</h2>
+              <h2 className="font-pixel" style={{ fontSize: 10, margin: '0 0 10px' }}>FOR YOU</h2>
               <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
                 {forYou.map((entry) => (
                   <button
                     key={entry.course.code}
                     onClick={() => onNavigate({ kind: 'course', code: entry.course.code })}
-                    className="text-left cursor-pointer transition-colors hover:bg-white/5"
-                    style={{
-                      border: '2px solid var(--alice-border)',
-                      borderRadius: 2,
-                      background: 'var(--alice-bg-soft)',
-                      color: 'var(--alice-text)',
-                      padding: '12px 14px',
-                    }}
+                    className="alice-control alice-control--row text-left"
+                    style={{ display: 'block', padding: '12px 14px', borderBottom: '1px solid var(--alice-border)' }}
                   >
-                    <div className="font-pixel" style={{ fontSize: 8, color: 'var(--alice-primary)' }}>
+                    <div className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-primary)' }}>
                       {entry.course.code.toUpperCase()}
                     </div>
                     <div className="font-numbers" style={{ fontSize: 15, marginTop: 8 }}>
@@ -421,7 +392,7 @@ export function LearnHome({
           )}
           {resume.length > 0 && (
             <section style={{ marginBottom: 24 }}>
-              <h2 className="font-pixel" style={{ fontSize: 9, margin: '0 0 10px' }}>RESUME</h2>
+              <h2 className="font-pixel" style={{ fontSize: 10, margin: '0 0 10px' }}>RESUME</h2>
               <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
                 {resume.map((entry) => {
                   const course = courseByCode.get(entry.courseCode);
@@ -435,22 +406,19 @@ export function LearnHome({
                           ? onNavigate({ kind: 'chapter', code: entry.courseCode, chapterId: entry.lastChapterId })
                           : onNavigate({ kind: 'course', code: entry.courseCode })
                       }
-                      className="text-left cursor-pointer transition-colors hover:bg-white/5"
-                      style={{
-                        border: '2px solid var(--alice-primary)',
-                        borderRadius: 2,
-                        background: 'var(--alice-bg-soft)',
-                        color: 'var(--alice-text)',
-                        padding: '12px 14px',
-                      }}
+                      className="alice-control alice-control--row text-left"
+                      style={{ display: 'block', padding: '12px 14px', borderBottom: '1px solid var(--alice-border)' }}
                     >
-                      <div className="font-pixel flex items-center justify-between" style={{ fontSize: 8, color: 'var(--alice-primary)' }}>
+                      <div className="font-numbers flex items-center justify-between" style={{ fontSize: 12, color: 'var(--alice-primary)' }}>
                         <span>{course.code.toUpperCase()}</span>
                         <span>{entry.read}/{total}</span>
                       </div>
                       <div className="font-numbers" style={{ fontSize: 15, marginTop: 8 }}>
                         {courseMeta(course, lang, langMeta)?.name ?? course.code}
                       </div>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 12, color: 'var(--alice-primary)', fontWeight: 600 }}>
+                        {lang === 'fr' ? 'Continuer le cours' : 'Continue course'} <SvgIcon svg={NEXT_ICON} size={16} />
+                      </span>
                       <div style={{ display: 'flex', gap: 2, marginTop: 10 }} aria-hidden="true">
                         {Array.from({ length: Math.min(total, 24) }, (_, i) => (
                           <span
@@ -477,7 +445,7 @@ export function LearnHome({
             <h2 className="font-pixel" style={{ fontSize: 10, margin: '0 0 14px' }}>COURSES</h2>
             {sections.map((section) => (
               <div key={section.topic} style={{ marginBottom: 22 }}>
-                <h3 className="font-pixel" style={{ fontSize: 8, color: 'var(--alice-muted)', margin: '0 0 8px' }}>
+                <h3 className="font-pixel" style={{ fontSize: 10, color: 'var(--alice-muted)', margin: '0 0 8px' }}>
                   {(SECTION_LABELS[section.topic]?.[ui(lang)] ?? section.topic).toUpperCase()}
                 </h3>
                 <CarouselRow>
@@ -501,9 +469,9 @@ export function LearnHome({
             <h2 className="font-pixel" style={{ fontSize: 10, margin: '0 0 14px' }}>TUTORIALS</h2>
             {tutorialGroups.map((group) => (
               <div key={group.category} style={{ marginBottom: 22 }}>
-                <h3 className="font-pixel flex items-baseline gap-2" style={{ fontSize: 8, color: 'var(--alice-muted)', margin: '0 0 8px' }}>
+                <h3 className="font-pixel flex items-baseline gap-2" style={{ fontSize: 10, color: 'var(--alice-muted)', margin: '0 0 8px' }}>
                   {(TUTORIAL_CATEGORY_LABELS[group.category]?.[ui(lang)] ?? group.category).toUpperCase()}
-                  <span style={{ fontSize: 7, opacity: 0.7 }}>{group.tutorials.length}</span>
+                  <span className="font-numbers" style={{ fontSize: 12 }}>{group.tutorials.length}</span>
                 </h3>
                 <CarouselRow>
                   {group.tutorials.map((tutorial) => (
@@ -525,7 +493,7 @@ export function LearnHome({
                 href="https://planb.network" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); void openExternalUrl('https://planb.network'); }}
                 style={{ color: 'var(--alice-muted)', textDecoration: 'underline' }}
               >
-                Plan ₿ Academy
+                Plan ₿ Academy <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><SvgIcon svg={EXTERNAL_ICON} size={16} /></span>
               </a>
               {' · CC BY-SA 4.0'}
             </p>

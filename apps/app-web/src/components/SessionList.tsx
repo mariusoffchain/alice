@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SvgIcon } from '@/components/SvgIcon';
+import { DELETE_ICON } from '@/lib/atelier-icons';
+import { ConfirmDialog } from '@/components/settings/ui';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ChatSession, useChat } from '@alice-wallet/alice-ai';
 import { hasSessionTabs, removeSessionTabs } from '@/lib/explorer/session-links';
@@ -45,8 +48,8 @@ export function SessionList({ onClose }: SessionListProps) {
     return (
       <div className="flex-1 flex items-center justify-center px-5">
         <p
-          className="font-pixel tracking-widest"
-          style={{ fontSize: 10, color: 'var(--alice-text)' }}
+          className="font-numbers"
+          style={{ fontSize: 13, color: 'var(--alice-text)' }}
         >
           NO PAST CONVERSATIONS
         </p>
@@ -74,11 +77,11 @@ export function SessionList({ onClose }: SessionListProps) {
           <div
             key={session.id}
             className="flex items-center justify-between px-5 py-3"
-            style={{ borderBottom: '1px solid rgba(22, 41, 74, 0.2)' }}
+            style={{ borderBottom: '1px solid var(--alice-border)' }}
           >
             <button
               onClick={() => void openFromHistory(session)}
-              className="flex-1 text-left cursor-pointer bg-transparent border-none outline-none"
+              className="alice-control alice-control--option flex-1 min-w-0 flex-col items-start text-left"
             >
               <p
                 className="font-numbers m-0"
@@ -87,17 +90,17 @@ export function SessionList({ onClose }: SessionListProps) {
                 {session.title}
                 {hasSessionTabs(session.id) && (
                   <span
-                    className="font-pixel tracking-widest"
+                    className="font-numbers"
                     title="Opens in Explorer with its tabs"
-                    style={{ fontSize: 10, marginLeft: 8, padding: '2px 5px', border: '1px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)', verticalAlign: 'middle' }}
+                    style={{ fontSize: 13, marginLeft: 8, padding: '2px 5px', border: '1px solid var(--alice-primary)', borderRadius: 2, color: 'var(--alice-primary)', verticalAlign: 'middle' }}
                   >
                     EXPLORER
                   </span>
                 )}
               </p>
               <p
-                className="font-pixel tracking-widest m-0 mt-1"
-                style={{ fontSize: 10, color: 'var(--alice-text)', opacity: 0.6 }}
+                className="font-numbers m-0 mt-1"
+                style={{ fontSize: 13, color: 'var(--alice-text)', opacity: 1 }}
               >
                 {new Date(session.updatedAt).toLocaleDateString()} &middot;{' '}
                 {session.messageCount} message{session.messageCount !== 1 ? 's' : ''}
@@ -105,11 +108,11 @@ export function SessionList({ onClose }: SessionListProps) {
             </button>
             <button
               onClick={() => setPendingDelete(session)}
-              className="w-8 h-8 flex items-center justify-center cursor-pointer bg-transparent border-none outline-none"
-              style={{ color: 'var(--alice-text)', opacity: 0.5, fontSize: 18 }}
+              className="alice-control alice-control--tool alice-control--danger shrink-0"
+
               aria-label="Delete session"
             >
-              &times;
+              <SvgIcon svg={DELETE_ICON} size={16} color="currentColor" />
             </button>
           </div>
         ))}
@@ -120,15 +123,15 @@ export function SessionList({ onClose }: SessionListProps) {
               count + SESSION_PAGE_SIZE,
               sessions.length,
             ))}
-            className="font-pixel tracking-widest block mx-auto my-4 px-3 py-2 cursor-pointer bg-transparent border-none"
-            style={{ fontSize: 10, color: 'var(--alice-text)', opacity: 0.65 }}
+            className="alice-control alice-control--quiet font-numbers mx-auto my-4"
+            style={{ fontSize: 13, color: 'var(--alice-text)', opacity: 15 }}
           >
             LOAD {Math.min(SESSION_PAGE_SIZE, sessions.length - visibleCount)} MORE
           </button>
         ) : sessions.length > SESSION_PAGE_SIZE ? (
           <p
-            className="font-pixel tracking-widest text-center my-4"
-            style={{ fontSize: 10, color: 'var(--alice-text)', opacity: 0.5 }}
+            className="font-numbers text-center my-4"
+            style={{ fontSize: 13, color: 'var(--alice-text)', opacity: 1 }}
           >
             {Math.min(visibleCount, sessions.length)} OF {sessions.length}
           </p>
@@ -136,67 +139,13 @@ export function SessionList({ onClose }: SessionListProps) {
       </div>
 
       {pendingDelete && (
-        <div
-          className="fixed inset-0 flex items-center justify-center px-6"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 50 }}
-          onClick={() => setPendingDelete(null)}
-        >
-          <div
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: 380,
-              padding: 16,
-              backgroundColor: 'var(--alice-bg)',
-              border: '2px solid var(--alice-border)',
-              borderRadius: 2,
-              color: 'var(--alice-text)',
-            }}
-          >
-            <h3
-              className="font-pixel tracking-widest m-0"
-              style={{ fontSize: 10, color: 'var(--alice-primary-dark)' }}
-            >
-              DELETE CONVERSATION
-            </h3>
-            <p
-              className="font-numbers m-0 mt-3"
-              style={{ fontSize: 15, lineHeight: '20px', opacity: 0.8 }}
-            >
-              Delete "{pendingDelete.title}" from your history? This cannot be undone.
-            </p>
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => setPendingDelete(null)}
-                className="font-pixel tracking-widest flex-1 cursor-pointer"
-                style={{
-                  fontSize: 10,
-                  padding: '10px 12px',
-                  border: '2px solid var(--alice-border)',
-                  borderRadius: 2,
-                  backgroundColor: 'transparent',
-                  color: 'var(--alice-primary)',
-                }}
-              >
-                CANCEL
-              </button>
-              <button
-                onClick={() => void confirmDelete()}
-                className="font-pixel tracking-widest flex-1 cursor-pointer"
-                style={{
-                  fontSize: 10,
-                  padding: '10px 12px',
-                  border: '2px solid var(--alice-danger)',
-                  borderRadius: 2,
-                  backgroundColor: 'var(--alice-danger)',
-                  color: '#ffffff',
-                }}
-              >
-                DELETE
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="DELETE CONVERSATION"
+          body={`Delete “${pendingDelete.title}” from your history? This cannot be undone.`}
+          confirmLabel="Delete"
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => void confirmDelete()}
+        />
       )}
     </>
   );

@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { BACK_ICON, NEXT_ICON, CHECK_ICON, CLOSE_ICON, REFRESH_ICON, HELP_ICON } from '@/lib/atelier-icons';
+
 import { useEffect, useMemo, useState } from 'react';
 import { recordPedagogicalSignal } from '@alice-wallet/alice-ai';
 import type { LearnCoursePack, LearnQuizQuestion } from '@alice-wallet/alice-content/src/learn-types';
@@ -56,7 +59,7 @@ export function LearnQuiz({
   if (allQuestions === null || !pack) {
     return (
       <div style={{ width: 'min(100% - 32px, 680px)', margin: '0 auto', padding: '48px 0' }}>
-        <p className="font-pixel" style={{ fontSize: 9, color: 'var(--alice-muted)' }}>LOADING…</p>
+        <p className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }} role="status">{lang === 'fr' ? 'Chargement…' : 'Loading…'}</p>
       </div>
     );
   }
@@ -68,11 +71,11 @@ export function LearnQuiz({
           {lang === 'fr' ? 'Pas de quiz pour cette partie.' : 'No quiz for this part.'}
         </p>
         <button
-          className="font-pixel cursor-pointer"
-          style={{ marginTop: 16, fontSize: 8, padding: '10px 14px', background: 'transparent', color: 'var(--alice-text)', border: '2px solid var(--alice-border)', borderRadius: 2 }}
+          className="alice-control alice-control--quiet"
+          style={{ marginTop: 16, padding: '10px 14px' }}
           onClick={() => onNavigate({ kind: 'course', code })}
         >
-          {lang === 'fr' ? '← RETOUR AU COURS' : '← BACK TO COURSE'}
+          <SvgIcon svg={BACK_ICON} size={16} /> {lang === 'fr' ? 'Retour au cours' : 'Back to course'}
         </button>
       </div>
     );
@@ -87,19 +90,19 @@ export function LearnQuiz({
         </h1>
         <p className="font-numbers" style={{ fontSize: 18, margin: '18px 0 0' }}>
           {score}/{questions.length}
-          {score === questions.length ? ' · 🎉' : ''}
+          {score === questions.length && <span style={{ display: 'inline-flex', marginLeft: 8 }}><SvgIcon svg={CHECK_ICON} size={20} /></span>}
         </p>
         <div className="flex gap-3" style={{ marginTop: 24 }}>
           <button
-            className="font-pixel cursor-pointer"
-            style={{ fontSize: 8, padding: '10px 14px', background: 'transparent', color: 'var(--alice-text)', border: '2px solid var(--alice-border)', borderRadius: 2 }}
+            className="alice-control alice-control--quiet"
+            style={{ padding: '10px 14px' }}
             onClick={() => { setIndex(0); setScore(0); setPicked(null); }}
           >
-            {lang === 'fr' ? 'REFAIRE' : 'RETRY'}
+            <SvgIcon svg={REFRESH_ICON} size={20} /> {lang === 'fr' ? 'Réessayer' : 'Retry'}
           </button>
           <button
-            className="font-pixel cursor-pointer"
-            style={{ fontSize: 8, padding: '10px 14px', background: 'var(--alice-primary)', color: 'var(--alice-on-primary)', border: 0, borderRadius: 2 }}
+            className="alice-control alice-control--primary"
+            style={{ padding: '10px 14px' }}
             onClick={() => onNavigate({ kind: 'course', code })}
           >
             {lang === 'fr' ? 'RETOUR AU COURS' : 'BACK TO COURSE'}
@@ -116,7 +119,7 @@ export function LearnQuiz({
 
   return (
     <div style={{ width: 'min(100% - 32px, 680px)', margin: '0 auto', padding: '24px 0 72px', color: 'var(--alice-text)' }}>
-      <div className="font-pixel flex items-center justify-between" style={{ fontSize: 8, color: 'var(--alice-muted)' }}>
+      <div className="font-numbers flex items-center justify-between" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
         <span>{code.toUpperCase()} · {partTitle.toUpperCase()}</span>
         <span>{index + 1}/{questions.length}</span>
       </div>
@@ -131,13 +134,14 @@ export function LearnQuiz({
           const showState = answered && (choice.correct || isPicked);
           const border = showState
             ? choice.correct
-              ? '2px solid #3f9d63'
-              : '2px solid #c74f4f'
-            : '2px solid var(--alice-border)';
+              ? '2px solid var(--alice-success)'
+              : '2px solid var(--alice-danger)'
+            : '1px solid var(--alice-border)';
           return (
             <button
               key={choice.text}
               disabled={answered}
+              aria-pressed={isPicked}
               onClick={() => {
                 setPicked(choice.text);
                 if (choice.correct) {
@@ -149,18 +153,22 @@ export function LearnQuiz({
                   void recordPedagogicalSignal(question.question).catch(() => {});
                 }
               }}
-              className="font-numbers text-left cursor-pointer transition-colors hover:bg-white/5 disabled:cursor-default"
-              style={{ background: 'transparent', color: 'var(--alice-text)', border, borderRadius: 2, padding: '12px 14px', fontSize: 15, lineHeight: '23px' }}
+              className="alice-control alice-control--row disabled:cursor-default"
+              style={{ background: 'transparent', color: 'var(--alice-text)', border, borderRadius: 'var(--alice-radius-control)', padding: '12px 14px', fontSize: 15, lineHeight: '23px', opacity: 1 }}
             >
-              {choice.text}
+              <span style={{ flex: 1 }}>{choice.text}</span>
+              {showState && <span className="flex items-center gap-2" style={{ color: choice.correct ? 'var(--alice-success)' : 'var(--alice-danger)', fontSize: 12 }}>
+                <SvgIcon svg={choice.correct ? CHECK_ICON : CLOSE_ICON} size={20} />
+                {choice.correct ? (lang === 'fr' ? 'Correcte' : 'Correct') : (lang === 'fr' ? 'Votre réponse' : 'Your answer')}
+              </span>}
             </button>
           );
         })}
       </div>
 
       {answered && (
-        <div style={{ marginTop: 20, border: '2px solid var(--alice-border)', borderRadius: 2, background: 'var(--alice-bg-soft)', padding: '14px 16px' }}>
-          <div className="font-pixel" style={{ fontSize: 8, color: pickedChoice?.correct ? '#3f9d63' : '#c74f4f' }}>
+        <div role="status" style={{ marginTop: 20, border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)', background: 'var(--alice-bg-soft)', padding: '14px 16px' }}>
+          <div className="font-numbers" style={{ fontSize: 12, color: pickedChoice?.correct ? 'var(--alice-success)' : 'var(--alice-danger)' }}>
             {pickedChoice?.correct
               ? lang === 'fr' ? 'BONNE RÉPONSE' : 'CORRECT'
               : lang === 'fr' ? 'MAUVAISE RÉPONSE' : 'INCORRECT'}
@@ -172,25 +180,25 @@ export function LearnQuiz({
           )}
           <div className="flex gap-3 flex-wrap" style={{ marginTop: 14 }}>
             <button
-              className="font-pixel cursor-pointer"
-              style={{ fontSize: 8, padding: '10px 14px', background: 'var(--alice-primary)', color: 'var(--alice-on-primary)', border: 0, borderRadius: 2 }}
+              className="alice-control alice-control--primary"
+              style={{ padding: '10px 14px' }}
               onClick={() => { setIndex((i) => i + 1); setPicked(null); }}
             >
               {index + 1 < questions.length
-                ? lang === 'fr' ? 'QUESTION SUIVANTE →' : 'NEXT QUESTION →'
-                : lang === 'fr' ? 'VOIR LE SCORE →' : 'SEE SCORE →'}
+                ? lang === 'fr' ? 'Question suivante' : 'Next question'
+                : lang === 'fr' ? 'Voir le score' : 'See score'} <SvgIcon svg={NEXT_ICON} size={16} />
             </button>
             {!pickedChoice?.correct && picked && (
               <button
-                className="font-pixel cursor-pointer"
-                style={{ fontSize: 8, padding: '10px 14px', background: 'transparent', color: 'var(--alice-primary)', border: '2px solid var(--alice-primary)', borderRadius: 2 }}
+                className="alice-control alice-control--quiet"
+                style={{ padding: '10px 14px' }}
                 onClick={() =>
                   // Opens the Ask-Alice sidebar with the quiz context attached:
                   // the quiz stays on screen and can be resumed after.
                   requestLearnAsk(buildQuizAsk(lang, code, question.question, picked, question.answer))
                 }
               >
-                {lang === 'fr' ? 'DEMANDER À ALICE POURQUOI' : 'ASK ALICE WHY'}
+                <SvgIcon svg={HELP_ICON} size={20} /> {lang === 'fr' ? 'Demander à Alice pourquoi' : 'Ask Alice why'}
               </button>
             )}
           </div>

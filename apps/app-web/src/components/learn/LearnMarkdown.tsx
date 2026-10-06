@@ -1,5 +1,8 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { NEXT_ICON, EXTERNAL_ICON } from '@/lib/atelier-icons';
+
 import { useEffect, useState } from 'react';
 import type { LearnBlock, LearnInline } from '@/lib/learn/markdown';
 import { normalizeLinkHref, parseMarkdown, resolveAssetUrl } from '@/lib/learn/markdown';
@@ -36,10 +39,12 @@ function InlineNodes({ nodes, assetBase, onAnchorClick }: { nodes: LearnInline[]
               <button
                 key={i}
                 onClick={() => onAnchorClick?.(node.anchorId)}
-                className="cursor-pointer"
+                className="alice-control alice-control--link"
                 title="See it in the Explorer"
                 style={{
                   background: 'none',
+                  display: 'inline',
+                  minHeight: 0,
                   border: 0,
                   padding: 0,
                   font: 'inherit',
@@ -48,7 +53,7 @@ function InlineNodes({ nodes, assetBase, onAnchorClick }: { nodes: LearnInline[]
                 }}
               >
                 {node.text}
-                <span aria-hidden="true" style={{ fontSize: '0.75em', marginLeft: 3, verticalAlign: 'middle' }}>▸</span>
+                <span aria-hidden="true" style={{ display: 'inline-flex', marginLeft: 3, verticalAlign: 'middle' }}><SvgIcon svg={NEXT_ICON} size={16} /></span>
               </button>
             );
           case 'bold':
@@ -62,7 +67,7 @@ function InlineNodes({ nodes, assetBase, onAnchorClick }: { nodes: LearnInline[]
                 style={{
                   background: 'var(--alice-bg-soft)',
                   border: '1px solid var(--alice-border)',
-                  borderRadius: 2,
+                  borderRadius: 'var(--alice-radius-control)',
                   padding: '1px 4px',
                   fontSize: '0.9em',
                 }}
@@ -88,7 +93,7 @@ function InlineNodes({ nodes, assetBase, onAnchorClick }: { nodes: LearnInline[]
                 }}
                 style={{ color: 'var(--alice-primary)', textDecoration: 'underline' }}
               >
-                {node.text}
+                {node.text} <span aria-hidden="true" style={{ display: 'inline-flex', verticalAlign: 'middle' }}><SvgIcon svg={EXTERNAL_ICON} size={16} /></span>
               </a>
             );
           }
@@ -100,19 +105,32 @@ function InlineNodes({ nodes, assetBase, onAnchorClick }: { nodes: LearnInline[]
   );
 }
 
-function OfflineMediaCard({ label }: { label: string }) {
+function CourseImage({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <OfflineMediaCard title="IMAGE UNAVAILABLE" label={alt || 'This course image could not be loaded.'} />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} style={{
+      maxWidth: '100%', display: 'block', margin: '16px auto',
+      border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)',
+      background: 'var(--alice-illustration-bg)',
+    }} />
+  );
+}
+
+function OfflineMediaCard({ label, title = 'OFFLINE' }: { label: string; title?: string }) {
   return (
     <div
       style={{
-        border: '2px dashed var(--alice-border)',
-        borderRadius: 2,
+        border: '1px dashed var(--alice-border)',
+        borderRadius: 'var(--alice-radius-control)',
         padding: 16,
         margin: '16px 0',
         color: 'var(--alice-muted)',
         textAlign: 'center',
       }}
     >
-      <div className="font-pixel" style={{ fontSize: 8 }}>OFFLINE</div>
+      <div className="font-pixel" style={{ fontSize: 10 }}>{title}</div>
       <p style={{ margin: '8px 0 0', fontSize: 14 }}>{label}</p>
     </div>
   );
@@ -139,8 +157,8 @@ function VideoBlock({
     return (
       <div
         style={{
-          border: '2px dashed var(--alice-border)',
-          borderRadius: 2,
+          border: '1px dashed var(--alice-border)',
+          borderRadius: 'var(--alice-radius-control)',
           padding: 16,
           margin: '16px 0',
           color: 'var(--alice-muted)',
@@ -163,7 +181,7 @@ function VideoBlock({
     );
   }
   return (
-    <div style={{ margin: '16px 0', border: '2px solid var(--alice-border)', borderRadius: 2 }}>
+    <div style={{ margin: '16px 0', border: '1px solid var(--alice-border)', borderRadius: 'var(--alice-radius-control)' }}>
       <iframe
         src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
         title="Course video"
@@ -220,11 +238,12 @@ function Block({
 }) {
   switch (block.kind) {
     case 'heading': {
-      const size = block.level <= 3 ? 12 : 9;
+      const size = block.level <= 3 ? 12 : 10;
+      const Heading = `h${Math.max(2, Math.min(6, block.level))}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
       return (
-        <div className="font-pixel" style={{ fontSize: size, margin: '28px 0 12px', lineHeight: 1.6 }}>
+        <Heading className="font-pixel" style={{ fontSize: size, margin: '28px 0 12px', lineHeight: 1.6 }}>
           <InlineNodes nodes={block.inline} assetBase={assetBase} onAnchorClick={onAnchorClick} />
-        </div>
+        </Heading>
       );
     }
     case 'paragraph':
@@ -238,8 +257,8 @@ function Block({
         <pre
           style={{
             background: 'var(--alice-bg-soft)',
-            border: '2px solid var(--alice-border)',
-            borderRadius: 2,
+            border: '1px solid var(--alice-border)',
+            borderRadius: 'var(--alice-radius-control)',
             padding: 12,
             margin: '16px 0',
             overflowX: 'auto',
@@ -290,8 +309,8 @@ function Block({
                 {block.header.map((cell, i) => (
                   <th
                     key={i}
-                    className="font-pixel"
-                    style={{ border: '1px solid var(--alice-border)', padding: '8px 10px', fontSize: 8, textAlign: 'left' }}
+                    className="font-numbers"
+                    style={{ border: '1px solid var(--alice-border)', padding: '8px 10px', fontSize: 14, textAlign: 'left' }}
                   >
                     <InlineNodes nodes={cell} assetBase={assetBase} onAnchorClick={onAnchorClick} />
                   </th>
@@ -314,29 +333,11 @@ function Block({
       );
     case 'image':
       if (!online) return <OfflineMediaCard label="Connect to the internet to see this image." />;
-      return (
-        // Remote course illustration, dimensions unknown ahead of time.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={resolveAssetUrl(block.src, assetBase)}
-          alt={block.alt}
-          loading="lazy"
-          style={{
-            maxWidth: '100%',
-            display: 'block',
-            margin: '16px auto',
-            border: '2px solid var(--alice-border)',
-            borderRadius: 2,
-            // Corpus illustrations are often transparent webp drawn for a
-            // light page; keep them readable on dark palettes.
-            background: '#f3efe7',
-          }}
-        />
-      );
+      return <CourseImage key={resolveAssetUrl(block.src, assetBase)} src={resolveAssetUrl(block.src, assetBase)} alt={block.alt} />;
     case 'video':
       return <VideoBlock videoId={block.videoId} videos={videos} lang={lang} online={online} />;
     case 'hr':
-      return <hr style={{ border: 0, borderTop: '2px solid var(--alice-border)', margin: '24px 0' }} />;
+      return <hr style={{ border: 0, borderTop: '1px solid var(--alice-border)', margin: '24px 0' }} />;
     default:
       return null;
   }

@@ -1,6 +1,6 @@
 {
   "name": "alice-wallet",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "AGPL-3.0-or-later",
   "private": true,
   "engines": {
@@ -20,7 +20,40 @@
   "overrides": {
     "@expo/cli": {
       "tar": "7.5.22"
-    }
+    },
+    "miniflare": {
+      "undici": "7.30.0",
+      "sharp": "0.35.5"
+    },
+    "next": {
+      "postcss": "8.5.28",
+      "sharp": "0.35.5"
+    },
+    "onnxruntime-node": {
+      "adm-zip": "0.6.1"
+    },
+    "@huggingface/transformers": {
+      "sharp": "0.35.5"
+    },
+    "postcss": "8.5.28",
+    "ws@>=8 <9": "8.22.0",
+    "viem": {
+      "ws": "8.22.0"
+    },
+    "metro": "0.83.8",
+    "metro-babel-transformer": "0.83.8",
+    "metro-cache": "0.83.8",
+    "metro-cache-key": "0.83.8",
+    "metro-config": "0.83.8",
+    "metro-core": "0.83.8",
+    "metro-file-map": "0.83.8",
+    "metro-minify-terser": "0.83.8",
+    "metro-resolver": "0.83.8",
+    "metro-runtime": "0.83.8",
+    "metro-source-map": "0.83.8",
+    "metro-symbolicate": "0.83.8",
+    "metro-transform-plugins": "0.83.8",
+    "metro-transform-worker": "0.83.8"
   },
   "allowScripts": {
     "llama.rn@0.12.5": true

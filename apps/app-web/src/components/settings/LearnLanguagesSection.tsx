@@ -9,7 +9,7 @@ import {
   removeInstalledLanguage,
   type LearnLang,
 } from '@/lib/learn/language';
-import { btnBase, SectionLabel, sectionStyle } from './ui';
+import { SectionLabel, sectionStyle } from './ui';
 
 // Course-language management mirrored in Settings: the same picker as the
 // Learn page's globe button, plus removal of downloaded languages (the
@@ -25,28 +25,27 @@ export function LearnLanguagesSection() {
     <div style={sectionStyle}>
       <SectionLabel>COURSE LANGUAGES</SectionLabel>
       <p className="font-numbers" style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--alice-muted)' }}>
-        Languages available in the Learn quick selector. Plan ₿ Academy content exists in {`${28}`} languages.
+        Languages available in the Learn quick selector. Plan ₿ Academy content exists in {`${28}`} languages. This does not change Alice’s response language.
       </p>
-      <div className="flex flex-col" style={{ marginTop: 12, border: '1px solid var(--alice-border)', borderRadius: 2 }}>
+      <div className="flex flex-col" style={{ marginTop: 12 }}>
         {installed.map((lang, index) => (
           <div
             key={lang}
             className="flex items-center gap-3"
             style={{ padding: '10px 12px', borderTop: index > 0 ? '1px solid var(--alice-border)' : undefined }}
           >
-            <span className="font-pixel" style={{ fontSize: 8, width: 64, color: 'var(--alice-primary)' }}>
+            <span className="font-numbers" style={{ fontSize: 13, width: 64, color: 'var(--alice-primary)' }}>
               {lang.toUpperCase()}
             </span>
             <span className="font-numbers flex-1" style={{ fontSize: 14, color: 'var(--alice-text)' }}>
               {languageName(lang)}
             </span>
             {isEmbeddedLang(lang) ? (
-              <span className="font-pixel" style={{ fontSize: 7, color: 'var(--alice-muted)' }}>BUILT IN</span>
+              <span className="font-numbers" style={{ fontSize: 13, color: 'var(--alice-muted)' }}>Built in · available</span>
             ) : (
               <button
                 type="button"
-                className="font-pixel cursor-pointer"
-                style={{ fontSize: 7, padding: '6px 10px', border: '1px solid var(--alice-border)', borderRadius: 2, background: 'transparent', color: 'var(--alice-muted)' }}
+                className="alice-control alice-control--quiet font-numbers cursor-pointer"
                 onClick={() => {
                   removeInstalledLanguage(lang);
                   refresh();
@@ -58,7 +57,7 @@ export function LearnLanguagesSection() {
           </div>
         ))}
       </div>
-      <button type="button" style={{ ...btnBase, marginTop: 12 }} onClick={() => setPickerOpen(true)}>
+      <button className="alice-control alice-control--quiet font-numbers" type="button" style={{ marginTop: 12 }} onClick={() => setPickerOpen(true)}>
         ADD A LANGUAGE
       </button>
 

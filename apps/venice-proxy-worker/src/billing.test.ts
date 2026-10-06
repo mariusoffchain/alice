@@ -8,6 +8,7 @@ import {
   BILLING_PERIOD_MS,
   recordMeasuredBytes,
   bytesPerToken,
+  outputBytesPerToken,
   cleanupBillingData,
   countingStream,
   createCheckout,
@@ -395,7 +396,14 @@ describe('plan lifetime', () => {
 });
 
 describe('byte metering', () => {
+  // The budget a plan is enforced against comes from the catalog, so the test
+  // declares it there, in tokens at one byte each, and writes the same figures
+  // on the entitlement the way a purchase would.
   async function paidUser(inputLimit = 1_000_000, outputLimit = 1_000_000) {
+    env.BYTES_PER_TOKEN = '1';
+    env.OUTPUT_BYTES_PER_TOKEN = '1';
+    env.PLAN_INPUT_TOKENS = String(inputLimit);
+    env.PLAN_OUTPUT_TOKENS = String(outputLimit);
     const created = await createUser();
     const now = Date.now();
     await db.batch([
@@ -413,7 +421,7 @@ describe('byte metering', () => {
   it('reserves the worst case, then charges what actually streamed back', async () => {
     const { userId } = await paidUser();
     const reservation = await reserveCloudBytes(env, userId, 'request-1', 4_000, 2_048);
-    const reservedOutput = Math.ceil(2_048 * bytesPerToken(env));
+    const reservedOutput = Math.ceil(2_048 * outputBytesPerToken(env));
 
     const afterReserve = await getBillingSnapshot(env, userId);
     assert.equal(afterReserve.input_bytes_used, 4_000);
@@ -490,6 +498,48 @@ describe('byte metering', () => {
     await reserveCloudBytes(env, userId, 'request-6', 100, 0);
     const snapshot = await getBillingSnapshot(env, userId);
     assert.equal(snapshot.usage_percent, 10);
+  });
+
+  it('weighs the output side with its own ratio', async () => {
+    // A request body is text; a response is a stream of encrypted events, one
+    // per token with its envelope. The two sides of the plan are converted
+    // with two ratios, and the worst case reserved for an answer follows the
+    // output one.
+    const { userId } = await paidUser();
+    env.BYTES_PER_TOKEN = '2';
+    env.OUTPUT_BYTES_PER_TOKEN = '300';
+    env.PLAN_INPUT_TOKENS = '1000';
+    env.PLAN_OUTPUT_TOKENS = '1000';
+
+    const catalog = planCatalog(env).cloud;
+    assert.equal(catalog.inputBytesLimit, 2_000);
+    assert.equal(catalog.outputBytesLimit, 300_000);
+
+    await reserveCloudBytes(env, userId, 'request-7', 100, 10);
+    const snapshot = await getBillingSnapshot(env, userId);
+    assert.equal(snapshot.output_bytes_used, 3_000);
+    assert.equal(snapshot.output_bytes_limit, 300_000);
+  });
+
+  it('applies a recalibration to a plan that is already running', async () => {
+    // The allowance was sold in tokens. When the ratio behind it is corrected,
+    // the plans bought before the correction are enforced against the new
+    // budget at once: the figures written at purchase are a record, not the
+    // rule. This is what rescues an account that the old output ratio had
+    // emptied after a few dozen answers.
+    const { userId } = await paidUser(1_000, 1_000);
+    await reserveCloudBytes(env, userId, 'request-8', 100, 900);
+    await assert.rejects(
+      reserveCloudBytes(env, userId, 'request-9', 100, 900),
+      /allowance is used up/,
+    );
+    assert.equal((await getBillingSnapshot(env, userId)).usage_percent, 90);
+
+    env.OUTPUT_BYTES_PER_TOKEN = '10';
+    const recalibrated = await getBillingSnapshot(env, userId);
+    assert.equal(recalibrated.output_bytes_limit, 10_000);
+    assert.equal(recalibrated.usage_percent, 10);
+    await reserveCloudBytes(env, userId, 'request-10', 100, 90);
   });
 });
 

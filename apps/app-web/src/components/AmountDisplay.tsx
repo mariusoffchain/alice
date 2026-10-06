@@ -155,7 +155,7 @@ export function Amount({
       role="button"
       tabIndex={0}
       title="Click to change the unit"
-      className="font-numbers cursor-pointer"
+      className="alice-amount font-numbers cursor-pointer"
       style={{ display: 'inline-flex', alignItems: 'center', ...style }}
       onClick={(e) => { e.stopPropagation(); e.preventDefault(); cycleAmountFormat(); }}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); cycleAmountFormat(); } }}

@@ -126,7 +126,7 @@ export default function TrustPage() {
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {refusals.map((r) => (
-            <span key={r} className="rounded-full border border-[var(--alice-border)] bg-[var(--alice-bg-soft)] px-3 py-1.5 text-[13px] text-[var(--alice-text)]">
+            <span key={r} className="rounded-[4px] border border-[var(--alice-border)] px-3 py-1.5 text-[13px] text-[var(--alice-text)]">
               {r}
             </span>
           ))}

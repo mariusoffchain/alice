@@ -8,7 +8,7 @@ import {
   useChat,
   MAX_CHAT_SESSIONS,
 } from '@alice-wallet/alice-ai';
-import { btnBase, ConfirmDialog, DANGER, SectionLabel, sectionStyle } from './ui';
+import { ConfirmDialog, SectionLabel, sectionStyle } from './ui';
 import { LearnLanguagesSection } from './LearnLanguagesSection';
 
 function formatStorageSize(bytes: number): string {
@@ -61,17 +61,17 @@ export function DataTab() {
       <div style={sectionStyle}>
         <SectionLabel>CLEAN YOUR DISCUSSION HISTORY</SectionLabel>
         <div className="flex items-center justify-between gap-3 mt-2">
-          <span className="font-pixel tracking-widest" style={{ fontSize: 10 }}>
+          <span className="font-numbers" style={{ fontSize: 13 }}>
             {count} / {MAX_CHAT_SESSIONS} CONVERSATIONS
           </span>
-          <span className="font-pixel tracking-widest" style={{ fontSize: 10, opacity: 0.55 }}>
+          <span className="font-numbers" style={{ fontSize: 13, opacity: 1 }}>
             {formatStorageSize(chatStorage?.estimatedBytes ?? 0)}
           </span>
         </div>
-        <p className="font-numbers m-0 mt-3" style={{ fontSize: 14, lineHeight: '19px', opacity: 0.65 }}>
+        <p className="font-numbers m-0 mt-3" style={{ fontSize: 14, lineHeight: '19px', opacity: 1 }}>
           Conversations stay on this device. Alice keeps at most {MAX_CHAT_SESSIONS} and removes the oldest when the limit is reached.
         </p>
-        <p className="font-pixel tracking-widest m-0 mt-2" style={{ fontSize: 10, color: 'var(--alice-primary-dark)' }}>
+        <p className="font-numbers  m-0 mt-2" style={{ fontSize: 13, color: 'var(--alice-primary-dark)' }}>
           {isTauriDesktop()
             ? 'ENCRYPTED WITH THIS DEVICE’S SYSTEM KEYCHAIN'
             : 'STORED LOCALLY IN THIS BROWSER'}
@@ -79,47 +79,28 @@ export function DataTab() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
           <button
             onClick={() => setConfirmChatCleanup('oldest-10')}
-            className="font-pixel tracking-widest"
-            style={{
-              ...btnBase,
-              backgroundColor: 'transparent',
-              color: 'var(--alice-primary)',
-              opacity: count === 0 ? 0.4 : 1,
-            }}
+            className="alice-control alice-control--quiet font-numbers"
             disabled={count === 0 || cleaningChat}
           >
             DELETE 10 OLDEST
           </button>
           <button
             onClick={() => setConfirmChatCleanup('keep-newest-10')}
-            className="font-pixel tracking-widest"
-            style={{
-              ...btnBase,
-              backgroundColor: 'transparent',
-              color: 'var(--alice-primary)',
-              opacity: count <= 10 ? 0.4 : 1,
-            }}
+            className="alice-control alice-control--quiet font-numbers"
             disabled={count <= 10 || cleaningChat}
           >
             KEEP 10 NEWEST
           </button>
           <button
             onClick={() => setConfirmChatCleanup('all')}
-            className="font-pixel tracking-widest"
-            style={{
-              ...btnBase,
-              backgroundColor: 'transparent',
-              color: DANGER,
-              borderColor: DANGER,
-              opacity: count === 0 ? 0.4 : 1,
-            }}
+            className="alice-control alice-control--danger font-numbers"
             disabled={count === 0 || cleaningChat}
           >
             DELETE ALL
           </button>
         </div>
         {cleanupNotice && (
-          <p className="font-numbers m-0 mt-3" style={{ fontSize: 14, opacity: 0.7 }}>
+          <p className="font-numbers m-0 mt-3" style={{ fontSize: 14, opacity: 1 }}>
             {cleanupNotice}
           </p>
         )}

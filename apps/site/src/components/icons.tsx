@@ -1,147 +1,57 @@
-// Small hand-rolled icons (the site has no icon library). Stroke uses
-// currentColor so they inherit the button/text color.
+import { ALICE_SYMBOL_PATH, ALICE_WORDMARK_PATH } from '@/lib/brand';
+import { rabbitPaths } from '@/lib/rabbit-paths';
 
-export function PhoneIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="7" y="2.5" width="10" height="19" rx="2" />
-      <line x1="11" y1="18.5" x2="13" y2="18.5" />
-    </svg>
-  );
+// Integer-grid glyphs shared visually with the approved application controls.
+function PixelGlyph({ size, path }: { size: number; path: string }) {
+  return <svg width={size} height={size} viewBox="0 0 20 20" fill="currentColor" shapeRendering="crispEdges" aria-hidden="true"><path fillRule="evenodd" d={path} /></svg>;
 }
 
-export function DesktopIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="4" width="18" height="12" rx="1.5" />
-      <line x1="8" y1="20.5" x2="16" y2="20.5" />
-      <line x1="12" y1="16" x2="12" y2="20.5" />
-    </svg>
-  );
+export function PhoneIcon({ size = 20 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M5 1h10v18H5zm2 2v12h6V3zm2 13v1h2v-1z" />;
 }
 
-export function LaptopIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="4" y="5" width="16" height="10" rx="1.5" />
-      <line x1="2" y1="18.5" x2="22" y2="18.5" />
-    </svg>
-  );
+export function DesktopIcon({ size = 20 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M1 2h18v12h-8v2h4v2H5v-2h4v-2H1zm2 2v8h14V4z" />;
 }
 
-export function CloudIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M7.5 18.5h9a3.5 3.5 0 0 0 .4-6.98 5 5 0 0 0-9.55-1.02A3.75 3.75 0 0 0 7.5 18.5Z" />
-      <rect x="10" y="11.5" width="4" height="3.2" rx="0.6" />
-      <path d="M10.6 11.5v-0.8a1.4 1.4 0 0 1 2.8 0v0.8" />
-    </svg>
-  );
+export function LaptopIcon({ size = 20 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M3 3h14v11H3zm2 2v7h10V5zM1 15h18v2H1z" />;
 }
 
-export function KeyIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="8" cy="15" r="3.5" />
-      <line x1="10.5" y1="12.5" x2="20" y2="3" />
-      <line x1="20" y1="3" x2="20" y2="6.5" />
-      <line x1="17" y1="6" x2="19.5" y2="6" />
-    </svg>
-  );
+export function CloudIcon({ size = 20 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M7 2h6v2h3v3h2v2h1v7H1V9h2V7h3V4h1zm1 2v5H4v2H3v3h14v-3h-3V8h-2V4z" />;
 }
 
-export function BookIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 6.5c-1.6-1-4.2-1.5-6.5-1.5v12c2.3 0 4.9.5 6.5 1.5" />
-      <path d="M12 6.5c1.6-1 4.2-1.5 6.5-1.5v12c-2.3 0-4.9.5-6.5 1.5" />
-      <path d="M12 6.5V19" />
-    </svg>
-  );
+export function KeyIcon({ size = 20 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M6 2h8v1H6zM5 3h10v1H5zM5 4h2v4H5zM13 4h2v4H13zM5 8h10v1H5zM6 9h8v1H6zM9 10h2v2H9zM9 12h6v2H9zM9 14h2v2H9zM9 16h6v2H9z" />;
 }
 
-export function CompassIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" />
-    </svg>
-  );
+export function BookIcon({ size = 20 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M1 3h7l2 2 2-2h7v13h-7l-2 2-2-2H1zm2 2v9h5l1 1V6L7 5zm8 1v9l1-1h5V5h-4z" />;
 }
 
-export function ShieldIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 3l7 2.6v5.2c0 4.4-3 7.5-7 9.2-4-1.7-7-4.8-7-9.2V5.6z" />
-    </svg>
-  );
+export function CompassIcon({ size = 20 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M6 1h8v2h3v3h2v8h-2v3h-3v2H6v-2H3v-3H1V6h2V3h3zm0 2v2H4v2H3v6h1v2h2v2h8v-2h2v-2h1V7h-1V5h-2V3zm6 3h3l-3 6-7 3 3-7zm-2 3-2 3 3-1 1-3z" />;
 }
 
-export function ShieldCheckIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 3l7 2.6v5.2c0 4.4-3 7.5-7 9.2-4-1.7-7-4.8-7-9.2V5.6z" />
-      <path d="M9 11.8l2 2 4-4" />
-    </svg>
-  );
+export function ShieldIcon({ size = 20 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M8 1h4v1h3v1h3v9h-2v3h-2v2h-2v2H8v-2H6v-2H4v-3H2V3h3V2h3zm0 3H4v7h2v3h2v2h4v-2h2v-3h2V5h-4V4z" />;
+}
+
+export function ShieldCheckIcon({ size = 20 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M8 1h4v1h3v1h3v9h-2v3h-2v2h-2v2H8v-2H6v-2H4v-3H2V3h3V2h3zm0 3H4v7h2v3h2v2h4v-2h2v-3h2V5h-4V4zM6 8h2v2h2V8h2V6h2v4h-2v2H8v-1H6z" />;
 }
 
 export function GlobeIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18" />
-      <path d="M12 3c2.4 2.4 3.6 5.6 3.6 9s-1.2 6.6-3.6 9c-2.4-2.4-3.6-5.6-3.6-9s1.2-6.6 3.6-9Z" />
-    </svg>
-  );
+  return <svg width={size} height={size} viewBox="0 0 20 20" fill="currentColor" shapeRendering="crispEdges" aria-hidden="true"><path fillRule="evenodd" d="M6 1h8v2h3v3h2v8h-2v3h-3v2H6v-2H3v-3H1V6h2V3h3zm0 2v2H5v1H3v8h2v1h1v2h8v-2h1v-1h2V6h-2V5h-1V3z"/><path d="M2 9h16v2H2zM7 3h2v4H7zM6 7h2v6H6zM7 13h2v4H7zM11 3h2v4h-2zM12 7h2v6h-2zM11 13h2v4h-2z"/></svg>;
 }
 
 export function DownloadIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 3.5v11" />
-      <path d="M7.5 10.5 12 15l4.5-4.5" />
-      <path d="M4.5 17v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2" />
-    </svg>
-  );
+  return <PixelGlyph size={size} path="M9 2h2v6H9zM5 8h10v2H5zM7 10h6v2H7zM9 12h2v2H9zM3 14h2v2H3zM15 14h2v2H15zM3 16h14v2H3z" />;
 }
 
-export function ChevronDownIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
+export function ChevronDownIcon({ size = 20 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M3 6h2v2h2v2h2v2h2v-2h2V8h2V6h2v3h-2v2h-2v2h-2v2H9v-2H7v-2H5V9H3z" />;
 }
 
 // Simplified own line-art platform marks (not a reproduction of any trademarked
@@ -194,28 +104,52 @@ export function AndroidGlyph({ size = 20 }: { size?: number }) {
   );
 }
 
-// Alice brand mark: the app's keyhole icon plus the wordmark.
-export function AliceMark({
-  size = 28,
-  showWordmark = true,
-}: {
+// The D2 symbol is the A in the wordmark. The rabbit remains the assistant mascot.
+export function AliceMark({ size = 22, showWordmark = true }: {
   size?: number;
   showWordmark?: boolean;
 }) {
   return (
-    <span className="flex items-center gap-2.5">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/alice-logo.svg"
-        alt="Alice"
-        width={size}
-        height={size}
-        style={{ width: size, height: size }}
-        className="block"
-      />
-      {showWordmark && (
-        <span className="font-pixel text-[14px] text-[var(--alice-heading)]">Alice</span>
-      )}
-    </span>
+    <svg
+      role="img"
+      aria-label="Alice"
+      data-alice-brand="d2"
+      width={showWordmark ? size * 248 / 48 : size}
+      height={size}
+      viewBox={showWordmark ? '0 0 248 48' : '0 0 48 48'}
+      fill="currentColor"
+      shapeRendering="crispEdges"
+      className="shrink-0 text-[var(--alice-primary)]"
+    >
+      <path d={showWordmark ? ALICE_WORDMARK_PATH : ALICE_SYMBOL_PATH} />
+    </svg>
   );
+}
+
+export function AliceMascot({ size = 28 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 40 40" fill="currentColor" className="shrink-0 text-[var(--alice-primary)]" aria-hidden="true"><path d={rabbitPaths.repos} /></svg>;
+}
+
+export function MenuIcon({ size = 16 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M2 4h16v2H2zm0 5h16v2H2zm0 5h11v2H2z" />;
+}
+
+export function CloseIcon({ size = 16 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M3 3h2v2h2v2h2v2h2V7h2V5h2V3h2v2h-2v2h-2v2h-2v2h2v2h2v2h2v2h-2v-2h-2v-2h-2v-2H9v2H7v2H5v2H3v-2h2v-2h2v-2h2V9H7V7H5V5H3z" />;
+}
+
+export function SendIcon({ size = 16 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M9 3h2v2h2v2h2v2h2v2h-3V9h-3v9H9V9H6v2H3V9h2V7h2V5h2z" />;
+}
+
+export function NextIcon({ size = 16 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M11 3h2v2h2v2h2v2h2v2h-2v2h-2v2h-2v2h-2v-3h2v-3H1V9h12V6h-2z" />;
+}
+
+export function ReceiveIcon({ size = 16 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M9 2h2v9h3V9h3v2h-2v2h-2v2h-2v2H9v-2H7v-2H5v-2H3V9h3v2h3z" />;
+}
+
+export function RefreshIcon({ size = 16 }: { size?: number }) {
+  return <PixelGlyph size={size} path="M6 2h8v2h2v2h2V2h2v8h-8V8h4V6h-2V4H6v2H4v8h2v2h8v-2h2v-2h2v4h-2v2H4v-2H2V4h4z" />;
 }

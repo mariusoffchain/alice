@@ -1,7 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { SvgIcon } from '@/components/SvgIcon';
+import { CLOSE_ICON } from '@/lib/atelier-icons';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useDialogFocus } from '@/components/settings/ui';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
 import { resolveSettingsTab } from '@/components/settings/tabs';
 import { SETTINGS_PARAM, settingsHref, withoutSettingsHref } from '@/lib/settings-url';
@@ -27,12 +30,15 @@ export function SettingsDialog() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const open = mounted && requested !== null;
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useDialogFocus(open, dialogRef);
   const activeTab = resolveSettingsTab(requested);
 
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') router.push(withoutSettingsHref());
+      const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
+      if (event.key === 'Escape' && dialogs[dialogs.length - 1] === dialogRef.current) router.push(withoutSettingsHref());
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -57,6 +63,7 @@ export function SettingsDialog() {
       onClick={close}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
@@ -65,8 +72,8 @@ export function SettingsDialog() {
         style={{
           backgroundColor: 'var(--alice-bg)',
           color: 'var(--alice-text)',
-          border: '2px solid var(--alice-border)',
-          borderRadius: 2,
+          border: '1px solid var(--alice-border)',
+          borderRadius: 'var(--alice-radius-field)',
           overflow: 'hidden',
         }}
       >
@@ -79,11 +86,11 @@ export function SettingsDialog() {
           </h2>
           <button
             onClick={close}
-            className="w-8 h-8 flex items-center justify-center cursor-pointer bg-transparent border-none outline-none opacity-60 hover:opacity-100 transition-opacity"
+            className="alice-control alice-control--tool"
             style={{ color: 'var(--alice-text)', fontSize: 18, lineHeight: 1 }}
             aria-label="Close settings"
           >
-            ×
+            <SvgIcon svg={CLOSE_ICON} size={16} color="currentColor" />
           </button>
         </header>
 

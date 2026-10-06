@@ -1,0 +1,1657 @@
+{
+  "version": 1,
+  "baselineCommit": "146bd917",
+  "description": "Synthetic maintainer review fixture, frozen before candidate results. Relevant groups are required information needs; IDs within a group are acceptable alternatives, not independent required documents. Assistant messages are placeholders and must not influence retrieval. Only final user turns are scored.",
+  "cases": [
+    {
+      "id": "standalone-01",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "Explique-moi Bitcoin.",
+      "relevantConceptGroups": [
+        [
+          "bitcoin-basics"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-02",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "Explain Bitcoin.",
+      "relevantConceptGroups": [
+        [
+          "bitcoin-basics"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-03",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "Qu’est-ce qu’un UTXO ?",
+      "relevantConceptGroups": [
+        [
+          "utxo-introduction",
+          "utxo-model",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-04",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "What is a UTXO?",
+      "relevantConceptGroups": [
+        [
+          "utxo-introduction",
+          "utxo-model",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-05",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "C'est quoi Ark ?",
+      "relevantConceptGroups": [
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-06",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "What is Ark?",
+      "relevantConceptGroups": [
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-07",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "C'est quoi Lightning ?",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-08",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "What is Lightning?",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-09",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "C'est quoi PayJoin ?",
+      "relevantConceptGroups": [
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-10",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "What is PayJoin?",
+      "relevantConceptGroups": [
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-11",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "C'est quoi CoinJoin ?",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction",
+          "coinjoin"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-12",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "What is CoinJoin?",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction",
+          "coinjoin"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-13",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "Explique la preuve de travail.",
+      "relevantConceptGroups": [
+        [
+          "proof-of-work-introduction",
+          "proof-of-work",
+          "bitcoin-mining"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-14",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "Explain proof of work.",
+      "relevantConceptGroups": [
+        [
+          "proof-of-work-introduction",
+          "proof-of-work",
+          "bitcoin-mining"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-15",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "Comment une phrase de récupération restaure mon portefeuille ?",
+      "relevantConceptGroups": [
+        [
+          "recovery-phrase",
+          "obsidian-self-custody__wallet-recovery-phrase"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-16",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "How does a recovery phrase restore my wallet?",
+      "relevantConceptGroups": [
+        [
+          "recovery-phrase",
+          "obsidian-self-custody__wallet-recovery-phrase"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-17",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "C'est quoi le multisig ?",
+      "relevantConceptGroups": [
+        [
+          "multisig-introduction",
+          "multisig"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-18",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "What is multisig?",
+      "relevantConceptGroups": [
+        [
+          "multisig-introduction",
+          "multisig"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-19",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "Pourquoi ne pas réutiliser une adresse Bitcoin ?",
+      "relevantConceptGroups": [
+        [
+          "address-reuse",
+          "obsidian-privacy__address-reuse"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-20",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "Why should I avoid address reuse?",
+      "relevantConceptGroups": [
+        [
+          "address-reuse",
+          "obsidian-privacy__address-reuse"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-21",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "Comment fonctionnent les frais de transaction Bitcoin ?",
+      "relevantConceptGroups": [
+        [
+          "transaction-fees"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-22",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "How do Bitcoin transaction fees work?",
+      "relevantConceptGroups": [
+        [
+          "transaction-fees"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-23",
+      "category": "standalone",
+      "language": "fr",
+      "history": [],
+      "question": "Bitcoin est-il anonyme ?",
+      "relevantConceptGroups": [
+        [
+          "bitcoin-privacy",
+          "obsidian-privacy__bitcoin-privacy"
+        ]
+      ]
+    },
+    {
+      "id": "standalone-24",
+      "category": "standalone",
+      "language": "en",
+      "history": [],
+      "question": "Is Bitcoin anonymous?",
+      "relevantConceptGroups": [
+        [
+          "bitcoin-privacy",
+          "obsidian-privacy__bitcoin-privacy"
+        ]
+      ]
+    },
+    {
+      "id": "followup-25",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "Explique-moi Bitcoin."
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Pourquoi ?",
+      "relevantConceptGroups": [
+        [
+          "bitcoin-basics"
+        ]
+      ]
+    },
+    {
+      "id": "followup-26",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "Explain Bitcoin."
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Why?",
+      "relevantConceptGroups": [
+        [
+          "bitcoin-basics"
+        ]
+      ]
+    },
+    {
+      "id": "followup-27",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "Explique-moi Bitcoin."
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        },
+        {
+          "role": "user",
+          "content": "Pourquoi ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Développe",
+      "relevantConceptGroups": [
+        [
+          "bitcoin-basics"
+        ]
+      ]
+    },
+    {
+      "id": "followup-28",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "Explain Bitcoin."
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        },
+        {
+          "role": "user",
+          "content": "Why?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Tell me more",
+      "relevantConceptGroups": [
+        [
+          "bitcoin-basics"
+        ]
+      ]
+    },
+    {
+      "id": "followup-29",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "Qu’est-ce qu’un UTXO ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Et pourquoi ?",
+      "relevantConceptGroups": [
+        [
+          "utxo-introduction",
+          "utxo-model",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ]
+      ]
+    },
+    {
+      "id": "followup-30",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is a UTXO?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "And why?",
+      "relevantConceptGroups": [
+        [
+          "utxo-introduction",
+          "utxo-model",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ]
+      ]
+    },
+    {
+      "id": "followup-31",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "Qu’est-ce qu’un UTXO ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        },
+        {
+          "role": "user",
+          "content": "Pourquoi ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Explique encore",
+      "relevantConceptGroups": [
+        [
+          "utxo-introduction",
+          "utxo-model",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ]
+      ]
+    },
+    {
+      "id": "followup-32",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is a UTXO?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        },
+        {
+          "role": "user",
+          "content": "Why?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Go deeper",
+      "relevantConceptGroups": [
+        [
+          "utxo-introduction",
+          "utxo-model",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ]
+      ]
+    },
+    {
+      "id": "followup-33",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi Ark ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Comment ça marche ?",
+      "relevantConceptGroups": [
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "followup-34",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is Ark?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "How does that work?",
+      "relevantConceptGroups": [
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "followup-35",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi Ark ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        },
+        {
+          "role": "user",
+          "content": "Pourquoi ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Dis-m’en plus",
+      "relevantConceptGroups": [
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "followup-36",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is Ark?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        },
+        {
+          "role": "user",
+          "content": "Why?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Expand on that",
+      "relevantConceptGroups": [
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "followup-37",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi Lightning ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Peux-tu expliquer davantage ?",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network"
+        ]
+      ]
+    },
+    {
+      "id": "followup-38",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is Lightning?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Can you explain that more?",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network"
+        ]
+      ]
+    },
+    {
+      "id": "followup-39",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi Lightning ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        },
+        {
+          "role": "user",
+          "content": "Pourquoi ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Continue",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network"
+        ]
+      ]
+    },
+    {
+      "id": "followup-40",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is Lightning?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        },
+        {
+          "role": "user",
+          "content": "Why?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Continue",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network"
+        ]
+      ]
+    },
+    {
+      "id": "followup-41",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi PayJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Et pour le second cas ?",
+      "relevantConceptGroups": [
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ]
+      ]
+    },
+    {
+      "id": "followup-42",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is PayJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "What about the second case?",
+      "relevantConceptGroups": [
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ]
+      ]
+    },
+    {
+      "id": "followup-43",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi PayJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        },
+        {
+          "role": "user",
+          "content": "Pourquoi ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Approfondis",
+      "relevantConceptGroups": [
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ]
+      ]
+    },
+    {
+      "id": "followup-44",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is PayJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        },
+        {
+          "role": "user",
+          "content": "Why?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Explain that further",
+      "relevantConceptGroups": [
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ]
+      ]
+    },
+    {
+      "id": "followup-45",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi CoinJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Montre-moi comment",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction",
+          "coinjoin"
+        ]
+      ]
+    },
+    {
+      "id": "followup-46",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is CoinJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Show me how",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction",
+          "coinjoin"
+        ]
+      ]
+    },
+    {
+      "id": "followup-47",
+      "category": "followup",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi CoinJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        },
+        {
+          "role": "user",
+          "content": "Pourquoi ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Donne un exemple",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction",
+          "coinjoin"
+        ]
+      ]
+    },
+    {
+      "id": "followup-48",
+      "category": "followup",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is CoinJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        },
+        {
+          "role": "user",
+          "content": "Why?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Give me an example",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction",
+          "coinjoin"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-49",
+      "category": "topic-switch",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi PayJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Et les CoinJoin alors ?",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction",
+          "coinjoin"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-50",
+      "category": "topic-switch",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is PayJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "What about CoinJoin?",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction",
+          "coinjoin"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-51",
+      "category": "topic-switch",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "Explique-moi Bitcoin."
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Et Lightning ?",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-52",
+      "category": "topic-switch",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "Explain Bitcoin."
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "What about Lightning?",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-53",
+      "category": "topic-switch",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi Ark ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Et les UTXO ?",
+      "relevantConceptGroups": [
+        [
+          "utxo-introduction",
+          "utxo-model",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-54",
+      "category": "topic-switch",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is Ark?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "And UTXOs?",
+      "relevantConceptGroups": [
+        [
+          "utxo-introduction",
+          "utxo-model",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-55",
+      "category": "topic-switch",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi Lightning ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Et le multisig ?",
+      "relevantConceptGroups": [
+        [
+          "multisig-introduction",
+          "multisig"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-56",
+      "category": "topic-switch",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is Lightning?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "What about multisig?",
+      "relevantConceptGroups": [
+        [
+          "multisig-introduction",
+          "multisig"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-57",
+      "category": "topic-switch",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "Comment une phrase de récupération restaure mon portefeuille ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Et PayJoin ?",
+      "relevantConceptGroups": [
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-58",
+      "category": "topic-switch",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "How does a recovery phrase restore my wallet?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "And PayJoin?",
+      "relevantConceptGroups": [
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-59",
+      "category": "topic-switch",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi CoinJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Et Ark alors ?",
+      "relevantConceptGroups": [
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "topic-switch-60",
+      "category": "topic-switch",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is CoinJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "And Ark?",
+      "relevantConceptGroups": [
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "relation-61",
+      "category": "relation",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi PayJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Et ça marche avec Ark ?",
+      "relevantConceptGroups": [
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ],
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "relation-62",
+      "category": "relation",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is PayJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Is it compatible with Ark?",
+      "relevantConceptGroups": [
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ],
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "relation-63",
+      "category": "relation",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi CoinJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Quelle différence avec PayJoin ?",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction",
+          "coinjoin"
+        ],
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ]
+      ]
+    },
+    {
+      "id": "relation-64",
+      "category": "relation",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is CoinJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "How does it compare with PayJoin?",
+      "relevantConceptGroups": [
+        [
+          "coinjoin-introduction",
+          "coinjoin"
+        ],
+        [
+          "payjoin-introduction",
+          "payjoin"
+        ]
+      ]
+    },
+    {
+      "id": "relation-65",
+      "category": "relation",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi Lightning ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Et par rapport à Ark ?",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network"
+        ],
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "relation-66",
+      "category": "relation",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is Lightning?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "How does that compare to Ark?",
+      "relevantConceptGroups": [
+        [
+          "lightning-introduction",
+          "lightning-network"
+        ],
+        [
+          "ark-introduction",
+          "ark-protocol",
+          "arkade-how-it-works",
+          "ark-tradeoffs"
+        ]
+      ]
+    },
+    {
+      "id": "relation-67",
+      "category": "relation",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "Qu’est-ce qu’un UTXO ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Comment ça fonctionne avec le multisig ?",
+      "relevantConceptGroups": [
+        [
+          "utxo-introduction",
+          "utxo-model",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ],
+        [
+          "multisig-introduction",
+          "multisig"
+        ]
+      ]
+    },
+    {
+      "id": "relation-68",
+      "category": "relation",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is a UTXO?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "How does it work with multisig?",
+      "relevantConceptGroups": [
+        [
+          "utxo-introduction",
+          "utxo-model",
+          "obsidian-tx-model__utxo",
+          "obsidian-tx-model__utxo-model"
+        ],
+        [
+          "multisig-introduction",
+          "multisig"
+        ]
+      ]
+    },
+    {
+      "id": "no-retrieval-69",
+      "category": "no-retrieval",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi PayJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Bonjour !",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-70",
+      "category": "no-retrieval",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is PayJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Hello!",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-71",
+      "category": "no-retrieval",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi PayJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Merci.",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-72",
+      "category": "no-retrieval",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is PayJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "Thanks.",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-73",
+      "category": "no-retrieval",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi PayJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Je préfère les réponses courtes.",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-74",
+      "category": "no-retrieval",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is PayJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "I prefer concise answers.",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-75",
+      "category": "no-retrieval",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi PayJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Je débute avec Bitcoin.",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-76",
+      "category": "no-retrieval",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is PayJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "I am a beginner with Bitcoin.",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-77",
+      "category": "no-retrieval",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi PayJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Que sais-tu de moi ?",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-78",
+      "category": "no-retrieval",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is PayJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "What do you know about me?",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-79",
+      "category": "no-retrieval",
+      "language": "fr",
+      "history": [
+        {
+          "role": "user",
+          "content": "C'est quoi PayJoin ?"
+        },
+        {
+          "role": "assistant",
+          "content": "Explication précédente."
+        }
+      ],
+      "question": "Je travaille sur Alice.",
+      "relevantConceptGroups": []
+    },
+    {
+      "id": "no-retrieval-80",
+      "category": "no-retrieval",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "What is PayJoin?"
+        },
+        {
+          "role": "assistant",
+          "content": "Previous explanation."
+        }
+      ],
+      "question": "I am building Alice.",
+      "relevantConceptGroups": []
+    }
+  ]
+}

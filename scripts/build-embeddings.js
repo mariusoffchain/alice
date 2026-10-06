@@ -19,7 +19,7 @@ const TARGETS = {
   },
   native: {
     endpoint: process.env.ALICE_EMBEDDING_ENDPOINT ?? 'http://127.0.0.1:18082/v1/embeddings',
-    modelId: 'keisuke-miyako/multilingual-e5-small-gguf-q8_0',
+    modelId: 'TwinSunsLLC/multilingual-e5-small-gguf@b6cac9615d4ecce28d7f22539b7322d695fc2886',
     outputDir: path.join(__dirname, '..', 'apps', 'wallet-mobile', 'assets', 'core-embeddings'),
   },
 };
@@ -64,7 +64,8 @@ async function createEmbedder(target) {
 }
 
 async function main() {
-  const target = TARGETS[TARGET];
+  const configuredTarget = TARGETS[TARGET];
+  const target = configuredTarget && { ...configuredTarget, outputDir: process.env.ALICE_EMBEDDING_OUTPUT_DIR ?? configuredTarget.outputDir };
   if (!target) throw new Error(`Unknown embedding target: ${TARGET}. Expected web or native.`);
   // Bundle the TypeScript entry explicitly. Direct TS imports depend on Node's
   // evolving ESM extension rules and previously made this release tool fail on
@@ -72,8 +73,8 @@ async function main() {
   const bundled = await build({
     stdin: {
       contents: [
-        "import './packages/alice-ai/src/rag.ts';",
-        "export { getAllChunks } from './packages/alice-ai/src/knowledge-packs.ts';",
+        "export { loadRagCorpus } from './packages/alice-ai/src/rag.ts';",
+        "export { getBundledKnowledgeChunks } from './packages/alice-ai/src/knowledge-packs.ts';",
       ].join('\n'),
       resolveDir: path.join(__dirname, '..'),
       sourcefile: 'embedding-corpus-entry.ts',
@@ -86,11 +87,11 @@ async function main() {
     external: ['react-native', '@huggingface/transformers'],
   });
   const moduleUrl = `data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].contents).toString('base64')}`;
-  const { getAllChunks, loadRagCorpus } = await import(moduleUrl);
+  const { getBundledKnowledgeChunks, loadRagCorpus } = await import(moduleUrl);
   // The corpus loads on demand since 0.2.0: ask for it before reading.
   await loadRagCorpus();
 
-  const chunks = getAllChunks();
+  const chunks = getBundledKnowledgeChunks();
   console.log(`Embedding ${chunks.length} chunks for ${TARGET} with ${target.modelId}...`);
   const embed = await createEmbedder(target);
 

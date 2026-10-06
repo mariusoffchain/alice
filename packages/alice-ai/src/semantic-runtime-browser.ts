@@ -16,6 +16,8 @@
 // instead of waiting behind the download.
 import type { ChunkEmbeddingIndex, SemanticMatch } from './semantic-search';
 import { rankBySimilarity, toQueryText } from './semantic-search';
+import { getBundledKnowledgeChunks } from './knowledge-packs';
+import { validateSemanticIndexMetadata } from './semantic-index';
 import {
   SEMANTIC_SEARCH_PREFERENCE_KEY,
   SEMANTIC_SEARCH_STATE_EVENT,
@@ -143,8 +145,10 @@ async function loadIndex(baseUrl: string): Promise<ChunkEmbeddingIndex | null> {
     ]);
     if (!indexResponse.ok || !vectorsResponse.ok) return null;
 
-    const meta = await indexResponse.json() as { model: string; dim: number; ids: string[] };
-    if (meta.model !== MODEL_ID) return null;
+    const { loadRagCorpus } = await import('./rag');
+    await loadRagCorpus();
+    const meta = validateSemanticIndexMetadata(await indexResponse.json(), MODEL_ID, getBundledKnowledgeChunks());
+    if (!meta) return null;
     const buffer = await vectorsResponse.arrayBuffer();
     const vectors = new Float32Array(buffer);
     if (vectors.length !== meta.ids.length * meta.dim) return null;

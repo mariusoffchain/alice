@@ -99,11 +99,10 @@ export function ExplorerBalanceChart({
               key={r.label}
               type="button"
               onClick={() => setRangeIdx(i)}
-              className="font-pixel tracking-widest cursor-pointer"
+              aria-pressed={i === rangeIdx}
+              className="alice-control alice-control--choice font-numbers cursor-pointer"
               style={{
-                fontSize: 10, padding: '4px 8px', borderRadius: 2,
-                border: `1px solid ${i === rangeIdx ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
-                backgroundColor: 'transparent',
+                fontSize: 13, padding: '4px 8px',
                 color: i === rangeIdx ? 'var(--alice-primary)' : 'var(--alice-muted)',
               }}
             >
@@ -118,7 +117,7 @@ export function ExplorerBalanceChart({
           Not enough history in this range to chart.
         </p>
       ) : (
-        <div style={{ border: '1px solid var(--alice-border)', borderRadius: 2, position: 'relative' }}>
+        <div style={{ border: '1px solid var(--alice-border)', borderRadius: 3, position: 'relative' }}>
           <svg
             viewBox={`0 0 ${VW} ${VH}`}
             width="100%"
@@ -131,12 +130,12 @@ export function ExplorerBalanceChart({
           >
             <defs>
               <linearGradient id="rh-bal-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8bb8ff" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#8bb8ff" stopOpacity="0.02" />
+                <stop offset="0%" stopColor="var(--alice-primary)" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="var(--alice-primary)" stopOpacity="0.02" />
               </linearGradient>
             </defs>
             <path d={view.area} fill="url(#rh-bal-fill)" />
-            <path d={view.line} fill="none" stroke="#8bb8ff" strokeWidth={1.5} />
+            <path d={view.line} fill="none" stroke="var(--alice-primary)" strokeWidth={1.5} />
             {/* Max balance label. */}
             <text x={PAD_L} y={PAD_T} fontSize={9} fill="var(--alice-muted)">{formatAmountShort(view.maxBal, unit)}</text>
             {/* Date range. */}
@@ -145,7 +144,7 @@ export function ExplorerBalanceChart({
             {hover && (
               <>
                 <line x1={hover.x} y1={PAD_T} x2={hover.x} y2={VH - PAD_B} stroke="var(--alice-muted)" strokeWidth={1} strokeDasharray="3 3" />
-                <circle cx={hover.x} cy={hover.y} r={3} fill="#8bb8ff" />
+                <circle cx={hover.x} cy={hover.y} r={3} fill="var(--alice-primary)" />
               </>
             )}
           </svg>
@@ -154,7 +153,7 @@ export function ExplorerBalanceChart({
               className="pointer-events-none absolute"
               style={{
                 left: `${Math.min(85, (hover.x / VW) * 100)}%`, top: 6,
-                padding: '4px 8px', border: '1px solid var(--alice-border)', borderRadius: 2,
+                padding: '4px 8px', border: '1px solid var(--alice-border)', borderRadius: 3,
                 backgroundColor: 'var(--alice-bg)', zIndex: 10,
               }}
             >

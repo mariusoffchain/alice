@@ -1,44 +1,72 @@
 'use client';
 
+import { useEffect, useRef, type RefObject } from 'react';
+
 /**
  * Shared building blocks for the settings tabs. Every tab draws from this file
  * so a card in Explorer looks exactly like a card in AI, whichever surface
  * renders it (the dialog over the app, or the /settings route).
  */
 
-export const DANGER = '#e06060';
+/** Keep keyboard navigation inside the uppermost dialog and restore its trigger. */
+export function useDialogFocus(open: boolean, ref: RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const root = ref.current;
+    if (!root) return;
+    const selector = 'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]';
+    root.querySelector<HTMLElement>(selector)?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
+      if (dialogs[dialogs.length - 1] !== root) return;
+      const items = Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(item => item.getClientRects().length > 0);
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first) return;
+      if (event.shiftKey && (document.activeElement === first || !root.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !root.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      if (previous?.isConnected) previous.focus();
+    };
+  }, [open, ref]);
+}
+
+export const DANGER = 'var(--alice-danger)';
 
 export const sectionStyle: React.CSSProperties = {
-  backgroundColor: 'var(--alice-card-bg)',
-  border: '2px solid var(--alice-border)',
-  borderRadius: 2,
-  padding: 16,
-  marginBottom: 16,
+  backgroundColor: 'transparent',
+  borderBottom: '1px solid var(--alice-border)',
+  padding: '8px 0 24px',
+  marginBottom: 24,
 };
 
 export const btnBase: React.CSSProperties = {
-  fontSize: 10,
-  border: '2px solid var(--alice-border)',
-  borderRadius: 2,
-  cursor: 'pointer',
-  outline: 'none',
-  letterSpacing: '0.12em',
-  padding: '8px 14px',
+  fontFamily: 'var(--alice-font-reading)',
 };
 
 export const inputStyle: React.CSSProperties = {
   fontSize: 15,
+  fontFamily: 'var(--alice-font-reading)',
+  minHeight: 40,
   padding: '8px 12px',
-  backgroundColor: 'var(--alice-bg)',
-  border: '2px solid var(--alice-primary)',
-  borderRadius: 2,
-  color: 'var(--alice-primary-dark)',
+  backgroundColor: 'transparent',
+  border: '1px solid var(--alice-control-border)',
+  borderRadius: 'var(--alice-radius-control)',
+  color: 'var(--alice-text)',
   boxSizing: 'border-box',
 };
 
 const labelStyle: React.CSSProperties = {
   fontSize: 10,
-  opacity: 0.7,
+  opacity: 1,
   letterSpacing: '0.15em',
   marginBottom: 8,
 };
@@ -54,7 +82,7 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
 /** Body copy under a section label. */
 export function SectionHint({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-numbers m-0 mt-1 mb-3" style={{ fontSize: 14, opacity: 0.5 }}>
+    <p className="font-numbers m-0 mt-1 mb-3" style={{ fontSize: 14, color: 'var(--alice-muted)' }}>
       {children}
     </p>
   );
@@ -79,9 +107,9 @@ export function PixelSwitch({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!enabled)}
-      className="flex items-center cursor-pointer"
+      className="alice-control alice-control--quiet flex items-center cursor-pointer"
       style={{
-        minHeight: 36,
+        minHeight: 44,
         padding: 0,
         border: 0,
         background: 'transparent',
@@ -95,7 +123,7 @@ export function PixelSwitch({
           width: 52,
           height: 28,
           padding: 3,
-          border: `2px solid ${enabled ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
+          border: `2px solid ${enabled ? 'var(--alice-primary)' : 'var(--alice-control-border)'}`,
           borderRadius: 0,
           backgroundColor: enabled ? 'var(--alice-primary)' : 'transparent',
           boxSizing: 'border-box',
@@ -120,7 +148,7 @@ export function PixelSwitch({
 export function ChoiceButton({
   active,
   label,
-  pixel = true,
+  pixel: _pixel = false,
   onClick,
 }: {
   active: boolean;
@@ -133,14 +161,7 @@ export function ChoiceButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={pixel ? 'font-pixel tracking-widest' : 'font-numbers cursor-pointer'}
-      style={{
-        ...btnBase,
-        ...(pixel ? null : { fontSize: 14, padding: '8px 16px' }),
-        border: `2px solid ${active ? 'var(--alice-primary)' : 'var(--alice-border)'}`,
-        backgroundColor: active ? 'var(--alice-primary)' : 'transparent',
-        color: active ? 'var(--alice-on-primary)' : 'var(--alice-primary)',
-      }}
+      className="alice-control alice-control--choice font-numbers"
     >
       {label}
     </button>
@@ -163,6 +184,8 @@ export function ConfirmDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useDialogFocus(true, dialogRef);
   return (
     <div
       className="fixed inset-0 flex items-center justify-center px-6"
@@ -170,10 +193,19 @@ export function ConfirmDialog({
       onClick={() => !busy && onCancel()}
     >
       <div
+        ref={dialogRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-label={title}
+        onKeyDown={event => {
+          if (event.key === 'Escape' && !busy) { event.stopPropagation(); onCancel(); }
+        }}
         onClick={(event) => event.stopPropagation()}
         style={{
           ...sectionStyle,
           marginBottom: 0,
+          padding: 24,
+          border: '1px solid var(--alice-border)',
           maxWidth: 420,
           width: '100%',
           backgroundColor: 'var(--alice-bg)',
@@ -182,27 +214,20 @@ export function ConfirmDialog({
         <h3 className="font-pixel tracking-widest m-0" style={{ fontSize: 10, color: DANGER }}>
           {title}
         </h3>
-        <p className="font-numbers m-0 mt-3" style={{ fontSize: 15, lineHeight: '20px', opacity: 0.8 }}>
+        <p className="font-numbers m-0 mt-3" style={{ fontSize: 15, lineHeight: '20px', opacity: 1 }}>
           {body}
         </p>
         <div className="flex gap-2 mt-4">
           <button
             onClick={onCancel}
-            className="font-pixel tracking-widest flex-1"
-            style={{ ...btnBase, backgroundColor: 'transparent' }}
+            className="alice-control alice-control--quiet font-numbers flex-1"
             disabled={busy}
           >
             CANCEL
           </button>
           <button
             onClick={onConfirm}
-            className="font-pixel tracking-widest flex-1"
-            style={{
-              ...btnBase,
-              backgroundColor: DANGER,
-              color: '#ffffff',
-              borderColor: DANGER,
-            }}
+            className="alice-control alice-control--danger font-numbers flex-1"
             disabled={busy}
           >
             {confirmLabel}

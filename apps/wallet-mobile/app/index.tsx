@@ -11,7 +11,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ALL_PRESETS,
   CLOUD_MODELS,
-  MODEL_CATALOG,
+  listKnownLocalModels,
+  findModelEntry,
+  DEFAULT_LOCAL_MODEL_ID,
   formatSize,
   getActiveCloudModelId,
   getActiveModelId,
@@ -307,7 +309,7 @@ export default function WalletScreen() {
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [localPreset, setLocalPresetState] = useState<AIPreset>('balanced');
   const [cloudPreset, setCloudPresetState] = useState<AIPreset>('balanced');
-  const [activeModelId, setActiveModelState] = useState<LocalModelId>('qwen3-0.6b');
+  const [activeModelId, setActiveModelState] = useState<LocalModelId>(DEFAULT_LOCAL_MODEL_ID);
   const [activeCloudModelId, setActiveCloudModelState] = useState<CloudModelId>('alice-cloud');
   const [installedModelIds, setInstalledModelIds] = useState<LocalModelId[]>([]);
   const { width: winW, height: winH } = useWindowDimensions();
@@ -586,7 +588,7 @@ export default function WalletScreen() {
     }
 
     const statuses = await Promise.all(
-      MODEL_CATALOG.map(async model => ({ id: model.id, status: await getModelStatus(model.id) })),
+      (await listKnownLocalModels()).map(async model => ({ id: model.id, status: await getModelStatus(model.id) })),
     );
     setInstalledModelIds(statuses.filter(model => model.status === 'installed').map(model => model.id));
   }, []);
@@ -1127,7 +1129,8 @@ export default function WalletScreen() {
                 <Text style={[s.modelMenuMeta, { color: chatMuted }]}>SETTINGS</Text>
               </TouchableOpacity>
             ) : installedModelIds.map(id => {
-              const model = MODEL_CATALOG.find(m => m.id === id)!;
+              const model = findModelEntry(id);
+              if (!model) return null;
               const active = chat.backendType === 'local' && id === activeModelId;
               return (
                 <TouchableOpacity

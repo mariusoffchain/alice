@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import {
-  useAccount,
   useChat,
   getCustomServer,
   isTauriDesktop,
@@ -20,9 +19,10 @@ import { ChatInput } from '@/components/ChatInput';
 import { ModelSelector } from '@/components/ModelSelector';
 import { Sidebar, SIDEBAR_ICON_SVG } from '@/components/Sidebar';
 import { SvgIcon } from '@/components/SvgIcon';
-import { AliceIcon } from '@/components/AliceIcon';
+import { SETTINGS_ICON } from '@/lib/atelier-icons';
+import { AliceRabbit } from '@/components/AliceRabbit';
+import { useChatRabbit } from '@/hooks/use-chat-rabbit';
 import { useOpenSettings } from '@/lib/settings-url';
-import { NEW_CHAT_ICON_SVG } from '@alice-wallet/alice-ui/components/new-chat-icon-svg';
 
 const SUGGESTIONS = [
   'What is Bitcoin?',
@@ -31,34 +31,10 @@ const SUGGESTIONS = [
   'What is self-custody?',
 ];
 
-function TypingIndicator() {
-  return (
-    <div className="flex items-end gap-2 px-5 py-1">
-      <div className="w-[30px] h-[30px] shrink-0 flex items-end">
-        <AliceIcon size={30} color="var(--alice-primary)" />
-      </div>
-      <div className="flex items-center gap-1.5 py-2">
-        {[0, 0.2, 0.4].map((delay) => (
-          <span
-            key={delay}
-            className="w-1.5 h-1.5 rounded-full animate-bounce"
-            style={{
-              backgroundColor: 'var(--alice-muted)',
-              animationDelay: `${delay}s`,
-              animationDuration: '1.4s',
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function LocalNotice() {
   const openSettings = useOpenSettings();
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-5 px-8">
-      <AliceIcon size={44} color="var(--alice-primary)" />
       <p
         className="font-numbers text-center max-w-md m-0"
         style={{ fontSize: 20, lineHeight: '26px', color: 'var(--alice-text)' }}
@@ -67,17 +43,9 @@ function LocalNotice() {
       </p>
       <button
         onClick={() => openSettings('ai')}
-        className="font-pixel tracking-widest cursor-pointer"
-        style={{
-          fontSize: 10,
-          padding: '8px 20px',
-          border: '2px solid var(--alice-primary)',
-          borderRadius: 2,
-          backgroundColor: 'transparent',
-          color: 'var(--alice-primary)',
-        }}
+        className="alice-control alice-control--primary"
       >
-        GO TO SETTINGS
+        <SvgIcon svg={SETTINGS_ICON} size={20} /> Open settings
       </button>
     </div>
   );
@@ -85,8 +53,7 @@ function LocalNotice() {
 
 export function ChatPanel() {
   const chat = useChat();
-  const account = useAccount();
-  const { messages, input, setInput, send, busy, clearMessages, showGreeting, backendType, backendStatus, setBackendType, setAiEnabled } = chat;
+  const { messages, input, setInput, send, busy, clearMessages, showGreeting, backendType, backendStatus, setBackendType, setAiEnabled, aiEnabled, lastRequestFailed } = chat;
   const scrollRef = useAutoScroll([messages, busy]);
 
   useQuestionParam({
@@ -98,6 +65,12 @@ export function ChatPanel() {
   });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
+  useEffect(() => {
+    const desktop = matchMedia('(min-width: 768px)');
+    const closeDrawer = () => { if (desktop.matches) setSidebarMobileOpen(false); };
+    desktop.addEventListener('change', closeDrawer);
+    return () => desktop.removeEventListener('change', closeDrawer);
+  }, []);
   const [hasCustomServer, setHasCustomServer] = useState(false);
   // "Pour aller plus loin" resources for the message being sent, computed in
   // the send handler itself: deterministic, immune to effect re-runs and
@@ -148,135 +121,52 @@ export function ChatPanel() {
     .some((message) => message.role === 'assistant' && message.content.trim().length > 0);
   const showTypingIndicator = busy && !assistantReplyStarted;
 
+  const available = aiEnabled && backendStatus.state === 'ready' && !showLocalNotice && !lastRequestFailed;
+  const rabbitState = useChatRabbit({ input, busy, available, replyStarted: assistantReplyStarted });
+  const visible = messages.filter(msg => !(busy && msg.role === 'assistant' && !msg.content));
+  const streamingId = busy && assistantReplyStarted
+    ? [...visible].reverse().find(m => m.role === 'assistant')?.id : undefined;
+
   return (
-    // h-dvh, not h-screen: on mobile Safari 100vh ignores the address bar and
-    // pushes the composer off-screen.
-    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: 'var(--alice-bg)' }}>
+    <div className="atelier-shell flex h-full overflow-hidden">
       <Sidebar
         collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((v) => !v)}
+        onToggle={() => setSidebarCollapsed(v => !v)}
         mobileOpen={sidebarMobileOpen}
         onMobileClose={() => setSidebarMobileOpen(false)}
       />
-
-      <div className="flex flex-col flex-1 min-w-0 min-h-0">
-        {isTauriDesktop() && (
-          <div data-tauri-drag-region className="shrink-0" style={{ height: 28 }} />
-        )}
-        {/* Above everything else in the column: a plan that is about to lapse
-            is worth saying before the conversation, not after it. */}
+      <main className="atelier-main flex flex-col flex-1 min-w-0 min-h-0" inert={sidebarMobileOpen}>
+        {isTauriDesktop() && <div data-tauri-drag-region className="shrink-0" style={{ height: 28 }} />}
         <ExpiryBanner />
-        <div
-          className="grid shrink-0 grid-cols-[108px_minmax(0,1fr)_108px] items-center px-3 md:hidden"
-          style={{
-            height: 'calc(52px + env(safe-area-inset-top))',
-            paddingTop: 'env(safe-area-inset-top)',
-          }}
-        >
-          <div className="flex items-center">
-            <button
-              onClick={() => setSidebarMobileOpen(true)}
-              className="w-9 h-9 flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity"
-              aria-label="Open menu"
-            >
-              <SvgIcon svg={SIDEBAR_ICON_SVG} size={18} color="var(--alice-primary)" />
-            </button>
-          </div>
-
-          <div className="flex min-w-0 items-center justify-center">
-            <ModelSelector
-              backendType={backendType}
-              setBackendType={setBackendType}
-              setAiEnabled={setAiEnabled}
-              compactLabel
-              placement="mobile-header"
-            />
-          </div>
-
-          <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => {
-                clearMessages();
-                setSidebarMobileOpen(false);
-              }}
-              className="w-9 h-9 flex items-center justify-center cursor-pointer"
-              aria-label="New chat"
-              title="New chat"
-            >
-              <SvgIcon svg={NEW_CHAT_ICON_SVG} size={19} color="var(--alice-primary)" />
-            </button>
-          </div>
-        </div>
-        {showLocalNotice ? (
-          <LocalNotice />
-        ) : (
-          <>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto">
-              {!hasUserMessages && messages.length <= 1 ? (
-                <div
-                  className="max-w-4xl mx-auto flex flex-col gap-6 px-5 pt-10 pb-2"
-                  style={{ minHeight: '100%', justifyContent: 'flex-start' }}
-                >
-                  <div className="flex flex-col gap-3">
-                    {messages.map((msg) => (
-                      <ChatMessage key={msg.id} message={msg} />
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-                    {SUGGESTIONS.map((text) => (
-                      <button
-                        key={text}
-                        onClick={() => sendWithSuggestion(text)}
-                        disabled={busy}
-                        className="text-left font-numbers text-sm px-4 py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-white/15"
-                        style={{
-                          color: 'var(--alice-text)',
-                          border: '2px solid var(--alice-border)',
-                          borderRadius: '2px',
-                          backgroundColor: 'transparent',
-                        }}
-                      >
-                        {text}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="max-w-4xl mx-auto flex flex-col gap-3 px-5 pt-3 pb-2" style={{ minHeight: '100%', justifyContent: 'flex-end' }}>
-                  {(() => {
-                    const visible = messages.filter((msg) => !(busy && msg.role === 'assistant' && !msg.content));
-                    // Terminal cursor on the reply being written: the last
-                    // assistant bubble while the request is still in flight.
-                    const streamingId = busy && assistantReplyStarted
-                      ? [...visible].reverse().find((m) => m.role === 'assistant')?.id
-                      : undefined;
-                    return visible.map((msg) => (
-                      <ChatMessage key={msg.id} message={msg} streaming={msg.id === streamingId} />
-                    ));
-                  })()}
-                  {showTypingIndicator && <TypingIndicator />}
-                  <LearnChatResources resources={chatResources} question={resourcesQuestion} messages={messages} busy={busy} lang={resourcesLang} />
-                </div>
-              )}
+        <button onClick={() => setSidebarMobileOpen(true)} className="alice-control alice-control--tool atelier-mobile-menu md:hidden" aria-label="Open menu" aria-expanded={sidebarMobileOpen}>
+          <SvgIcon svg={SIDEBAR_ICON_SVG} size={20} color="var(--alice-muted)" />
+        </button>
+        <div className="atelier-conversation">
+          <div className="atelier-stage">
+            <div className="atelier-perch"><AliceRabbit state={rabbitState} connected={available} /></div>
+            <div ref={scrollRef} className="atelier-history" role="region" aria-label="Conversation" tabIndex={0}>
+              <div className="atelier-messages">
+                {showLocalNotice ? <LocalNotice /> : visible.map(msg => (
+                  <ChatMessage key={msg.id} message={msg} streaming={msg.id === streamingId} showAvatar={false} />
+                ))}
+                {!showLocalNotice && showTypingIndicator && <p className="atelier-waiting" role="status">Preparing a response…</p>}
+                {!showLocalNotice && <LearnChatResources resources={chatResources} question={resourcesQuestion} messages={messages} busy={busy} lang={resourcesLang} />}
+              </div>
             </div>
-
-            <ChatInput
-              input={input}
-              setInput={setInput}
-              onSend={() => sendWithSuggestion()}
-              disabled={busy}
-              modelSelector={(
-                <ModelSelector
-                  backendType={backendType}
-                  setBackendType={setBackendType}
-                  setAiEnabled={setAiEnabled}
-                />
-              )}
-            />
-          </>
-        )}
-      </div>
+          </div>
+          {!showLocalNotice && !hasUserMessages && messages.length <= 1 && (
+            <div className="atelier-suggestions">
+              {SUGGESTIONS.map(text => <button type="button" key={text} onClick={() => sendWithSuggestion(text)} disabled={busy || !aiEnabled} title={`Send: ${text}`}>{text}</button>)}
+            </div>
+          )}
+          {!showLocalNotice && <ChatInput input={input} setInput={setInput} onSend={() => sendWithSuggestion()} disabled={busy || !aiEnabled}
+            modelSelector={<ModelSelector backendType={backendType} setBackendType={setBackendType} setAiEnabled={setAiEnabled} placement="composer" />} />}
+          {showLocalNotice && <div className="chat-composer-shell"><ModelSelector backendType={backendType} setBackendType={setBackendType} setAiEnabled={setAiEnabled} placement="composer" /></div>}
+          {(!aiEnabled || lastRequestFailed || backendStatus.state !== 'ready') && <div className="atelier-model-status" role="status">
+            {!aiEnabled ? 'AI disabled' : lastRequestFailed ? 'Last request failed' : backendStatus.state === 'loading' ? 'Loading model…' : 'Model unavailable'}
+          </div>}
+        </div>
+      </main>
     </div>
   );
 }

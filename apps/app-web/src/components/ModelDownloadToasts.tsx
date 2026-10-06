@@ -1,7 +1,10 @@
 'use client';
 
+import { SvgIcon } from '@/components/SvgIcon';
+import { CHECK_ICON, CLOSE_ICON, DOWNLOAD_ICON } from '@/lib/atelier-icons';
+
 import { useEffect, useState } from 'react';
-import { MODEL_CATALOG, type LocalModelId } from '@alice-wallet/alice-ai';
+import { getModelName, type LocalModelId } from '@alice-wallet/alice-ai';
 import {
   MODEL_DOWNLOAD_EVENT,
   clearModelDownload,
@@ -52,9 +55,9 @@ export function ModelDownloadToasts() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed z-50 flex flex-col gap-2" style={{ right: 16, bottom: 76 }}>
+    <div aria-live="polite" aria-relevant="additions" className="fixed z-50 flex flex-col gap-2" style={{ right: 16, bottom: 76, maxWidth: 'calc(100vw - 32px)' }}>
       {toasts.map((toast) => {
-        const name = MODEL_CATALOG.find((m) => m.id === toast.id)?.name ?? toast.id;
+        const name = getModelName(toast.id);
         return (
           <button
             key={`${toast.id}:${toast.kind}`}
@@ -63,24 +66,27 @@ export function ModelDownloadToasts() {
               setToasts((current) => current.filter((t) => t !== toast));
               clearModelDownload(toast.id);
             }}
-            className="text-left cursor-pointer"
+            className="alice-control alice-control--row"
+            aria-label={`Dismiss ${toast.kind === 'installed' ? 'model ready' : 'download failed'} notice for ${name}`}
             style={{
-              maxWidth: 320,
+              maxWidth: 320, display: 'block',
               padding: '10px 14px',
-              border: `2px solid ${toast.kind === 'installed' ? 'var(--alice-primary)' : 'var(--alice-danger, #c74f4f)'}`,
-              borderRadius: 2,
-              background: 'var(--alice-bg-soft)',
+              border: '1px solid var(--alice-border)',
+              borderRadius: 'var(--alice-radius-control)',
+              background: 'var(--alice-bg)',
               color: 'var(--alice-text)',
             }}
           >
             <div
-              className="font-pixel"
+              className="font-pixel flex items-center gap-2"
               style={{
-                fontSize: 7,
+                fontSize: 10,
                 color: toast.kind === 'installed' ? 'var(--alice-primary)' : 'var(--alice-danger, #c74f4f)',
               }}
             >
+              <SvgIcon svg={toast.kind === 'installed' ? CHECK_ICON : DOWNLOAD_ICON} size={16} />
               {toast.kind === 'installed' ? 'MODEL READY' : 'DOWNLOAD FAILED'}
+              <span className="ml-auto"><SvgIcon svg={CLOSE_ICON} size={16} /></span>
             </div>
             <div className="font-numbers" style={{ fontSize: 13, marginTop: 6 }}>
               {toast.kind === 'installed'

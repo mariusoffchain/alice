@@ -2,6 +2,8 @@ import type { AIBackend } from './ai-backend';
 import type { Message } from './llm';
 import { generateWithContinuation, type GenerationOutcome } from './generate-with-continuation.ts';
 import { parseAliceMemoryResponse, type AliceMemoryCandidate } from './alice-memory-core.ts';
+import { withLiveValueCaveat } from './live-value-caveat.ts';
+import { answerRuleNoteIdsInMessages, withAnswerRuleCorrections } from './answer-rules.ts';
 import {
   detectTextLanguage,
   isResponseLanguageAcceptable,
@@ -54,8 +56,14 @@ export async function generateLanguageChecked(input: {
   memoryCandidates: AliceMemoryCandidate[];
   attempts: number;
   firstDisplayMs?: number;
+  /** Never-claim checks (answer-rules.ts) whose correction was appended. */
+  answerRuleCorrections: string[];
 }> {
   const started = now();
+  // The rule notes are read from the system turns actually sent, and the
+  // question lets a check defer to what the user stated (a threshold).
+  const answerRuleNoteIds = answerRuleNoteIdsInMessages(input.history);
+  const question = input.history.findLast(message => message.role === 'user')?.content ?? '';
   let firstDisplayMs: number | undefined;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     let released = false;
@@ -86,16 +94,25 @@ export async function generateLanguageChecked(input: {
     );
     const parsed = parseAliceMemoryResponse(result.text);
     if (isResponseLanguageAcceptable(parsed.visibleText, input.targetLanguage)) {
-      if (input.onText && !released && parsed.visibleText) {
+      // Output guard: a present-tense network figure or state is invented,
+      // since no such feed exists; the caveat rides with the final text on
+      // every backend, streamed or buffered.
+      // Output guard: a claim the retrieved note rules out (an operator that
+      // blocks an exit, a 2-of-3 that needs three signatures, a replacement
+      // conditional on an opt-in flag) gets a correction after the answer.
+      const corrected = withAnswerRuleCorrections(parsed.visibleText, input.targetLanguage, answerRuleNoteIds, question);
+      const visibleText = withLiveValueCaveat(corrected.text, input.targetLanguage);
+      if (input.onText && visibleText && (!released || visibleText !== parsed.visibleText)) {
         firstDisplayMs ??= now() - started;
-        input.onText(parsed.visibleText);
+        input.onText(visibleText);
       }
       return {
         ...result,
-        text: parsed.visibleText,
+        text: visibleText,
         memoryCandidates: parsed.candidates,
         attempts: attempt + 1,
         firstDisplayMs,
+        answerRuleCorrections: corrected.applied,
       };
     }
   }

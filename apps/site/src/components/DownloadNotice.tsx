@@ -1,5 +1,7 @@
 'use client';
 
+import { CloseIcon } from '@/components/icons';
+
 import { useEffect, useState } from 'react';
 
 // What an unsigned build does to a first-time visitor, said before it happens
@@ -100,7 +102,7 @@ export function DownloadNotice({
         aria-modal="true"
         aria-label={notice.title}
         onClick={event => event.stopPropagation()}
-        className="relative flex max-h-[calc(100vh-4rem)] w-full max-w-lg flex-col rounded-[6px] border-2"
+        className="relative flex max-h-[calc(100vh-4rem)] w-full max-w-lg flex-col rounded-[4px] border"
         style={{
           borderColor: 'var(--alice-border)',
           backgroundColor: 'var(--alice-bg)',
@@ -112,7 +114,7 @@ export function DownloadNotice({
           aria-label="Close"
           className="absolute right-3 top-3 cursor-pointer bg-transparent px-2 py-1 text-lg leading-none text-[var(--alice-muted)]"
         >
-          ×
+          <CloseIcon size={16} />
         </button>
 
         <div className="shrink-0 px-6 pt-6">

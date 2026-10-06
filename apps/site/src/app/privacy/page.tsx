@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 // The product promises come first: a visitor lands here to know what Alice
 // does with their data in the app, not what the brochure site logs.
-const inApp = [
+const inApp: { title: string; detail: React.ReactNode }[] = [
   {
     title: 'Your questions',
     detail:
@@ -34,8 +34,20 @@ const inApp = [
   },
   {
     title: 'What Alice remembers about you',
-    detail:
-      'The memory that personalizes her answers is stored on your device, encrypted in Alice Wallet and Alice App, and “What Alice knows” lets you inspect and erase it anytime. When you use Private Cloud, the relevant memory travels inside the same end-to-end encrypted envelope as your messages, readable only by the attested enclave, never by us.',
+    detail: (
+      <>
+        The memory that personalizes her answers is stored on your device, encrypted in the phone
+        and desktop apps, in browser storage on the web, and “What Alice remembers” lets you
+        inspect and erase it anytime.
+        When you use Private Cloud, the relevant memory travels inside the same end-to-end
+        encrypted envelope as your messages, readable only by the attested enclave, never by us.
+        The{' '}
+        <a href="/memory/" className="text-[var(--alice-primary)] hover:underline">
+          memory page
+        </a>{' '}
+        explains what is kept, what the code refuses, and how to erase it.
+      </>
+    ),
   },
   {
     title: 'Product analytics',

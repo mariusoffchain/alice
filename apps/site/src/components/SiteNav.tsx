@@ -14,7 +14,7 @@ export function SiteNav() {
         {/* Relative, not the hardcoded production domain, so this is always
             correct: the preview's own home today, alicebtc.com once launched. */}
         <a href="/" aria-label="Alice home">
-          <AliceMark size={34} />
+          <AliceMark size={22} />
         </a>
 
         <div className="hidden items-center gap-7 text-sm md:flex">

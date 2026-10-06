@@ -1,0 +1,695 @@
+{
+  "purpose": "acceptance-generation-40",
+  "frozenAt": "2026-10-05T16:09:14.088Z",
+  "reviewPolicy": {
+    "purpose": "Acceptance set: 40 model-routed questions, 20 subjects in English and French, written on 2026-10-05 after the corpus repair and before any generation run. None of them is a development case; rubrics are frozen at authoring and never adjusted to an answer.",
+    "qualityPass": "Pass: correct, relevant, covers every mustCover point in substance and stays grounded in the recorded context. Partial: one point missing or an unsupported but harmless detail. Fail: a wrong claim, a mustNotClaim statement, or the question left unanswered. Critical: a fail on a case marked critical, or any claim that could cost funds or access (recovery, exits, finality, backups).",
+    "independence": "Independent of the development cases, not of the project: authored by the same session that repaired the corpus, reviewed locally with model assistance, not by an independent human."
+  },
+  "sourcesReviewed": [
+    "https://bitcoin.org/bitcoin.pdf",
+    "https://bitcoincore.org/en/releases/28.0/",
+    "https://raw.githubusercontent.com/bitcoin/bips/master/bip-0125.mediawiki",
+    "https://raw.githubusercontent.com/bitcoin/bips/master/bip-0341.mediawiki",
+    "https://raw.githubusercontent.com/lightning/bolts/master/07-routing-gossip.md",
+    "https://docs.arkadeos.com/",
+    "https://github.com/bitcoin/bitcoin/blob/v30.0/doc/release-notes/release-notes-28.0.md"
+  ],
+  "provenance": {
+    "author": "main session, 2026-10-05",
+    "date": "2026-10-05",
+    "corpusState": "after the corpus repair of replace-by-fee, halving, node-types, ark-rounds-exits, asp-operator and recovery-phrase"
+  },
+  "cases": [
+    {
+      "id": "en-a01",
+      "language": "en",
+      "question": "When I send 0.3 BTC from a coin worth 1 BTC, what happens to the rest?",
+      "history": [],
+      "mustCover": [
+        "A transaction input is consumed whole; the remainder comes back as a change output to an address of the same wallet",
+        "Input value minus all outputs is the miner fee",
+        "The wallet builds change automatically; the user does not manage it by hand"
+      ],
+      "mustNotClaim": [
+        "that the remainder is lost or paid as fee",
+        "that any real transaction of the user was inspected"
+      ],
+      "critical": false,
+      "category": "utxo-change"
+    },
+    {
+      "id": "fr-a01",
+      "language": "fr",
+      "question": "Si j'envoie 0,3 BTC depuis une pièce qui vaut 1 BTC, que devient le reste ?",
+      "history": [],
+      "mustCover": [
+        "A transaction input is consumed whole; the remainder comes back as a change output to an address of the same wallet",
+        "Input value minus all outputs is the miner fee",
+        "The wallet builds change automatically; the user does not manage it by hand"
+      ],
+      "mustNotClaim": [
+        "that the remainder is lost or paid as fee",
+        "that any real transaction of the user was inspected"
+      ],
+      "critical": false,
+      "category": "utxo-change"
+    },
+    {
+      "id": "en-a02",
+      "language": "en",
+      "question": "Why do merchants wait for several confirmations before treating a payment as final?",
+      "history": [],
+      "mustCover": [
+        "An unconfirmed transaction can still be replaced or double-spent",
+        "Each confirmation deepens the block and makes a reorganisation less likely; finality is practical, not absolute",
+        "The wallet or merchant status is the authority for the state of a payment"
+      ],
+      "mustNotClaim": [
+        "that one confirmation is absolute finality",
+        "a specific number of confirmations required by consensus"
+      ],
+      "critical": false,
+      "category": "finality"
+    },
+    {
+      "id": "fr-a02",
+      "language": "fr",
+      "question": "Pourquoi les commerçants attendent-ils plusieurs confirmations avant de considérer un paiement comme définitif ?",
+      "history": [],
+      "mustCover": [
+        "An unconfirmed transaction can still be replaced or double-spent",
+        "Each confirmation deepens the block and makes a reorganisation less likely; finality is practical, not absolute",
+        "The wallet or merchant status is the authority for the state of a payment"
+      ],
+      "mustNotClaim": [
+        "that one confirmation is absolute finality",
+        "a specific number of confirmations required by consensus"
+      ],
+      "critical": false,
+      "category": "finality"
+    },
+    {
+      "id": "en-a03",
+      "language": "en",
+      "question": "Where does my transaction wait before it gets into a block?",
+      "history": [],
+      "mustCover": [
+        "Each node keeps its own mempool of valid unconfirmed transactions",
+        "Miners pick transactions by fee rate when building a block",
+        "A transaction can be evicted or expire from mempools and must then be resent"
+      ],
+      "mustNotClaim": [
+        "a live mempool size or current fee level as fact"
+      ],
+      "critical": false,
+      "category": "mempool-concept"
+    },
+    {
+      "id": "fr-a03",
+      "language": "fr",
+      "question": "Où attend ma transaction avant d'entrer dans un bloc ?",
+      "history": [],
+      "mustCover": [
+        "Each node keeps its own mempool of valid unconfirmed transactions",
+        "Miners pick transactions by fee rate when building a block",
+        "A transaction can be evicted or expire from mempools and must then be resent"
+      ],
+      "mustNotClaim": [
+        "a live mempool size or current fee level as fact"
+      ],
+      "critical": false,
+      "category": "mempool-concept"
+    },
+    {
+      "id": "en-a04",
+      "language": "en",
+      "question": "Is Bitcoin mining just wasted electricity?",
+      "history": [],
+      "mustCover": [
+        "Proof of work makes rewriting the transaction history expensive; the energy is the cost of that security",
+        "The debate is about what that security, neutrality and censorship resistance are worth",
+        "Explain tradeoffs rather than slogans in either direction"
+      ],
+      "mustNotClaim": [
+        "a specific current hashrate or energy figure as verified fact"
+      ],
+      "critical": false,
+      "category": "pow-energy"
+    },
+    {
+      "id": "fr-a04",
+      "language": "fr",
+      "question": "Le minage de Bitcoin, c'est juste de l'électricité gaspillée ?",
+      "history": [],
+      "mustCover": [
+        "Proof of work makes rewriting the transaction history expensive; the energy is the cost of that security",
+        "The debate is about what that security, neutrality and censorship resistance are worth",
+        "Explain tradeoffs rather than slogans in either direction"
+      ],
+      "mustNotClaim": [
+        "a specific current hashrate or energy figure as verified fact"
+      ],
+      "critical": false,
+      "category": "pow-energy"
+    },
+    {
+      "id": "en-a05",
+      "language": "en",
+      "question": "What happens to block times if half the miners switch off overnight?",
+      "history": [],
+      "mustCover": [
+        "Blocks arrive more slowly until the next difficulty adjustment",
+        "Difficulty adjusts about every 2016 blocks to bring the average back near ten minutes",
+        "No central coordinator intervenes; transactions still confirm, more slowly meanwhile"
+      ],
+      "mustNotClaim": [
+        "that difficulty adjusts instantly",
+        "that the network stops"
+      ],
+      "critical": false,
+      "category": "difficulty"
+    },
+    {
+      "id": "fr-a05",
+      "language": "fr",
+      "question": "Que deviennent les temps de bloc si la moitié des mineurs s'arrêtent du jour au lendemain ?",
+      "history": [],
+      "mustCover": [
+        "Blocks arrive more slowly until the next difficulty adjustment",
+        "Difficulty adjusts about every 2016 blocks to bring the average back near ten minutes",
+        "No central coordinator intervenes; transactions still confirm, more slowly meanwhile"
+      ],
+      "mustNotClaim": [
+        "that difficulty adjusts instantly",
+        "that the network stops"
+      ],
+      "critical": false,
+      "category": "difficulty"
+    },
+    {
+      "id": "en-a06",
+      "language": "en",
+      "question": "I only have a laptop with 100 GB free. Can I still verify Bitcoin myself?",
+      "history": [],
+      "mustCover": [
+        "A pruned node validates every block exactly like a full node",
+        "It deletes old block data and keeps the headers and the current UTXO set",
+        "It cannot serve old blocks to peers or rescan old history without downloading again; disk needs are orders of magnitude that change over time"
+      ],
+      "mustNotClaim": [
+        "that pruning weakens the node's own validation",
+        "a fixed current disk requirement presented as a guaranteed fact"
+      ],
+      "critical": false,
+      "category": "pruned-node"
+    },
+    {
+      "id": "fr-a06",
+      "language": "fr",
+      "question": "Je n'ai qu'un portable avec 100 Go de libre. Puis-je quand même vérifier Bitcoin moi-même ?",
+      "history": [],
+      "mustCover": [
+        "A pruned node validates every block exactly like a full node",
+        "It deletes old block data and keeps the headers and the current UTXO set",
+        "It cannot serve old blocks to peers or rescan old history without downloading again; disk needs are orders of magnitude that change over time"
+      ],
+      "mustNotClaim": [
+        "that pruning weakens the node's own validation",
+        "a fixed current disk requirement presented as a guaranteed fact"
+      ],
+      "critical": false,
+      "category": "pruned-node"
+    },
+    {
+      "id": "en-a07",
+      "language": "en",
+      "question": "What exactly does a light wallet trust that a full node does not?",
+      "history": [],
+      "mustCover": [
+        "A light client checks block headers and proof of work and uses Merkle proofs for inclusion, not every transaction rule",
+        "It relies on the proof-of-work assumption and on honest access to network data, not on a vote of the peers it queries",
+        "The servers it uses may learn its addresses"
+      ],
+      "mustNotClaim": [
+        "that SPV wallets fully validate consensus rules",
+        "a specific wallet's current trust model as live-checked"
+      ],
+      "critical": false,
+      "category": "spv-trust"
+    },
+    {
+      "id": "fr-a07",
+      "language": "fr",
+      "question": "Que doit croire exactement un portefeuille léger qu'un nœud complet n'a pas besoin de croire ?",
+      "history": [],
+      "mustCover": [
+        "A light client checks block headers and proof of work and uses Merkle proofs for inclusion, not every transaction rule",
+        "It relies on the proof-of-work assumption and on honest access to network data, not on a vote of the peers it queries",
+        "The servers it uses may learn its addresses"
+      ],
+      "mustNotClaim": [
+        "that SPV wallets fully validate consensus rules",
+        "a specific wallet's current trust model as live-checked"
+      ],
+      "critical": false,
+      "category": "spv-trust"
+    },
+    {
+      "id": "en-a08",
+      "language": "en",
+      "question": "Why did a tiny payment of mine cost almost the same fee as a large one?",
+      "history": [],
+      "mustCover": [
+        "The fee is the fee rate times the virtual size of the transaction, not a share of the amount",
+        "Size depends on the number and type of inputs and outputs",
+        "Demand for block space sets the rate; the wallet estimate is the reference to check"
+      ],
+      "mustNotClaim": [
+        "a current sat/vB figure as fact"
+      ],
+      "critical": false,
+      "category": "fee-size"
+    },
+    {
+      "id": "fr-a08",
+      "language": "fr",
+      "question": "Pourquoi un tout petit paiement m'a-t-il coûté presque les mêmes frais qu'un gros ?",
+      "history": [],
+      "mustCover": [
+        "The fee is the fee rate times the virtual size of the transaction, not a share of the amount",
+        "Size depends on the number and type of inputs and outputs",
+        "Demand for block space sets the rate; the wallet estimate is the reference to check"
+      ],
+      "mustNotClaim": [
+        "a current sat/vB figure as fact"
+      ],
+      "critical": false,
+      "category": "fee-size"
+    },
+    {
+      "id": "en-a09",
+      "language": "en",
+      "question": "Can I cancel a Bitcoin payment I sent by mistake?",
+      "history": [],
+      "mustCover": [
+        "A confirmed payment cannot be undone",
+        "While unconfirmed, a replacement paying more fee may be possible if the wallet supports it and node policies accept it; it is not guaranteed",
+        "Do not create a second independent payment; verify destination, amount and fee in the wallet before any replacement"
+      ],
+      "mustNotClaim": [
+        "that confirmed payments can be reversed",
+        "that Alice cancelled or replaced a real transaction"
+      ],
+      "critical": true,
+      "category": "rbf-cancel"
+    },
+    {
+      "id": "fr-a09",
+      "language": "fr",
+      "question": "Puis-je annuler un paiement Bitcoin envoyé par erreur ?",
+      "history": [],
+      "mustCover": [
+        "A confirmed payment cannot be undone",
+        "While unconfirmed, a replacement paying more fee may be possible if the wallet supports it and node policies accept it; it is not guaranteed",
+        "Do not create a second independent payment; verify destination, amount and fee in the wallet before any replacement"
+      ],
+      "mustNotClaim": [
+        "that confirmed payments can be reversed",
+        "that Alice cancelled or replaced a real transaction"
+      ],
+      "critical": true,
+      "category": "rbf-cancel"
+    },
+    {
+      "id": "en-a10",
+      "language": "en",
+      "question": "My wallet did not mark the transaction as replaceable. Does that mean nobody can replace it?",
+      "history": [],
+      "mustCover": [
+        "Opt-in signaling matters only under opt-in replacement policies",
+        "Nodes and miners applying full-RBF, the Bitcoin Core default since version 28.0, can replace an unsignaled transaction",
+        "Signaling improves predictability; neither replacement nor its absence is guaranteed"
+      ],
+      "mustNotClaim": [
+        "that all replacements universally require opt-in signaling",
+        "a current relay fee threshold as a live number"
+      ],
+      "critical": false,
+      "category": "rbf-signal"
+    },
+    {
+      "id": "fr-a10",
+      "language": "fr",
+      "question": "Mon portefeuille n'a pas marqué la transaction comme remplaçable. Personne ne peut donc la remplacer ?",
+      "history": [],
+      "mustCover": [
+        "Opt-in signaling matters only under opt-in replacement policies",
+        "Nodes and miners applying full-RBF, the Bitcoin Core default since version 28.0, can replace an unsignaled transaction",
+        "Signaling improves predictability; neither replacement nor its absence is guaranteed"
+      ],
+      "mustNotClaim": [
+        "that all replacements universally require opt-in signaling",
+        "a current relay fee threshold as a live number"
+      ],
+      "critical": false,
+      "category": "rbf-signal"
+    },
+    {
+      "id": "en-a11",
+      "language": "en",
+      "question": "Someone sent me 300 sats. Why does my wallet say it may be uneconomic to spend?",
+      "history": [],
+      "mustCover": [
+        "The fee to spend a small input can exceed its value",
+        "This economic cost is distinct from the dust relay policy that applies to creating outputs",
+        "It depends on the fee rate and the input type; there is no universal threshold"
+      ],
+      "mustNotClaim": [
+        "one fixed current dust threshold valid at all times"
+      ],
+      "critical": false,
+      "category": "dust"
+    },
+    {
+      "id": "fr-a11",
+      "language": "fr",
+      "question": "Quelqu'un m'a envoyé 300 sats. Pourquoi mon portefeuille dit-il que ce serait non rentable à dépenser ?",
+      "history": [],
+      "mustCover": [
+        "The fee to spend a small input can exceed its value",
+        "This economic cost is distinct from the dust relay policy that applies to creating outputs",
+        "It depends on the fee rate and the input type; there is no universal threshold"
+      ],
+      "mustNotClaim": [
+        "one fixed current dust threshold valid at all times"
+      ],
+      "critical": false,
+      "category": "dust"
+    },
+    {
+      "id": "en-a12",
+      "language": "en",
+      "question": "After the last halving, around 2140, who pays the miners?",
+      "history": [],
+      "mustCover": [
+        "The block subsidy reaches zero under the current rules and transaction fees remain",
+        "Fees are separate from the subsidy and already part of miner revenue",
+        "Whether fee demand will fund enough security is uncertain, not guaranteed"
+      ],
+      "mustNotClaim": [
+        "precise future fee levels",
+        "that fees are guaranteed to be sufficient"
+      ],
+      "critical": false,
+      "category": "subsidy-end"
+    },
+    {
+      "id": "fr-a12",
+      "language": "fr",
+      "question": "Après le dernier halving, vers 2140, qui paie les mineurs ?",
+      "history": [],
+      "mustCover": [
+        "The block subsidy reaches zero under the current rules and transaction fees remain",
+        "Fees are separate from the subsidy and already part of miner revenue",
+        "Whether fee demand will fund enough security is uncertain, not guaranteed"
+      ],
+      "mustNotClaim": [
+        "precise future fee levels",
+        "that fees are guaranteed to be sufficient"
+      ],
+      "critical": false,
+      "category": "subsidy-end"
+    },
+    {
+      "id": "en-a13",
+      "language": "en",
+      "question": "If I use a Taproot address, can observers still tell it is a multisig?",
+      "history": [],
+      "mustCover": [
+        "A key-path spend, including compatible multiparty signing, looks like a single-key spend and hides unused scripts",
+        "A script-path spend reveals the executed branch",
+        "Amounts, timing and address reuse still link activity; Taproot is not anonymity"
+      ],
+      "mustNotClaim": [
+        "that Taproot provides full anonymity",
+        "that Taproot hides amounts"
+      ],
+      "critical": false,
+      "category": "taproot-privacy"
+    },
+    {
+      "id": "fr-a13",
+      "language": "fr",
+      "question": "Si j'utilise une adresse Taproot, les observateurs peuvent-ils encore voir que c'est un multisig ?",
+      "history": [],
+      "mustCover": [
+        "A key-path spend, including compatible multiparty signing, looks like a single-key spend and hides unused scripts",
+        "A script-path spend reveals the executed branch",
+        "Amounts, timing and address reuse still link activity; Taproot is not anonymity"
+      ],
+      "mustNotClaim": [
+        "that Taproot provides full anonymity",
+        "that Taproot hides amounts"
+      ],
+      "critical": false,
+      "category": "taproot-privacy"
+    },
+    {
+      "id": "en-a14",
+      "language": "en",
+      "question": "Is it fine to print one Bitcoin address on my business cards?",
+      "history": [],
+      "mustCover": [
+        "Reusing one address links every payment together on the public chain",
+        "That harms privacy by letting observers cluster activity; the funds themselves are not lost",
+        "Prefer a fresh address per payment or a mechanism designed for repeated payments"
+      ],
+      "mustNotClaim": [
+        "that reuse loses funds",
+        "that a reused address is private"
+      ],
+      "critical": false,
+      "category": "address-reuse"
+    },
+    {
+      "id": "fr-a14",
+      "language": "fr",
+      "question": "Puis-je imprimer une seule adresse Bitcoin sur mes cartes de visite ?",
+      "history": [],
+      "mustCover": [
+        "Reusing one address links every payment together on the public chain",
+        "That harms privacy by letting observers cluster activity; the funds themselves are not lost",
+        "Prefer a fresh address per payment or a mechanism designed for repeated payments"
+      ],
+      "mustNotClaim": [
+        "that reuse loses funds",
+        "that a reused address is private"
+      ],
+      "critical": false,
+      "category": "address-reuse"
+    },
+    {
+      "id": "en-a15",
+      "language": "en",
+      "question": "After a CoinJoin, am I invisible on the blockchain?",
+      "history": [],
+      "mustCover": [
+        "CoinJoin mixes inputs and outputs to blur direct links",
+        "The gain depends on the anonymity set and on amount patterns",
+        "Later behaviour such as address reuse, timing or merging outputs can undo it; it is not absolute anonymity"
+      ],
+      "mustNotClaim": [
+        "perfect or absolute anonymity"
+      ],
+      "critical": false,
+      "category": "coinjoin-limits"
+    },
+    {
+      "id": "fr-a15",
+      "language": "fr",
+      "question": "Après un CoinJoin, suis-je invisible sur la blockchain ?",
+      "history": [],
+      "mustCover": [
+        "CoinJoin mixes inputs and outputs to blur direct links",
+        "The gain depends on the anonymity set and on amount patterns",
+        "Later behaviour such as address reuse, timing or merging outputs can undo it; it is not absolute anonymity"
+      ],
+      "mustNotClaim": [
+        "perfect or absolute anonymity"
+      ],
+      "critical": false,
+      "category": "coinjoin-limits"
+    },
+    {
+      "id": "en-a16",
+      "language": "en",
+      "question": "Why is a Lightning payment sometimes not cheaper than an on-chain one?",
+      "history": [],
+      "mustCover": [
+        "Routing fees combine a base fee and a proportional part per hop",
+        "Opening and closing channels costs on-chain fees, and liquidity limits usable routes",
+        "The wallet quote is the reference; no live routing figure can be given here"
+      ],
+      "mustNotClaim": [
+        "a live routing fee figure",
+        "that Lightning is always cheaper"
+      ],
+      "critical": false,
+      "category": "lightning-cost"
+    },
+    {
+      "id": "fr-a16",
+      "language": "fr",
+      "question": "Pourquoi un paiement Lightning n'est-il parfois pas moins cher qu'un paiement on-chain ?",
+      "history": [],
+      "mustCover": [
+        "Routing fees combine a base fee and a proportional part per hop",
+        "Opening and closing channels costs on-chain fees, and liquidity limits usable routes",
+        "The wallet quote is the reference; no live routing figure can be given here"
+      ],
+      "mustNotClaim": [
+        "a live routing fee figure",
+        "that Lightning is always cheaper"
+      ],
+      "critical": false,
+      "category": "lightning-cost"
+    },
+    {
+      "id": "en-a17",
+      "language": "en",
+      "question": "If the Ark operator disappears tomorrow, are my funds gone?",
+      "history": [],
+      "mustCover": [
+        "A vTXO holder can start a unilateral exit without the operator, using the exit data the wallet keeps",
+        "The exit publishes on-chain transactions, pays fees and waits for confirmations and timelocks before the coins are spendable",
+        "Expiry rules and timings depend on the wallet and server version; check them rather than assuming a universal rule"
+      ],
+      "mustNotClaim": [
+        "that the funds are lost or confiscated when the operator disappears",
+        "that exits are instant and unconditional everywhere"
+      ],
+      "critical": true,
+      "category": "ark-exit"
+    },
+    {
+      "id": "fr-a17",
+      "language": "fr",
+      "question": "Si l'opérateur Ark disparaît demain, mes fonds sont-ils perdus ?",
+      "history": [],
+      "mustCover": [
+        "A vTXO holder can start a unilateral exit without the operator, using the exit data the wallet keeps",
+        "The exit publishes on-chain transactions, pays fees and waits for confirmations and timelocks before the coins are spendable",
+        "Expiry rules and timings depend on the wallet and server version; check them rather than assuming a universal rule"
+      ],
+      "mustNotClaim": [
+        "that the funds are lost or confiscated when the operator disappears",
+        "that exits are instant and unconditional everywhere"
+      ],
+      "critical": true,
+      "category": "ark-exit"
+    },
+    {
+      "id": "en-a18",
+      "language": "en",
+      "question": "What can an Ark operator do with my money, and what can it not do?",
+      "history": [],
+      "mustCover": [
+        "It cannot move funds without the user's signature and cannot prevent a unilateral exit",
+        "It can stop cooperating, which makes exits slower and costlier, and it sees the activity it coordinates",
+        "Rounds, refreshes and vTXO expiry depend on its cooperation; the key question is which actions need it"
+      ],
+      "mustNotClaim": [
+        "that the operator is a simple custodian who can spend the funds",
+        "a specific version's behaviour as verified fact"
+      ],
+      "critical": false,
+      "category": "ark-operator"
+    },
+    {
+      "id": "fr-a18",
+      "language": "fr",
+      "question": "Que peut faire un opérateur Ark avec mon argent, et que ne peut-il pas faire ?",
+      "history": [],
+      "mustCover": [
+        "It cannot move funds without the user's signature and cannot prevent a unilateral exit",
+        "It can stop cooperating, which makes exits slower and costlier, and it sees the activity it coordinates",
+        "Rounds, refreshes and vTXO expiry depend on its cooperation; the key question is which actions need it"
+      ],
+      "mustNotClaim": [
+        "that the operator is a simple custodian who can spend the funds",
+        "a specific version's behaviour as verified fact"
+      ],
+      "critical": false,
+      "category": "ark-operator"
+    },
+    {
+      "id": "en-a19",
+      "language": "en",
+      "question": "Can I keep a photo of my recovery phrase in my password manager as a backup?",
+      "history": [],
+      "mustCover": [
+        "Avoid photos, cloud copies and digital notes; keep the backup offline on paper or metal, protected against loss, theft and damage",
+        "Never share it with anyone, including support; no one can recover a lost phrase",
+        "An optional passphrase is a separate secret and a separate way to lose funds, not a default recommendation"
+      ],
+      "mustNotClaim": [
+        "an example recovery phrase presented as real",
+        "that any single backup method is risk-free"
+      ],
+      "critical": true,
+      "category": "seed-photo"
+    },
+    {
+      "id": "fr-a19",
+      "language": "fr",
+      "question": "Puis-je garder une photo de ma phrase de récupération dans mon gestionnaire de mots de passe comme sauvegarde ?",
+      "history": [],
+      "mustCover": [
+        "Avoid photos, cloud copies and digital notes; keep the backup offline on paper or metal, protected against loss, theft and damage",
+        "Never share it with anyone, including support; no one can recover a lost phrase",
+        "An optional passphrase is a separate secret and a separate way to lose funds, not a default recommendation"
+      ],
+      "mustNotClaim": [
+        "an example recovery phrase presented as real",
+        "that any single backup method is risk-free"
+      ],
+      "critical": true,
+      "category": "seed-photo"
+    },
+    {
+      "id": "en-a20",
+      "language": "en",
+      "question": "I have 2 of my 3 multisig seeds. Is that enough to recover my coins?",
+      "history": [],
+      "mustCover": [
+        "A quorum of seeds alone may not reconstruct the wallet: the complete configuration or descriptor with all cosigner public keys, threshold, script policy and derivation paths is needed too",
+        "Verify recovery safely in a test, without sending seeds or keys to anyone",
+        "Keep backups in separate failure domains"
+      ],
+      "mustNotClaim": [
+        "that the seeds alone guarantee recovery",
+        "a fabricated descriptor or key presented as real"
+      ],
+      "critical": true,
+      "category": "multisig-recovery"
+    },
+    {
+      "id": "fr-a20",
+      "language": "fr",
+      "question": "J'ai 2 de mes 3 seeds multisig. Est-ce suffisant pour récupérer mes bitcoins ?",
+      "history": [],
+      "mustCover": [
+        "A quorum of seeds alone may not reconstruct the wallet: the complete configuration or descriptor with all cosigner public keys, threshold, script policy and derivation paths is needed too",
+        "Verify recovery safely in a test, without sending seeds or keys to anyone",
+        "Keep backups in separate failure domains"
+      ],
+      "mustNotClaim": [
+        "that the seeds alone guarantee recovery",
+        "a fabricated descriptor or key presented as real"
+      ],
+      "critical": true,
+      "category": "multisig-recovery"
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 'use client';
 
+import { ExplorerCopy } from '@/components/ExplorerUI';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChainDataProvider, RequestOptions } from '@/lib/explorer/provider';
 import { ChainDataError } from '@/lib/explorer/provider';
@@ -51,9 +53,9 @@ function WalletTxRow({ tx, addresses, onOpen }: {
     <button
       type="button"
       onClick={onOpen}
-      className="flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
-      style={{ borderTop: '1px solid var(--alice-border)' }}
-    >
+      className="alice-control alice-control--quiet flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
+
+    style={{ justifyContent: 'space-between' }}>
       <div className="flex flex-col min-w-0">
         <span className="font-numbers truncate" style={{ fontSize: 12, color: 'var(--alice-primary)' }} title={tx.txid}>{shortTxid(tx.txid)}</span>
         <span className="font-numbers" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
@@ -77,9 +79,9 @@ function AddressRow({ a, onOpen }: { a: DerivedAddress; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
-      style={{ borderTop: '1px solid var(--alice-border)' }}
-    >
+      className="alice-control alice-control--quiet flex items-center justify-between gap-3 w-full text-left cursor-pointer bg-transparent px-3 py-2"
+
+    style={{ justifyContent: 'space-between' }}>
       <div className="flex items-center gap-2 min-w-0">
         <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>
           {a.chain === 0 ? 'R' : 'C'}/{a.index}
@@ -88,7 +90,7 @@ function AddressRow({ a, onOpen }: { a: DerivedAddress; onOpen: () => void }) {
           {shortAddr(a.address)}
         </span>
         {a.stats.fundedCount > 1 && (
-          <span className="font-pixel tracking-widest shrink-0" style={{ fontSize: 10, padding: '2px 4px', border: '1px solid var(--alice-warning)', borderRadius: 2, color: 'var(--alice-warning)' }}>
+          <span className="font-numbers shrink-0" style={{ fontSize: 10, padding: '2px 4px', border: '1px solid var(--alice-warning)', borderRadius: 3, color: 'var(--alice-warning)' }}>
             REUSED
           </span>
         )}
@@ -283,7 +285,7 @@ export function ExplorerXpubTab({
 
   if (state.kind === 'error') {
     return (
-      <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 2 }}>
+      <div className="flex flex-col gap-1 px-4 py-3" style={{ border: '1px solid var(--alice-danger)', borderRadius: 3 }}>
         <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-danger)' }}>COULD NOT LOAD</span>
         <p className="font-numbers m-0" style={{ fontSize: 13, color: 'var(--alice-text)' }}>{state.message}</p>
       </div>
@@ -314,7 +316,7 @@ export function ExplorerXpubTab({
   if (!descriptor || !scan) {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 px-4 py-3" style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="flex flex-col gap-3 px-4 py-3" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}>
           <Skeleton width={180} height={16} />
           <Skeleton width="80%" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
@@ -350,13 +352,13 @@ export function ExplorerXpubTab({
       {/* Dashboard */}
       <div
         className="flex flex-col gap-3 px-4 py-3"
-        style={{ border: '1px solid var(--alice-border)', borderRadius: 2, backgroundColor: 'var(--alice-bg-soft)' }}
+        style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3, backgroundColor: 'transparent' }}
       >
         <div className="flex items-center gap-2 flex-wrap">
           <Badge tone="primary">{descriptor.kind === 'xpub' ? 'EXTENDED KEY' : 'DESCRIPTOR'}</Badge>
           <Badge tone="neutral">{SCRIPT_LABEL[descriptor.scriptHint] ?? descriptor.scriptHint}</Badge>
         </div>
-        <p className="font-numbers m-0 break-all" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{descriptor.receive}</p>
+        <div className="flex items-start gap-2"><p className="font-numbers m-0 break-all min-w-0 flex-1" style={{ fontSize: 11, color: 'var(--alice-muted)' }}>{descriptor.receive}</p><ExplorerCopy value={descriptor.receive} label="extended key or descriptor" /></div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
           <Metric label="BALANCE" value={<Amount sats={scan.balanceSats} style={{ fontSize: 13, color: 'var(--alice-text)' }} />} />
           <Metric label="USED ADDRESSES" value={scan.usedCount.toLocaleString('en-US')} />
@@ -389,8 +391,8 @@ export function ExplorerXpubTab({
           its addresses, with its net effect on the wallet. Loads with the
           balance history (bulk), so it appears once the walk lands. */}
       {historyState !== 'unsupported' && (scanning || scan.usedCount > 0) && (
-        <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
-          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
+        <div className="flex flex-col" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
+          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'transparent' }}>
             <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>TRANSACTIONS</span>
             <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
               {walletTxs.length > 0
@@ -400,7 +402,7 @@ export function ExplorerXpubTab({
           </div>
           {walletTxs.length === 0 ? (
             !scanning && historyState === 'done'
-              ? <EmptyState glyph="○" title="No transactions found" hint="No dated history came back for this wallet's addresses." />
+              ? <EmptyState title="No transactions found" hint="No dated history came back for this wallet's addresses." />
               : <div className="px-3 py-3"><SkeletonLines lines={4} /></div>
           ) : (
             <div className="rh-fade-in">
@@ -413,8 +415,8 @@ export function ExplorerXpubTab({
             <button
               type="button"
               onClick={() => setTxVisible(v => v + TX_PAGE)}
-              className="font-pixel tracking-widest cursor-pointer bg-transparent px-3 py-2"
-              style={{ fontSize: 10, color: 'var(--alice-primary)', borderTop: '1px solid var(--alice-border)' }}
+              className="alice-control alice-control--quiet font-numbers cursor-pointer bg-transparent px-3 py-2"
+              style={{ fontSize: 13, color: 'var(--alice-primary)', }}
             >
               LOAD {Math.min(TX_PAGE, walletTxs.length - txVisible)} MORE
             </button>
@@ -443,7 +445,7 @@ export function ExplorerXpubTab({
       ) : null}
 
       {scan.throttled && (
-        <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid var(--alice-warning)', borderRadius: 2 }}>
+        <div className="flex flex-col gap-2 px-4 py-3" style={{ border: '1px solid var(--alice-warning)', borderRadius: 3 }}>
           <Badge tone="medium">SCAN INCOMPLETE</Badge>
           <p className="font-numbers m-0" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>
             {provider.source.name} rate-limited the address lookups, so the scan stopped early and the totals
@@ -452,8 +454,8 @@ export function ExplorerXpubTab({
           <button
             type="button"
             onClick={() => openSettings('explorer')}
-            className="font-pixel tracking-widest self-start cursor-pointer"
-            style={{ fontSize: 10, padding: '6px 12px', border: '2px solid var(--alice-warning)', borderRadius: 2, color: 'var(--alice-warning)', backgroundColor: 'transparent' }}
+            className="alice-control alice-control--quiet font-numbers self-start cursor-pointer"
+            style={{ fontSize: 13, padding: '6px 12px', borderRadius: 3, color: 'var(--alice-warning)', }}
           >
             SET YOUR NODE →
           </button>
@@ -470,7 +472,7 @@ export function ExplorerXpubTab({
       {used.some(a => a.stats.fundedCount > 1) && (
         <div
           className="flex flex-col gap-2 px-4 py-3"
-          style={{ border: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-warning)', borderRadius: 2 }}
+          style={{ borderTop: '1px solid var(--alice-border)', borderLeft: '3px solid var(--alice-warning)', borderRadius: 3 }}
         >
           <span className="font-numbers" style={{ fontSize: 14, color: 'var(--alice-text)' }}>Address reuse in this wallet</span>
           <p className="font-numbers m-0" style={{ fontSize: 13, lineHeight: '19px', color: 'var(--alice-muted)' }}>
@@ -481,8 +483,8 @@ export function ExplorerXpubTab({
       )}
 
       {/* Derived, used addresses. */}
-      <div className="flex flex-col" style={{ border: '1px solid var(--alice-border)', borderRadius: 2 }}>
-        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--alice-bg-soft)' }}>
+      <div className="flex flex-col" style={{ borderTop: '1px solid var(--alice-border)', borderRadius: 3 }}>
+        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'transparent' }}>
           <span className="font-pixel tracking-widest" style={{ fontSize: 10, color: 'var(--alice-muted)' }}>USED ADDRESSES</span>
           <span className="font-numbers" style={{ fontSize: 12, color: 'var(--alice-muted)' }}>{used.length.toLocaleString('en-US')}</span>
         </div>
@@ -491,7 +493,6 @@ export function ExplorerXpubTab({
             <div className="px-3 py-3"><SkeletonLines lines={4} /></div>
           ) : (
             <EmptyState
-              glyph="○"
               title="No used addresses in range"
               hint="This wallet looks empty or unused. The derived addresses below still let you cross-check it."
             />

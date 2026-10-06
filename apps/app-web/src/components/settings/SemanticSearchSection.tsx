@@ -10,7 +10,7 @@ import {
   formatSize,
   getSemanticSearchState,
 } from '@alice-wallet/alice-ai';
-import { btnBase, DANGER, SectionHint, SectionLabel, sectionStyle } from './ui';
+import { SectionHint, SectionLabel, sectionStyle } from './ui';
 
 const SIZE_LABEL = formatSize(SEMANTIC_MODEL_DOWNLOAD_BYTES);
 
@@ -55,7 +55,7 @@ export function SemanticSearchSection() {
   if (state.status === 'unsupported') return null;
 
   const embedded = isEmbeddedDesktopBuild();
-  const progress = Math.round((state.progress ?? 0) * 100);
+  const progress = state.progress === null ? null : Math.round(state.progress * 100);
   const statusLine = embedded && state.status === 'idle'
     ? 'Included with the desktop app. Loads with your first question, nothing is downloaded.'
     : STATUS_COPY[state.status];
@@ -68,23 +68,22 @@ export function SemanticSearchSection() {
         Bitcoin knowledge by meaning, not just matching words. It never sends
         your questions anywhere.
       </SectionHint>
-      <p className="font-numbers m-0" style={{ fontSize: 14, opacity: 0.65, lineHeight: '18px' }}>
+      <p className="font-numbers m-0" style={{ fontSize: 14, opacity: 1, lineHeight: '18px' }}>
         {statusLine}
       </p>
-      {state.status === 'loading' && (
+      {state.status === 'loading' && progress !== null && (
         <div className="flex items-center gap-2 mt-2">
-          <div style={{ height: 6, flex: 1, border: '1px solid var(--alice-border)' }}>
+          <div role="progressbar" aria-label="Downloading semantic search model" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} style={{ height: 6, flex: 1, border: '1px solid var(--alice-border)' }}>
             <div style={{ height: '100%', width: `${progress}%`, backgroundColor: 'var(--alice-primary)' }} />
           </div>
-          <span className="font-pixel" style={{ fontSize: 10, opacity: 0.7 }}>{progress}%</span>
+          <span className="font-numbers" style={{ fontSize: 13, opacity: 1 }}>{progress}%</span>
         </div>
       )}
       <div className="flex gap-2 mt-3 flex-wrap">
         {(state.status === 'idle' || state.status === 'blocked-metered' || state.status === 'off' || state.status === 'failed') && (
           <button
             onClick={() => downloadSemanticSearchNow()}
-            className="font-pixel tracking-widest"
-            style={{ ...btnBase, backgroundColor: 'var(--alice-primary)', color: 'var(--alice-on-primary)' }}
+            className="alice-control alice-control--primary font-numbers"
           >
             {state.status === 'failed'
               ? embedded ? 'RETRY' : 'RETRY DOWNLOAD'
@@ -94,8 +93,7 @@ export function SemanticSearchSection() {
         {(state.status === 'ready' || state.status === 'loading') && (
           <button
             onClick={() => void disableSemanticSearch()}
-            className="font-pixel tracking-widest"
-            style={{ ...btnBase, backgroundColor: 'transparent', color: DANGER, borderColor: DANGER }}
+            className="alice-control alice-control--danger font-numbers"
           >
             {state.status === 'loading'
               ? 'CANCEL AND TURN OFF'

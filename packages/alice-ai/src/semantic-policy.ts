@@ -39,7 +39,7 @@ export const SEMANTIC_SEARCH_STATE_EVENT = 'alice-semantic-search-state';
 export const SEMANTIC_MODEL_DOWNLOAD_BYTES = 150_000_000;
 
 /** Exact GGUF size downloaded by the native runtime, without the web WASM files. */
-export const NATIVE_SEMANTIC_MODEL_DOWNLOAD_BYTES = 131_953_504;
+export const NATIVE_SEMANTIC_MODEL_DOWNLOAD_BYTES = 132_439_008;
 
 export function parseSemanticSearchPreference(raw: unknown): SemanticSearchPreference {
   return raw === 'off' ? 'off' : 'auto';
