@@ -27,15 +27,22 @@ by promise:
 - your conversations with Alice: questions are encrypted on your device
   before they reach our proxy, and answers are decrypted on your device;
 - your passwords: only salted hashes are stored;
-- your IP address as a durable record: it is hashed with a key that changes
-  every day, then forgotten. That protects it on our side, and a VPN protects
+- your IP address as a durable record: it is hashed together with the day
+  under a server-side secret, so the result changes daily, used only for rate
+  limiting, then forgotten. That protects it on our side, and a VPN protects
   it from everyone else you connect to, which we recommend.
 
 **Data we do collect**, the complete list and nothing else:
 
-- account data: a one-way fingerprint of your email (never the address
-  itself, we store a masked display form like `sat****@bitcoin.com`), your
+- account data, if you create an account: your email address, stored
+  encrypted so Alice can warn you before a paid plan runs out (the encryption
+  protects it if the database leaks, not from our server, which decrypts it to
+  send, so an alias works perfectly well), a one-way fingerprint of it used to
+  sign you in, a masked display form like `sat****@bitcoin.com`, your
   username, and quota counters for Private Cloud;
+- one usage record per Private Cloud request, against your account or your
+  anonymous installation: when it happened and, on a plan, how many encrypted
+  bytes it carried, never what it said, kept as long as the account exists;
 - aggregate, day-level product counters (app opened, chat opened…) keyed only
   by day, platform and app version, never by user, session or device;
 - whatever you explicitly put in a support report.
@@ -57,7 +64,8 @@ of these providers receives your seed or your chat history in clear.
 
 **The AI/wallet boundary**: the AI code cannot import wallet custody,
 signing or payment modules, and the wallet code cannot import AI modules.
-This is enforced by an automated check, not by convention:
+This is enforced by an automated check that runs in CI on every pull
+request, not by convention:
 
 ```bash
 cd apps/wallet-mobile && npm run check:ai-boundary
@@ -73,8 +81,10 @@ can be stored or sent to any AI backend.
   (a TEE, a processor mode that isolates code and memory from its own host),
   and that the encryption key is bound to that enclave. What Alice cannot yet
   verify is *which* enclave image runs, because Venice has not published
-  reference measurements. Until then, the UI must not claim full end-to-end
-  encryption. Details: [docs/security/private-cloud-e2ee.md](docs/security/private-cloud-e2ee.md).
+  reference measurements. Until then, short copy may say that messages are
+  encrypted end-to-end, every detailed explanation states this limit, and
+  nothing ever displays "E2EE verified". Details:
+  [docs/security/private-cloud-e2ee.md](docs/security/private-cloud-e2ee.md).
 - **E2EE turns are single-shot.** Venice does not encrypt assistant replies,
   so Alice drops them from the context instead of leaking them back.
 - **Semantic search runs on Android, Alice App web and Desktop, but not on
@@ -99,7 +109,7 @@ Alice App is more than the chat:
   Alice instead of dumped as hex.
 - **Learn**: the [Plan ₿ Network](https://planb.network) educational corpus
   (CC BY-SA 4.0), reshaped into per-language packs. English and French ship
-  in the app; 27 more languages download on demand from
+  in the app; 26 more languages download on demand from
   [alice-learn-planb-packs](https://github.com/mariusoffchain/alice-learn-planb-packs).
   Alice never rewrites the teaching text; she explains it when you get stuck.
 - **Playground**: a practice wallet on Mutinynet (a Bitcoin test network

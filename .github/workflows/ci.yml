@@ -22,4 +22,5 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm test
       - run: npm run check:types
+      - run: node apps/wallet-mobile/scripts/check-ai-wallet-boundary.js
       - run: npm run check:npm-audit

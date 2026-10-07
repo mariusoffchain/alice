@@ -14,8 +14,19 @@ export const metadata: Metadata = {
 const inApp: { title: string; detail: React.ReactNode }[] = [
   {
     title: 'Your questions',
-    detail:
-      'Encrypted on your device before they leave, readable only inside the confidential hardware that answers them. Or run Alice fully Local and nothing leaves at all. No one in between, including us, can read them.',
+    detail: (
+      <>
+        Encrypted on your device before they leave, readable only inside the confidential hardware
+        that answers them: no one in between, including us, can read them. Before every message,
+        Alice checks that this hardware is genuine and up to date. Which exact software runs inside
+        it cannot be verified yet, because the provider has not published its reference values, and
+        the{' '}
+        <a href="/trust/#status" className="text-[var(--alice-primary)] hover:underline">
+          trust page
+        </a>{' '}
+        tracks that limit. Or run Alice fully Local, and nothing leaves at all.
+      </>
+    ),
   },
   {
     title: 'Your keys',
@@ -25,7 +36,12 @@ const inApp: { title: string; detail: React.ReactNode }[] = [
   {
     title: 'Your email',
     detail:
-      'An account is optional, and when you create one we never store your address in clear: only a one-way fingerprint used to sign you in, plus a masked label like sat****@bitcoin.com.',
+      'An account is optional. When you create one, Alice keeps your address encrypted, so she can warn you before a paid plan runs out and, a few times a year, tell you what Alice can now do. Nothing else: no marketing, no partners. The encryption protects the address if the database or a backup leaks. It does not hide it from our server, which decrypts it to send, so an alias works perfectly well. Signing in uses a one-way fingerprint, and the app only shows a masked label like sat****@bitcoin.com.',
+  },
+  {
+    title: 'Your Private Cloud usage',
+    detail:
+      'To count your free questions and your plan, each Private Cloud request is recorded against your account, or against an anonymous installation if you have none: when it happened and, on a plan, how many encrypted bytes it carried, never what it said. These records last as long as the account does.',
   },
   {
     title: 'Your IP address',

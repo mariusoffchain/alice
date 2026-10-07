@@ -18,10 +18,17 @@ ciphertext through Alice's proxy and Venice's infrastructure, and is only
 decrypted **inside a hardware enclave (Intel TDX) that Alice tries to verify**.
 The reply comes back encrypted and is decrypted **on your device**.
 
-> Wording rule: only say *"Messages are encrypted on the user's device and can
-> only be decrypted by a successfully attested enclave matching Alice's approved
-> policy"* once the code actually enforces the full policy for that model, > i.e. the [assurance level](#assurance-levels) is `full`. Today it is not (see
-> the matrix), so the UI says **Private**, never "E2EE verified".
+> Wording rule (decided 2026-10-07): short headline copy may say that Private
+> Cloud messages are encrypted end-to-end, because the encryption itself runs
+> from the device to a key bound to an attested enclave. Every detailed
+> explanation (the trust, privacy and memory pages, these docs, the settings
+> details) must add that Alice verifies the enclave hardware before every
+> message but cannot yet verify which software runs inside it. Only say
+> *"Messages are encrypted on the user's device and can only be decrypted by a
+> successfully attested enclave matching Alice's approved policy"* once the
+> code actually enforces the full policy for that model, i.e. the
+> [assurance level](#assurance-levels) is `full`. Today it is not (see the
+> matrix), so nothing ever displays "E2EE verified".
 
 ## The flow
 
@@ -158,7 +165,7 @@ prompt, a response or a key.
 - **`attested-unpinned`**, DCAP + non-debug + key binding verified, but
   measurements are **not** pinned. Proves *a genuine TDX enclave that committed
   to this key*, **not** *Venice's specific approved code*. **UI must not claim
-  E2EE at this level.**
+  verified E2EE at this level**; headline copy follows the wording rule above.
 - **`pinned`**, the above plus measurements matched an approved reference.
 - **`full`**, the above plus GPU attestation where required.
 

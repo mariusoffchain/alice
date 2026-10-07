@@ -8,7 +8,7 @@ const FAQS: { q: string; a: string; link?: { label: string; href: string } }[] =
   },
   {
     q: 'Can Alice spend or move my Bitcoin?',
-    a: 'No. Alice is self-custodial: your keys stay on your device and the AI never holds them. The AI and the wallet are separate code, by construction: inside the app, the Playground is its own wallet with nothing shared with the model, and Alice Wallet on mobile, an experimental beta that holds real bitcoin and is meant for small amounts only, keeps that same separation. The wallet, not the model, validates and signs, so a prompt can never move your funds.',
+    a: 'No. Alice is self-custodial: your keys stay on your device and the AI never holds them. The AI and the wallet are separate code, by construction: inside the app, the Playground is its own wallet with nothing shared with the model, and Alice Wallet, an experimental beta that holds real bitcoin and is meant for small amounts only, keeps that same separation. The wallet, not the model, validates and signs, so a prompt can never move your funds.',
   },
   {
     q: 'Do you track me?',
@@ -20,7 +20,7 @@ const FAQS: { q: string; a: string; link?: { label: string; href: string } }[] =
   },
   {
     q: 'Is Alice on mainnet?',
-    a: 'Real funds are only possible today in Alice Wallet on mobile, through the Arkade protocol, and it is an experimental beta: keep amounts small while it is validated. The Playground inside Alice App only ever uses Mutinynet test coins, nothing there is real money. Private Cloud’s own end-to-end verification is also still being completed, and the trust page says exactly what is proven today.',
+    a: 'Real funds are only possible today in Alice Wallet, the Android app and the web wallet, and it is an experimental beta: keep amounts small while it is validated. The Playground inside Alice App only ever uses Mutinynet test coins, nothing there is real money. Private Cloud’s own end-to-end verification is also still being completed, and the trust page says exactly what is proven today.',
   },
   {
     q: 'What is Mutinynet?',
@@ -29,7 +29,7 @@ const FAQS: { q: string; a: string; link?: { label: string; href: string } }[] =
   },
   {
     q: 'Is Alice open source?',
-    a: 'Yes. The source, release tags, Android APK checksums, and security model are public, so anyone can inspect the code and verify the distributed beta.',
+    a: 'Yes. The source, release tags, Android APK checksums, and security model are public, so anyone can inspect the code and check that a downloaded file is the one we published. Builds are not yet reproducible byte for byte, so that check proves the file, not yet how it was built.',
   },
 ];
 

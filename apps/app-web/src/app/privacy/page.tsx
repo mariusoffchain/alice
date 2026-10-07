@@ -69,9 +69,9 @@ export default function PrivacyPage() {
             use.
           </li>
           <li>
-            Alice writes to you unasked only about a plan that is about to end,
-            three days before and on the day. Anything else is off unless you
-            turn it on in your account.
+            Alice writes to you unasked about a plan that is about to end, three
+            days before and on the day, and a few times a year about what Alice
+            can now do. Nothing else: no marketing, no partners.
           </li>
           <li>
             Alice stores your chosen display name, unique username and a salted,
@@ -175,7 +175,10 @@ export default function PrivacyPage() {
         </p>
         <p style={{ fontSize: 17, lineHeight: '26px' }}>
           Venice provides Private Cloud inference through Alice&apos;s end-to-end
-          encrypted transport.
+          encrypted transport. Before every message, Alice checks that Venice&apos;s
+          hardware enclave is genuine and up to date. Which exact software runs
+          inside it cannot be verified yet, because Venice has not published its
+          reference values.
         </p>
         <p style={{ fontSize: 17, lineHeight: '26px' }}>
           Alice does not use advertising identifiers, canvas fingerprints or wallet

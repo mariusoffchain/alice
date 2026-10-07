@@ -41,8 +41,9 @@ exact enclave image. It must not be described as full E2EE.
 
 Local AI runs on the device. The learning profile is local only and stores
 bounded topic-level counters, not a copy of a user message. Semantic retrieval
-is available on Android after an explicit model download; other beta surfaces
-use lexical retrieval.
+runs on Android, Alice App web and Desktop (an on-device embedding model,
+bundled with the desktop installer, downloaded on the other surfaces); the
+installable PWA stays on lexical retrieval.
 
 ### Third-party services
 
