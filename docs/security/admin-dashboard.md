@@ -25,15 +25,21 @@ phrases, wallet keys, balances, transactions, or even the fact that a wallet
 exists: the wallet apps never send any of it to this Worker, and no schema
 column could hold it. Chat prompts and AI responses: encrypted on the device,
 relayed as ciphertext, never readable here. Plaintext passwords: only salted
-hashes exist. Plaintext email addresses at rest: only a keyed one-way HMAC
-(for login lookup) and a masked display label (`sat****@bitcoin.com`) are
-stored.
+hashes exist. Plaintext email addresses at rest: none. Since 0.2.0 the
+address is kept encrypted (`account_emails`, key held by the Worker, see
+`src/email-vault.ts`) next to a keyed one-way HMAC for login lookup and a
+masked display label (`sat****@bitcoin.com`). The encryption protects it if
+the database or a backup leaks, not from the Worker, which decrypts it to send
+plan reminders; the interface suggests an alias.
 
 **2. Collected by Alice, the exhaustive list.** Account rows (username,
-display name, masked email label, HMAC email fingerprint, creation and
-last-use timestamps); password hashes (scrypt or PBKDF2, salted); session
-records (hashed tokens); quota counters and the cloud request ledger
-(confirmed/refunded, day-level, no model name, no content); pseudonymous
+display name, masked email label, HMAC email fingerprint, the encrypted
+email address, creation and last-use timestamps); password hashes (scrypt or
+PBKDF2, salted); session records (hashed tokens); quota counters and the cloud
+request ledger (one row per request: user id, status, encrypted byte counts,
+millisecond timestamps, no model name, no content, kept until the account is
+deleted); BTCPay invoices (amount, status, no email or username);
+pseudonymous
 installation rows (HMAC of a random install id, platform, app version,
 write-once milestone timestamps); day-level aggregate product counters
 (event × day × platform × version, no user id); technical error telemetry
@@ -43,7 +49,8 @@ access denials; promo codes and their redemptions.
 **3. Seen in transit but deliberately not kept.** The raw IP address is
 HMAC'd with a day-scoped key for rate limiting, then unrecoverable, no
 durable IP record exists. The email address transits once per login to send
-the verification code, and is not stored in clear. Request and response
+the verification code; what is kept is described in category 1. Request and
+response
 bodies are never read into logs; Cloudflare invocation logs are disabled in
 `wrangler.toml`.
 
@@ -252,8 +259,8 @@ database.
 [Product events](#product-events).
 
 **Accounts** (`GET /admin/api/accounts?q=`): search by username, exact email
-(hashed the same way login does, Alice never stores plaintext email, so
-there is no substring search over it), or support id. Anonymous
+(hashed the same way login does: the stored address is encrypted, so there
+is no substring search over it), or support id. Anonymous
 installations are excluded from this list; they are not accounts.
 
 **Account detail** (`GET /admin/api/accounts/:id`): username, display name,
@@ -525,22 +532,19 @@ node --test "apps/venice-proxy-worker/src/**/*.test.ts"
 
 ## Known limitations
 
-- **Payments, subscriptions and top-ups are not implemented, so the account
-  sheet cannot show them.** Alice has no billing system at all today:
-  `entitlements.plan` is CHECK-constrained to `'free'` in
-  `migrations/0001_accounts.sql`, there is no payment provider integration,
-  and no table records a subscription, a payment method or a top-up. The
-  "promo codes" here are a manual operator tool for granting extra free
-  requests, not a purchase flow.
+- **Billing is BTCPay Server only.** Since `migrations/0012_billing.sql`,
+  the Cloud plan is sold through BTCPay (`invoices`, `entitlements`,
+  `billing_reminders`, see [docs/billing-and-quotas.md](../billing-and-quotas.md)).
+  The "promo codes" here remain a manual operator tool for granting extra
+  free requests, not a purchase flow.
 
-  The plan is **BTCPay Server only** for the private beta, free to run, no
+  BTCPay Server is the only provider for the beta, free to run, no
   card data anywhere, and a natural fit for a Bitcoin wallet. Stripe is
-  deferred until commercialisation is actually decided. Billing work should
-  not start before that BTCPay Server exists. When it does, keep a
-  `provider` discriminator so Stripe can be added later without rewriting
-  the schema, and never store card data, only an opaque provider token plus
-  the brand/last-4 the provider echoes back, with the top-up ledger kept
-  separate from subscription state.
+  deferred until commercialisation is actually decided. The `invoices`
+  table keeps a `provider` discriminator so Stripe can be added later
+  without rewriting the schema; if it is, never store card data, only an
+  opaque provider token plus the brand/last-4 the provider echoes back, with
+  the top-up ledger kept separate from subscription state.
 - **No per-model usage stat**, by design, `cloud_request_ledger` does not
   record which model served a request, and adding that column would be new
   tracking.

@@ -55,8 +55,9 @@ Android build is unchanged and stays on `0.2.0`.
   action forgets everything.
 - Amounts, balances and exchange account names are refused on capture, in
   addition to addresses, keys and recovery words. There is no longer a cap on
-  the number of facts; on the phone, memory beyond what the keychain holds
-  moves to an encrypted file.
+  the number of facts; in the phone code, which reaches users with the next
+  Android build, memory beyond what the keychain holds moves to an encrypted
+  file.
 - "Remember that ..." keeps the sentence as you wrote it, only on an explicit
   request.
 - The website gains a page that explains what is kept, where, and how to

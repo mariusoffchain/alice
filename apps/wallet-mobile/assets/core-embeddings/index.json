@@ -282,8 +282,12 @@
     "docs-building__local-configuration",
     "docs-building__surface-builds",
     "docs-trademarks__alice-trademark-policy",
+    "docs-docs-beta-testing__alice-closed-beta",
     "docs-docs-beta-testing__tested-release",
     "docs-docs-beta-testing__available-surfaces",
+    "docs-docs-beta-testing__updating-alice-wallet-from-0-1-0",
+    "docs-docs-beta-testing__installing-alice-desktop-0-2-2",
+    "docs-docs-beta-testing__publishing-the-android-0-2-0-apk",
     "docs-docs-beta-testing__safety-rules",
     "docs-docs-beta-testing__suggested-test",
     "docs-docs-beta-testing__reporting-problems",
@@ -346,5 +350,5 @@
     "docs-docs-security-recovery-bundle__import-flow",
     "docs-docs-security-recovery-bundle__safety-requirements"
   ],
-  "corpusHash": "8103d998565d1e77d06680da909099ad760e9171fe862143825d27565a592116"
+  "corpusHash": "d9d37acfc81665498a9d45ba2926ba77fc248fa1d1a40ad9f367483621b9362c"
 }

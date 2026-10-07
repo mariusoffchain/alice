@@ -44,7 +44,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: 'Can I pay for several months at once?',
-    a: 'Yes. Prepaid months are added to whatever time you have left, never instead of it, and Alice can warn you by email before the last one runs out if you give her an address for exactly that.',
+    a: 'Yes. Prepaid months are added to whatever time you have left, never instead of it, and Alice warns you by email, at the address on your account, three days before the last one runs out and on the day.',
   },
   {
     q: 'How is usage counted if my messages are encrypted?',

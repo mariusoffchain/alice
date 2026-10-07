@@ -1,7 +1,8 @@
 # Alice Closed Beta
 
-Alice is currently in a closed mainnet beta. This build is intended for known
-testers using a fresh wallet and small amounts only.
+Alice App, on the web and on desktop, is a public beta. Alice Wallet, the
+Android app that holds real bitcoin, is a closed mainnet beta: its build is
+intended for known testers using a fresh wallet and small amounts only.
 
 ## Tested Release
 
@@ -277,11 +278,12 @@ result. Never include wallet secrets.
 - Private Cloud is currently `attested-unpinned`. Transport encryption and TDX
   attestation verification are implemented, but Venice has not yet published
   the reference measurements required to pin the exact enclave identity.
-- The stored Alice Memory remains on the device. Existing memories are not sent
-  to Private Cloud or Custom AI during this beta.
-- Semantic RAG is currently validated on Android. Alice Web, the installable
-  PWA and Desktop use lexical retrieval over the same knowledge base during
-  this beta.
+- Alice Memory is stored on the device only. The few facts relevant to a
+  message travel with it to the model you chose: inside the encrypted payload
+  for Private Cloud, to your own server for Custom AI, nowhere for Local.
+- Semantic retrieval runs on Android, Alice App web and Desktop; the
+  installable PWA stays on keyword retrieval over the same knowledge base.
+  Result quality was validated on Android.
 - Satora is an external swap service. If it is unavailable, direct Arkade and
   Bitcoin functions may still work, but swaps can fail.
 - The Android Lite model is intended for constrained phones and provides lower
